@@ -54,6 +54,7 @@ $$
   1. `anti-aliasing`
   2. `decimation`
 - 즉, `downsample only`는 본 기준 모델의 기본 경로가 아니다(비교 실험용 경로로만 허용).
+- 비교용 `downsample only` baseline 경로는 `sim/downsample_only_ideal.py`에서 별도로 다룬다.
 
 ## 4. 모듈/파일 계약
 
@@ -82,10 +83,15 @@ $$
 필수 제공 함수:
 
 - `decimate(x, m=2, phase=0) -> np.ndarray`
+  - 입력 `x`는 `np.ndarray` 1-D 배열로 받는다
+  - 내부 연산 및 반환 dtype은 `np.float64`
   - 구현 기준: `x[phase::m]`
   - 입력 검증:
+    - `x`는 finite 값만 포함해야 함
+    - `m`과 `phase`는 `int`
     - `m >= 1`
     - `0 <= phase < m`
+  - `phase=0`이면 `0, 2, 4, ...`, `phase=1`이면 `1, 3, 5, ...` 인덱스를 선택한다 (`m=2` 기준)
 
 ### 4.4 `model/ideal/fir_decimator_ideal.py`
 
@@ -93,7 +99,17 @@ $$
 
 - `run_fir_decimator_ideal(x, h, m=2, phase=0, return_intermediate=False)`
   - 내부에서 FIR 후 decimation 수행
-  - `return_intermediate=True`일 때 `y_fir`, `y_decim` 모두 반환
+  - `return_intermediate`는 `bool`이어야 함
+  - 기본값(False)에서는 `y_decim`만 반환
+  - `return_intermediate=True`일 때 `(y_fir, y_decim)` 튜플을 반환
+
+### 4.5 `sim/downsample_only_ideal.py`
+
+비교 실험용 제공 함수:
+
+- `run_downsample_only_ideal(x, m=2, phase=0) -> np.ndarray`
+  - FIR 없이 입력을 바로 decimation하는 baseline 경로
+  - anti-alias FIR 유무에 따른 alias 차이 비교용으로만 사용한다
 
 ## 5. 데이터 타입 및 수치 정책
 
@@ -111,6 +127,8 @@ $$
   - `len(y_fir) == len(x) + len(h) - 1`
 - Decimator 출력 길이:
   - `len(y_decim) == len(y_fir[phase::m])`
+- `downsample only` baseline 출력 길이:
+  - `len(y_downsample_only) == len(x[phase::m])`
 
 ### 6.2 주파수 특성 검증
 
