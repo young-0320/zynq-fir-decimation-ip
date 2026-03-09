@@ -10,7 +10,7 @@
 2. 구현 순서를 `anti_alias_fir -> decimator -> fir_decimator_ideal`으로 확정.
 3. golden 모델은 `signed 16-bit, Q4.12` 고정소수점으로 구현하되, ideal 모델과 동일한 구조(anti-alias FIR + decimation)로 구현하기로 결정.
 4. 필터 계수 생성 방식을 Kaiser window 기반으로 확정함.
-5. Kaiser 기반 LPF 계수 생성 함수를 먼저 구현하고 `num_taps`를 가변 파라미터로 열어둠(5/11/21/37/41 실험 가능).
+5. Kaiser 기반 LPF 계수 생성 함수를 먼저 구현하고 `num_taps`를 가변 파라미터로 열어둠(5/15/35/37/39/41 실험 가능).
 
 ## 2) 결정 근거
 
@@ -65,9 +65,9 @@
 ### 5. num_taps 가변 파라미터로 열어둔 근거
 
 - N 고정 시 단일 합성 결과만 얻어 PPA trade-off 분석 불가.
-- N=5/11/21/37/41 단계적 실험으로 탭 수 증가에 따른
+- N=5/15/35/37/39/41 단계적 실험으로 탭 수 증가에 따른
   DSP/LUT/Fmax 변화 곡선 도출 가능.
-- N=37(스펙 최초 만족)과 N=41(여유 확보)의 PPA 차이가
+- N=39(스펙 최초 만족)과 N=41(여유 확보)의 PPA 차이가
   핵심 비교 데이터.
 
 ## 3) 구현/검증 결과 (숫자 중심)
@@ -78,5 +78,5 @@
   - `estimate_num_taps(fs_in_hz, fp_hz, fs_hz, as_db)`
   - `design_kaiser_lpf(fs_in_hz, fp_hz, fs_hz, as_db, num_taps=None)`
 - 스펙 예시 검증 (`Fs=100e6, fp=15e6, fs=25e6, As=60`)
-  - 추정 탭수: `37`
+  - 추정 탭수: `39`
   - `num_taps=41` 시 `sum(h)=1.0`, 대칭성 확인(`h == h[::-1]`)

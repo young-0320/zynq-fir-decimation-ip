@@ -1,3 +1,4 @@
+# File: design_kaiser_coeff.py
 """Utilities to generate ideal FIR coefficients for simulation."""
 
 from __future__ import annotations
