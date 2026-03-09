@@ -5,7 +5,20 @@ from __future__ import annotations
 import math
 import numpy as np
 
-from scipy.signal import kaiserord
+
+def _validate_design_inputs(
+    fs_in_hz: float,
+    fp_hz: float,
+    fs_hz: float,
+    as_db: float,
+) -> None:
+    if fs_in_hz <= 0.0:
+        raise ValueError("fs_in_hz must be positive.")
+    if not (0.0 < fp_hz < fs_hz < fs_in_hz / 2.0):
+        raise ValueError("Expected 0 < fp_hz < fs_hz < fs_in_hz/2.")
+    if as_db <= 0.0:
+        raise ValueError("as_db must be positive.")
+
 
 def kaiser_beta(as_db: float) -> float:
     """Return Kaiser beta from stopband attenuation in dB."""
@@ -23,10 +36,14 @@ def estimate_num_taps(
     as_db: float,
 ) -> int:
     """Estimate odd number of taps using Kaiser approximation."""
-    transition_hz = fs_hz - fp_hz
-    if transition_hz <= 0.0:
-        raise ValueError("fs_hz must be greater than fp_hz.")
+    _validate_design_inputs(
+        fs_in_hz=fs_in_hz,
+        fp_hz=fp_hz,
+        fs_hz=fs_hz,
+        as_db=as_db,
+    )
 
+    transition_hz = fs_hz - fp_hz
     delta_omega = 2.0 * math.pi * transition_hz / fs_in_hz
     order = (as_db - 8.0) / (2.285 * delta_omega)
     num_taps = int(math.ceil(order)) + 1
@@ -56,12 +73,12 @@ def design_kaiser_lpf(
     Returns:
         FIR coefficients as float64 numpy array.
     """
-    if fs_in_hz <= 0.0:
-        raise ValueError("fs_in_hz must be positive.")
-    if not (0.0 < fp_hz < fs_hz < fs_in_hz / 2.0):
-        raise ValueError("Expected 0 < fp_hz < fs_hz < fs_in_hz/2.")
-    if as_db <= 0.0:
-        raise ValueError("as_db must be positive.")
+    _validate_design_inputs(
+        fs_in_hz=fs_in_hz,
+        fp_hz=fp_hz,
+        fs_hz=fs_hz,
+        as_db=as_db,
+    )
 
     if num_taps is None:
         num_taps = estimate_num_taps(
@@ -87,4 +104,3 @@ def design_kaiser_lpf(
     # Normalize DC gain to 1 for stable passband reference.
     h /= np.sum(h)
     return h.astype(np.float64, copy=False)
-

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from model.ideal.design_kaiser_coeff import design_kaiser_lpf
+from model.ideal.design_kaiser_coeff import design_kaiser_lpf, estimate_num_taps
 
 
 FS_IN_HZ = 100e6
@@ -76,4 +76,29 @@ def test_design_kaiser_lpf_rejects_invalid_parameters(
             fs_hz=fs_hz,
             as_db=as_db,
             num_taps=num_taps,
+        )
+
+
+@pytest.mark.parametrize(
+    ("fs_in_hz", "fp_hz", "fs_hz", "as_db"),
+    [
+        (0.0, FP_HZ, FS_HZ, AS_DB),
+        (FS_IN_HZ, 30e6, 25e6, AS_DB),
+        (FS_IN_HZ, FP_HZ, 60e6, AS_DB),
+        (FS_IN_HZ, FP_HZ, FS_HZ, 0.0),
+    ],
+)
+def test_estimate_num_taps_rejects_invalid_parameters(
+    fs_in_hz: float,
+    fp_hz: float,
+    fs_hz: float,
+    as_db: float,
+) -> None:
+    """탭 수 추정 함수도 잘못된 입력에 대해 예외를 발생시키는지 확인한다."""
+    with pytest.raises(ValueError):
+        estimate_num_taps(
+            fs_in_hz=fs_in_hz,
+            fp_hz=fp_hz,
+            fs_hz=fs_hz,
+            as_db=as_db,
         )
