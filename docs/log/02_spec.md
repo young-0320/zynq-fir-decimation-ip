@@ -1,7 +1,7 @@
 # 02. Anti-alias FIR 기준 정리 + Full Convolution 확정
 
 - 작성일: 2026-03-09
-- 단계: 2
+- 단계: 1
 - ideal anti-alias FIR 구현/검증/문서 sync
 
 ## 1) 이번 세션 핵심 결정
@@ -10,7 +10,6 @@
 2. ideal anti-alias FIR 출력 정책을 `centered same-length`가 아니라 `causal full convolution`으로 확정했다.
 3. ideal 모델에서는 초기 과도응답, tail, 필터 지연을 숨기지 않고 그대로 유지하기로 결정했다.
 4. 입력 `x`와 계수 `h`의 유효성 검증은 모듈 내부 private helper (`_validate_x`, `_validate_h`)에서 수행하기로 결정했다.
-5. `design_kaiser_coeff` 및 `anti_alias_fir` 단위테스트를 추가하고, `ideal_model_spec.md`를 현재 코드 기준으로 sync했다.
 
 ## 2) 결정 근거
 
@@ -27,7 +26,7 @@
 - 41탭 선형 위상 FIR 기준:
   - 과도응답/head-tail 길이: `L-1 = 40`
   - group delay: `(L-1)/2 = 20`
-- 위 두 값은 서로 다른 물리량이므로 ideal 모델에서 둘 다 드러나게 두는 편이 해석과 검증에 유리함.
+- 위 두 값은 서로 다른 물리량이므로 ideal 모델에서 둘 다 드러나게 두는 편이 해석과 검증에 유리하다고 판단.
 
 ### 3. 유효성 검증을 모듈 내부 helper로 둔 근거
 
@@ -39,39 +38,3 @@
   - `h` 비어 있지 않음
   - NaN/Inf 없음
   - 내부 `float64` 변환
-
-### 4. 이번 단위테스트 범위를 좁힌 근거
-
-- `design_kaiser_coeff` 테스트는 아래 불변식만 검증:
-  - 잘못된 파라미터 예외
-  - dtype/길이
-  - `sum(h) ~= 1.0` 정규화
-  - 대칭성
-- `anti_alias_fir` 테스트는 아래 항목만 검증:
-  - 출력이 `np.ndarray(float64)`인지
-  - full convolution 길이 유지 여부
-  - 빈 입력 처리
-  - impulse response
-  - `x/h` 유효성 검증
-- 멀티톤 alias 억제, Q4.12 in-range/over-range 평가는 unit test가 아니라 이후 integration/fixed 단계로 미룸.
-
-## 3) 구현/검증 결과 (숫자 중심)
-
-- 구현 파일: `/model/ideal/anti_alias_fir.py`
-- 추가/정리된 함수:
-  - `_validate_x(x: np.ndarray) -> np.ndarray`
-  - `_validate_h(h: np.ndarray) -> np.ndarray`
-  - `anti_alias_fir_ideal(x: np.ndarray, h: np.ndarray) -> np.ndarray`
-- 현재 FIR 출력 계약:
-  - 수식: `y[n] = sum(h[k] * x[n-k])`
-  - 출력 길이: `len(y) = len(x) + len(h) - 1`
-  - `x`가 빈 배열이면 빈 `float64` 배열 반환
-- 테스트 파일:
-  - `sim/test/ideal/test_design_kaiser_coeff.py`
-  - `sim/test/ideal/test_anti_alias_fir.py`
-- 실행 결과:
-  - `uv run pytest -q sim/test/ideal/test_design_kaiser_coeff.py` -> `8 passed`
-  - `uv run pytest -q sim/test/ideal/test_anti_alias_fir.py` -> `12 passed`
-  - `uv run pytest -q` -> `20 passed`
-- 문서 반영:
-  - `docs/ideal_model_spec.md`를 `anti_alias_fir_ideal + causal full convolution` 기준으로 수정 완료
