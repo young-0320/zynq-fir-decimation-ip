@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 import numpy as np
 
+from scipy.signal import kaiserord
 
 def kaiser_beta(as_db: float) -> float:
     """Return Kaiser beta from stopband attenuation in dB."""
@@ -85,3 +86,16 @@ def design_kaiser_lpf(
     # Normalize DC gain to 1 for stable passband reference.
     h /= np.sum(h)
     return h.astype(np.float64, copy=False)
+
+
+if __name__ == "__main__":
+    print(kaiser_beta(60.0))
+    print(estimate_num_taps(
+        100000000,
+        15000000,
+        25000000,
+        60.0,
+    ))
+    
+    numtaps, beta = kaiserord(60, 10/50)
+    print(f"numtaps: {numtaps}, beta: {beta:.5f}")
