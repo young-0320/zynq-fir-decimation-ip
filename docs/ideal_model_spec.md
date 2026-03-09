@@ -56,17 +56,24 @@ $$
 
 ## 4. 모듈/파일 계약
 
-### 4.1 `model/ideal/anti_alias_fir.py`
+### 4.1 `model/ideal/design_kaiser_coeff.py`
 
 필수 제공 함수:
 
 - `design_kaiser_lpf(fs_in_hz, fp_hz, fs_hz, as_db, num_taps=None) -> np.ndarray`
   - 반환: `float64` FIR 계수 `h` (길이 `N`, odd 권장)
+  - 역할: Kaiser window 기반 LPF 계수 설계 전용 모듈
+
+### 4.2 `model/ideal/anti_alias_fir.py`
+
+필수 제공 함수:
+
 - `apply_fir(x, h) -> np.ndarray`
   - 입력 `x`, `h`를 받아 causal FIR 출력을 반환
   - 반환 길이는 입력 길이와 동일(`len(y)==len(x)`)로 맞춘다
+  - 계수 `h`는 외부에서 주입받는다
 
-### 4.2 `model/ideal/decimator.py`
+### 4.3 `model/ideal/decimator.py`
 
 필수 제공 함수:
 
@@ -76,7 +83,7 @@ $$
     - `m >= 1`
     - `0 <= phase < m`
 
-### 4.3 `model/ideal/fir_decimator_ideal.py`
+### 4.4 `model/ideal/fir_decimator_ideal.py`
 
 필수 제공 함수:
 
@@ -117,7 +124,7 @@ $$
 
 ## 8. 구현 체크리스트
 
-- [ ] Kaiser 기반 LPF 계수 설계 함수 구현
+- [ ] `design_kaiser_coeff.py`에 Kaiser 기반 LPF 계수 설계 함수 구현
 - [ ] FIR 적용 함수 구현(초기 상태 0, 출력 길이 입력과 동일)
 - [ ] Decimation 함수 구현(`x[phase::m]`)
 - [ ] Top-level 연결 함수 구현

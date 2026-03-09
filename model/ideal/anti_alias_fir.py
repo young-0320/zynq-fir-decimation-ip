@@ -2,6 +2,7 @@
 # Role: 1D FIR IDEAL (부동소수점) 참조 모델과 입력/계수 검증 로직을 제공한다.
 
 import math
+import numpy as np
 from collections.abc import Sequence
 
 # MAX_ABS_H_COEFF = 8.0
@@ -41,13 +42,13 @@ from collections.abc import Sequence
 # def _clamp_x(x: Sequence[int]) -> list[int]:
 #     return [max(0, min(255, s)) for s in x]
 
-def fir_1d_ideal(x: Sequence[int | float], h: Sequence[float]) -> list[float]:
-    _validate_h_coefficients(h)
-    x_1= _validate_x(x)
-    x_2= _round_half_up_x(x_1)
-    x_sat = _clamp_x(x_2)
+def anti_alias_fir_ideal(x: Sequence[int | float], h: np.ndarray) -> list[float]:
+    # _validate_h_coefficients(h)
+    # x_1= _validate_x(x)
+    # x_2= _round_half_up_x(x_1)
+    # x_sat = _clamp_x(x_2)
 
-    N = len(x_sat)
+    N = len(x)
     num_taps = len(h)  # 필터 h의 길이, 탭 수 
     center = num_taps // 2
 
