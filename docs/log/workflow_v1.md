@@ -32,8 +32,8 @@
 1. 스펙/의사결정: `docs/ideal_model_spec.md`, `docs/log/*.md`
 2. 이상 모델 코드: `model/ideal/*.py`
 3. 고정소수점/골든: `model/fixed/*.py`
-4. 테스트: `sim/test/ideal/*.py` (추후 fixed/rtl 확장)
-5. 실험 보조 스크립트: `sim/*.py`
+4. 테스트: `sim/python/test/ideal/*.py` (추후 fixed/rtl 확장)
+5. 실험 보조 스크립트: `sim/python/*.py`
 6. 이미지/그래프: `docs/asset/*`
 
 ## 5) 의사결정 기록 템플릿

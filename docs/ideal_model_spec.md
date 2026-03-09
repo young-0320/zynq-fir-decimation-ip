@@ -54,7 +54,7 @@ $$
   1. `anti-aliasing`
   2. `decimation`
 - 즉, `downsample only`는 본 기준 모델의 기본 경로가 아니다(비교 실험용 경로로만 허용).
-- 비교용 `downsample only` baseline 경로는 `sim/downsample_only_ideal.py`에서 별도로 다룬다.
+- 비교용 `downsample only` baseline 경로는 `sim/python/downsample_only_ideal.py`에서 별도로 다룬다.
 
 ## 4. 모듈/파일 계약
 
@@ -103,7 +103,7 @@ $$
   - 기본값(False)에서는 `y_decim`만 반환
   - `return_intermediate=True`일 때 `(y_fir, y_decim)` 튜플을 반환
 
-### 4.5 `sim/downsample_only_ideal.py`
+### 4.5 `sim/python/downsample_only_ideal.py`
 
 비교 실험용 제공 함수:
 

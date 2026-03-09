@@ -58,4 +58,4 @@ def test_run_fir_decimator_ideal_rejects_non_bool_return_intermediate() -> None:
     h = np.array([1.0], dtype=np.float64)
 
     with pytest.raises(TypeError):
-        run_fir_decimator_ideal(x, h, return_intermediate=1)
+        run_fir_decimator_ideal(x, h, return_intermediate=0)
