@@ -1,14 +1,14 @@
 # FIR Decimation 프로젝트 워크플로우 v1
 
 - 작성일: 2026-03-08
-- 목적: 1인 풀사이클(모델링 -> RTL -> 검증 -> 자산화)을 재현 가능하게 운영
+- 목적: ideal Python reference model 단계까지를 재현 가능하게 운영
 
 ## 1) 완료 조건 (Definition of Done)
 
 1. `model/ideal` 참조 모델 동작 검증 완료(FIR -> decimation 체인).
-2. `model/fixed` 및 RTL 결과가 기준 테스트에서 합의된 오차/비트 기준 충족.
-3. 실험 결과(정량 지표 + 재현 명령어 + 산출물 경로)가 문서에 남아 있음.
-4. 후배가 같은 절차로 재실행 가능한 수준의 로그/가이드가 존재함.
+2. ideal 단계 테스트가 `sim/python/test/ideal` 기준으로 통과함.
+3. ideal 단계 실험 결과(정량 지표 + 재현 명령어 + 산출물 경로)가 문서에 남아 있음.
+4. 이후 fixed/golden 단계로 넘어가기 위한 스펙/로그/기준 모델이 정리되어 있음.
 
 ## 2) 주간 루틴
 
@@ -17,10 +17,9 @@
 3. 금: 로그 정리(`docs/log/*.md`) + 다음 주 TODO 확정.
 4. 주말: Velog 초안 업데이트(결정-근거-결과 구조).
 
-## 3) 하루 운영 규칙 (아날로그 노트 병행)
+## 3) 하루 운영 규칙 
 
-1. 노트에는 자유롭게 사고/스케치 작성.
-2. 하루 마감 10분 동안 아래 5줄을 `docs/log`에 전사:
+1. 하루 마감 10분 동안 아래 5줄을 `docs/log`에 전사:
    - 오늘 결정 1개
    - 근거 수치 1개
    - 실패/수정 1개
@@ -31,10 +30,9 @@
 
 1. 스펙/의사결정: `docs/ideal_model_spec.md`, `docs/log/*.md`
 2. 이상 모델 코드: `model/ideal/*.py`
-3. 고정소수점/골든: `model/fixed/*.py`
-4. 테스트: `sim/python/test/ideal/*.py` (추후 fixed/rtl 확장)
-5. 실험 보조 스크립트: `sim/python/*.py`
-6. 이미지/그래프: `docs/asset/*`
+3. 테스트: `sim/python/test/ideal/*.py`
+4. 실험 보조 스크립트: `sim/python/*.py`
+5. 이미지/그래프: `docs/asset/*`
 
 ## 5) 의사결정 기록 템플릿
 
@@ -57,4 +55,5 @@
 
 1. `workflow_v1.md`는 주 1회만 수정(운영 흔들림 방지).
 2. 실험/결정 기록은 `docs/log`에 매일 누적.
-3. 큰 변경(스펙 변경, 아키텍처 변경)은 변경 사유를 반드시 로그에 남김.
+3. v1의 스코프는 ideal Python model 단계까지로 한정한다.
+4. fixed/golden 단계부터는 `workflow_v2.md`를 기준 문서로 사용한다.
