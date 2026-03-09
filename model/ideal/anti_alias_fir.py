@@ -35,19 +35,21 @@ def anti_alias_fir_ideal(x: np.ndarray, h: np.ndarray) -> np.ndarray:
     h = _validate_h(h)
 
     N = len(x)
-    num_taps = len(h)  # 필터 h의 길이, 탭 수
-    center = num_taps // 2
+    num_taps = len(h)       # 필터 h의 길이, 탭 수
+    L = N + num_taps - 1    # 출력 길이
+    if N == 0:
+        return np.array([], dtype=np.float64)
 
-    y = np.zeros(N, dtype=np.float64)
+    y = np.zeros(L, dtype=np.float64)
 
-    for n in range(N):
+    for n in range(len(y)):
         acc = 0.0  # Accumulator
         for k in range(num_taps):
-            input_idx = n - k + center
+            input_idx = n - k
             if 0 <= input_idx < N:
                 acc += h[k] * x[input_idx]
 
-        # Ideal spec: output is pass-through float (no clamp)
+        # Ideal FIR keeps startup transient and tail in the full convolution.
         y[n] = acc
 
     return y

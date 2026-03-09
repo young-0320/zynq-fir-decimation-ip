@@ -32,7 +32,8 @@ $$
 y_{\mathrm{fir}}[n] = \sum_{k=0}^{N-1} h[k] \cdot x[n-k]
 $$
 
-- 초기 상태는 0으로 가정한다(과도 구간 존재).
+- `x[n-k]`의 범위가 입력 밖이면 0으로 간주한다.
+- 출력은 full convolution을 유지하며, 초기 과도응답과 tail을 그대로 포함한다.
 - ideal 모델에서는 계수/연산 모두 `float64`를 사용한다.
 
 ### 3.2 Decimator
@@ -68,9 +69,12 @@ $$
 
 필수 제공 함수:
 
-- `apply_fir(x, h) -> np.ndarray`
+- `anti_alias_fir_ideal(x, h) -> np.ndarray`
   - 입력 `x`, `h`를 받아 causal FIR 출력을 반환
-  - 반환 길이는 입력 길이와 동일(`len(y)==len(x)`)로 맞춘다
+  - 입력/계수는 `np.ndarray` 1-D 배열로 받는다
+  - 내부 연산 및 반환 dtype은 `np.float64`
+  - 반환 길이는 full convolution 기준 `len(y) = len(x) + len(h) - 1`
+  - `x`가 빈 배열이면 빈 `float64` 배열을 반환한다
   - 계수 `h`는 외부에서 주입받는다
 
 ### 4.3 `model/ideal/decimator.py`
@@ -103,8 +107,10 @@ $$
 ### 6.1 기능 검증
 
 - `Fs_out == Fs_in / M`가 항상 성립해야 함.
-- 임의 입력 길이 `L`에 대해 출력 길이:
-  - `len(y_decim) == floor((L - phase + (m - 1)) / m)`
+- FIR 출력 길이:
+  - `len(y_fir) == len(x) + len(h) - 1`
+- Decimator 출력 길이:
+  - `len(y_decim) == len(y_fir[phase::m])`
 
 ### 6.2 주파수 특성 검증
 
@@ -125,7 +131,7 @@ $$
 ## 8. 구현 체크리스트
 
 - [ ] `design_kaiser_coeff.py`에 Kaiser 기반 LPF 계수 설계 함수 구현
-- [ ] FIR 적용 함수 구현(초기 상태 0, 출력 길이 입력과 동일)
+- [ ] FIR 적용 함수 구현(초기 상태 0, full convolution 출력)
 - [ ] Decimation 함수 구현(`x[phase::m]`)
 - [ ] Top-level 연결 함수 구현
 - [ ] 멀티톤 입력으로 alias 억제 동작 확인
