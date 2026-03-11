@@ -50,6 +50,16 @@ def quantize_q1_15(x: np.ndarray) -> np.ndarray:
         np.floor(scaled + 0.5),
         np.ceil(scaled - 0.5),
     )
+    # 클리핑 발생 여부 감지
+    clip_mask = (rounded < -(2**15)) | (rounded > (2**15) - 1)
+    if np.any(clip_mask):
+        print(
+            f"[WARN] overdrive 발생: "
+            f"{np.sum(clip_mask)}샘플 클리핑, "
+            f"max={np.max(rounded):.1f}, "
+            f"min={np.min(rounded):.1f}"
+        )
+    
     x_q = np.clip(rounded, -(2**15), (2**15) - 1)
     return x_q.astype(np.int16)
 
@@ -71,3 +81,9 @@ if __name__ == "__main__":
 
     quantized = quantize_q1_15(multitone)
     print(quantized[:10])  # Print first 10 quantized samples
+
+    print(f"\n[Q1.15 양자화 결과]")
+    print(f"  max  = {np.max(quantized)}")
+    print(f"  min  = {np.min(quantized)}")
+    print(f"  peak = {np.max(np.abs(quantized.astype(np.int32)))}")
+    print(f"  클리핑 여부 = {np.any(np.abs(quantized.astype(np.int32)) == 32768) or np.max(quantized) == 32767}")

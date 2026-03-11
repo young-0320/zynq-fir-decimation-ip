@@ -1,4 +1,4 @@
-# FIR Decimation Input Signal Spec
+# FIR Decimation Bring up Input Signal Spec
 
 ## 1. 목적
 
@@ -28,22 +28,22 @@
 
 ### 3.2 Bring-up Multitone Profile
 
-| 항목 | 확정값 | 엔지니어링 코멘트 |
-| --- | --- | --- |
-| 파형 종류 | `sine` | `phase=0`에서 시작값이 단순하고 디버깅이 쉽다 |
-| 샘플 수 | `8192` | `2^13` 길이로 메모리/버퍼 관리가 단순하다 |
-| 생성 dtype | `np.float64` | 합성/정규화/분석 기준을 부동소수점으로 유지한다 |
+| 항목           | 확정값                  | 엔지니어링 코멘트                                                |
+| -------------- | ----------------------- | ---------------------------------------------------------------- |
+| 파형 종류      | `sine`                | `phase=0`에서 시작값이 단순하고 디버깅이 쉽다                  |
+| 샘플 수        | `8192`                | `2^13` 길이로 메모리/버퍼 관리가 단순하다                      |
+| 생성 dtype     | `np.float64`          | 합성/정규화/분석 기준을 부동소수점으로 유지한다                  |
 | 출력 배열 계약 | `np.ndarray`, `1-D` | Python model, testbench, RTL vector dump 인터페이스를 단순화한다 |
-| DC 성분 | 없음 | bring-up 단계에서 offset 이슈를 분리한다 |
-| 추가 정규화 | 없음 | 각 tone amplitude의 의미를 그대로 유지한다 |
+| DC 성분        | 없음                    | bring-up 단계에서는 offset 이슈를 분리한다                      |
+| 추가 정규화    | 없음                    | 각 tone amplitude의 의미를 그대로 유지한다                       |
 
 ### 3.3 Tone 구성
 
-| 톤 인덱스 | 주파수 | 대역 역할 | 진폭 | 위상 |
-| --- | --- | --- | --- | --- |
-| Tone 0 | `5 MHz` | 통과대역 대표 | `0.3` | `0` |
-| Tone 1 | `20 MHz` | 천이대역 대표 | `0.3` | `0` |
-| Tone 2 | `30 MHz` | 차단대역 대표 | `0.3` | `0` |
+| 톤 인덱스 | 주파수     | 대역 역할     | 진폭    | 위상  |
+| --------- | ---------- | ------------- | ------- | ----- |
+| Tone 0    | `5 MHz`  | 통과대역 대표 | `0.3` | `0` |
+| Tone 1    | `20 MHz` | 천이대역 대표 | `0.3` | `0` |
+| Tone 2    | `30 MHz` | 차단대역 대표 | `0.3` | `0` |
 
 - 톤 개수: `3`
 - 전체 amplitude 합: `0.9`
@@ -68,26 +68,26 @@ $$
 
 ### 3.5 스케일링과 Headroom
 
-| 항목 | 확정값 | 엔지니어링 코멘트 |
-| --- | --- | --- |
-| full-scale 기준 | `signed Q1.15`의 `[-1.0, +0.999969482421875]` | fixed-point 입출력 기준선 |
-| amplitude 합 budget | `0.9` | 각 tone 진폭을 균등 배분한 bring-up budget |
-| headroom | `0.1` | 입력 full-scale 대비 여유를 남긴다 |
-| clipping 허용 여부 | 허용 안 함 | 입력 생성 단계에서 overdrive를 숨기지 않는다 |
+| 항목                | 확정값                                            | 엔지니어링 코멘트                            |
+| ------------------- | ------------------------------------------------- | -------------------------------------------- |
+| full-scale 기준     | `signed Q1.15`의 `[-1.0, +0.999969482421875]` | fixed-point 입출력 기준선                    |
+| amplitude 합 budget | `0.9`                                           | 각 tone 진폭을 균등 배분한 bring-up budget   |
+| headroom            | `0.1`                                           | 입력 full-scale 대비 여유를 남긴다           |
+| clipping 허용 여부  | 허용 안 함                                        | 입력 생성 단계에서 overdrive를 숨기지 않는다 |
 
 ## 4. 생성 모듈/파일 계약
 
 필수 제공 산출물:
 
-| 항목 | 계약 |
-| --- | --- |
-| 입력 신호 생성 함수 | `model/ideal/gen_multitone.py`의 `generate_multitone()` |
-| Q1.15 양자화 함수 | `model/ideal/gen_multitone.py`의 `quantize_q1_15()` |
-| pre-quant 출력 dtype | `np.float64` |
-| post-quant 출력 dtype | `np.int16` |
-| 배열 shape | `1-D ndarray` |
-| 저장 포맷 | `signed 16-bit, Q1.15` |
-| 양자화 시점 | 멀티톤 합산 후 1회 |
+| 항목                  | 계약                                                        |
+| --------------------- | ----------------------------------------------------------- |
+| 입력 신호 생성 함수   | `model/ideal/gen_multitone.py`의 `generate_multitone()` |
+| Q1.15 양자화 함수     | `model/ideal/gen_multitone.py`의 `quantize_q1_15()`     |
+| pre-quant 출력 dtype  | `np.float64`                                              |
+| post-quant 출력 dtype | `np.int16`                                                |
+| 배열 shape            | `1-D ndarray`                                             |
+| 저장 포맷             | `signed 16-bit, Q1.15`                                    |
+| 양자화 시점           | 멀티톤 합산 후 1회                                          |
 
 ### 4.1 양자화 규칙
 
