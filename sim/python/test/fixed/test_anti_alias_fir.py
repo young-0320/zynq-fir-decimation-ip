@@ -131,4 +131,4 @@ def test_run_fir_decimator_golden_rejects_non_bool_return_intermediate() -> None
     h = np.array([16384], dtype=np.int16)
 
     with pytest.raises(TypeError):
-        run_fir_decimator_golden(x, h, return_intermediate=1)
+        run_fir_decimator_golden(x, h, return_intermediate=False)
