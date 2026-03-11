@@ -52,3 +52,22 @@ def quantize_q1_15(x: np.ndarray) -> np.ndarray:
     )
     x_q = np.clip(rounded, -(2**15), (2**15) - 1)
     return x_q.astype(np.int16)
+
+if __name__ == "__main__":
+    # Example usage:
+    fs = 100000000
+    freqs = [5000000.0, 20000000.0, 30000000.0]
+    amps = [0.3, 0.3, 0.3]
+    phases = [0.0, 0.0, 0.0]
+
+    multitone = generate_multitone(
+        num_samples=8192,
+        fs_hz=fs,
+        tone_freqs_hz=freqs,
+        amplitudes=amps,
+        phases_rad=phases,
+    )
+    print(multitone[:10])  # Print first 10 samples
+
+    quantized = quantize_q1_15(multitone)
+    print(quantized[:10])  # Print first 10 quantized samples
