@@ -1,0 +1,202 @@
+# FIR Decimator Fixed Model Spec
+
+## 1. 목적
+
+본 문서는 `model/fixed`에 구현할 고정소수점(fixed-point) golden 모델의 동작 사양 초안을 정의한다.
+
+- 대상: `FIR anti-aliasing + decimation(M=2)` 파이프라인
+- 용도: RTL bit-exact 비교 기준, ideal 모델과 RTL 사이의 golden reference
+- 선행 조건: 입력 신호 생성 제약은 `docs/input_signal_spec.md`에서 먼저 확정한다
+
+## 2. 시스템 사양
+
+- 입력 샘플링 주파수: `Fs_in = 100e6` (Hz)
+- 디시메이션 계수: `M = 2`
+- 출력 샘플링 주파수: `Fs_out = Fs_in / M = 50e6` (Hz)
+- 통과대역 경계: `fp = 15e6` (Hz)
+- 저지대역 시작: `fs = 25e6` (Hz)
+- 목표 저지대역 감쇠: `As >= 60 dB`
+- FIR 설계법: Kaiser window
+- 기본 탭 수:
+  - bring-up: `N = 5`
+  - 제출용: `N = 41`
+- 데이터/계수 포맷(작업 가정): `signed 16-bit, Q4.12`
+
+## 3. 블록 정의
+
+### 3.1 Anti-alias FIR
+
+- 선형 위상 저역통과 FIR.
+- 입력 `x[n]`에 대해 아래 수식을 따른다.
+
+$$
+y_{\mathrm{fir}}[n] = \sum_{k=0}^{N-1} h[k] \cdot x[n-k]
+$$
+
+- `x[n-k]`의 범위가 입력 밖이면 0으로 간주한다.
+- 출력은 full convolution을 유지하며, 초기 과도응답과 tail을 그대로 포함한다.
+- fixed/golden 모델은 ideal 모델과 동일한 처리 순서를 유지한다.
+
+### 3.2 Decimator
+
+- FIR 출력 `y_fir[n]`를 `M`배 다운샘플링한다.
+- 위상 `phase` 기본값은 `0`.
+
+$$
+y_{\mathrm{decim}}[r] = y_{\mathrm{fir}}[rM + \mathrm{phase}]
+$$
+
+- 기본 정책: `phase = 0`, `M = 2`
+
+### 3.3 Top-level Golden Reference
+
+- 처리 순서는 반드시 아래를 따른다.
+
+  1. `anti-aliasing`
+  2. `decimation`
+- 즉, `downsample only`는 본 기준 모델의 기본 경로가 아니다.
+- golden 모델은 ideal 모델과 동일한 구조를 유지하되, 고정소수점 연산 정책을 반영한다.
+
+## 4. 모듈/파일 계약
+
+### 4.1 `model/fixed/anti_alias_fir.py`
+
+필수 제공 함수:
+
+- `anti_alias_fir_golden(x, h) -> np.ndarray`
+  - 입력 `x`, `h`를 받아 causal FIR 출력을 반환
+  - 반환 길이는 full convolution 기준 `len(y) = len(x) + len(h) - 1`
+  - 반환 dtype:
+  - 입력 `x` 계약: `np.ndarray`
+  - 입력 `h` 계약: `np.ndarray`
+  - 내부 누산기 폭:
+  - 곱셈 결과 스케일 처리:
+  - rounding 정책:
+  - saturation 정책:
+  - overflow 정책:
+
+### 4.2 `model/fixed/decimator.py`
+
+필수 제공 함수:
+
+- `decimate_golden(x, m=2, phase=0) -> np.ndarray`
+  - 입력 `x`는 1-D 배열로 받는다
+  - 구현 기준: `x[phase::m]`
+  - 입력 dtype:
+  - 반환 dtype:
+  - 입력 검증 정책:
+  - `phase` 해석:
+
+### 4.3 `model/fixed/fir_decimator_golden.py`
+
+필수 제공 함수:
+
+- `run_fir_decimator_golden(x, h, m=2, phase=0, return_intermediate=False)`
+  - 내부에서 FIR 후 decimation 수행
+  - `return_intermediate`는 `bool`
+  - 기본값(False)에서는 `y_decim`만 반환
+  - `return_intermediate=True`일 때 `(y_fir, y_decim)` 튜플을 반환
+  - 최종 반환 dtype:
+
+## 5. 데이터 타입 및 수치 정책
+
+| 항목                   | 현재 정책                |
+| ---------------------- | ------------------------ |
+| 샘플/계수 저장 포맷    | 작업 가정: `signed 16-bit, Q4.12` |
+| 샘플 dtype             |                          |
+| 계수 dtype             |                          |
+| 출력 dtype             |                          |
+| 내부 곱셈 dtype        |                          |
+| 내부 누산 dtype        |                          |
+| 입력 양자화 방식       |                          |
+| 계수 양자화 방식       |                          |
+| rounding 시점          |                          |
+| rounding 모드          |                          |
+| saturation 시점        |                          |
+| saturation 범위        |                          |
+| overflow 처리          |                          |
+| 음수 right shift 해석  |                          |
+| state 초기값           | `0`                    |
+| FIR 출력 길이 정책     | `full convolution`     |
+| decimator phase 기본값 | `0`                    |
+| decimator 계수 기본값  | `2`                    |
+
+## 6. 인터페이스 정책
+
+| 항목                                     | 현재 정책 |
+| ---------------------------------------- | --------- |
+| 입력 `x` 형상                          | `1-D`   |
+| 입력 `h` 형상                          | `1-D`   |
+| 빈 입력 `x` 처리                       |           |
+| 빈 계수 `h` 처리                       |           |
+| `NaN/Inf` 입력 처리                    |           |
+| 비정수 dtype 입력 처리                   |           |
+| `m < 1` 처리                           |           |
+| `phase` 범위 위반 처리                 |           |
+| `return_intermediate` 비-`bool` 처리 |           |
+
+## 7. ideal 모델과의 관계
+
+- ideal 모델은 알고리즘 기준선(reference)이다.
+- fixed/golden 모델은 RTL bit-exact 판정 기준이다.
+- 블록 순서는 ideal과 동일하게 `FIR -> Decimator`를 유지한다.
+- 차이점은 아래 항목에서 발생한다:
+  - 데이터 표현
+  - rounding
+  - saturation
+  - overflow
+
+## 8. 검증 기준 (fixed 단계)
+
+### 8.1 기능 검증
+
+- `Fs_out == Fs_in / M`가 성립해야 함.
+- FIR 출력 길이:
+  - `len(y_fir) == len(x) + len(h) - 1`
+- Decimator 출력 길이:
+  - `len(y_decim) == len(y_fir[phase::m])`
+- `N = 5`와 `N = 41` 모두 동작해야 함.
+
+### 8.2 bit-level 검증
+
+- 동일 입력 벡터에 대해 Python golden 모델과 RTL 출력이 bit-exact로 일치해야 한다.
+- 비교 기준 벡터 형식:
+- 허용 오차:
+- saturation/overflow 경계 케이스 포함 여부:
+
+### 8.3 ideal-vs-fixed 비교
+
+- 동일 입력 벡터에 대해 ideal 출력과 fixed 출력의 차이를 측정한다.
+- 비교 지표:
+  - PSD/FFT
+  - SNR
+  - MSE
+- 추가 비교 지표:
+
+## 9. 구현 체크리스트
+
+- [X] `model/fixed/anti_alias_fir.py` 파일 생성
+- [X] `model/fixed/decimator.py` 파일 생성
+- [X] `model/fixed/fir_decimator_golden.py` 파일 생성
+- [X] `anti_alias_fir_golden` 초기 구현 추가
+- [ ] `docs/input_signal_spec.md` 기준으로 입력 신호 제약 확정
+- [ ] quantization 정책 확정
+- [ ] rounding 정책 확정
+- [ ] saturation 정책 확정
+- [ ] overflow 정책 확정
+- [ ] decimator golden 구현
+- [ ] top-level golden 연결 구현
+- [ ] `sim/python/test/fixed` 테스트 확장
+
+## 10. 미정 항목
+
+| 항목                           | 현재 상태 | 비고                                                       |
+| ------------------------------ | --------- | ---------------------------------------------------------- |
+| 입력 신호 생성 제약           | 미정      | tone 개수/진폭/위상/headroom은 `input_signal_spec.md`에서 먼저 확정 |
+| 입력 양자화 기준               | 미정      | float 입력을 받을지, 이미 quantized int만 받을지 결정 필요 |
+| 계수 양자화 기준               | 미정      | Kaiser 계수를 어떤 규칙으로 Q4.12화할지 결정 필요          |
+| rounding 모드                  | 미정      | truncation, round-to-nearest 등 결정 필요                  |
+| saturation 적용 지점           | 미정      | 매 tap, 최종 출력, 둘 다 중 어디에 둘지 결정 필요          |
+| overflow 정책                  | 미정      | wrap, saturate, error 중 결정 필요                         |
+| accumulator 비트폭             | 미정      | RTL 대응 폭과 맞춰야 함                                    |
+| decimator 입력/출력 dtype 계약 | 미정      | FIR 출력과 동일 계약으로 갈지 결정 필요                    |

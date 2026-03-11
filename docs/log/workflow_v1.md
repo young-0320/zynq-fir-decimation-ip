@@ -8,7 +8,7 @@
 1. `model/ideal` 참조 모델 동작 검증 완료(FIR -> decimation 체인).
 2. ideal 단계 테스트가 `sim/python/test/ideal` 기준으로 통과함.
 3. ideal 단계 구현/테스트 결과와 재현 명령어가 문서에 남아 있음.
-4. 이후 fixed/golden 단계로 넘어가기 위한 스펙/로그/기준 모델이 정리되어 있음.
+4. 이후 입력 신호 확정 단계(v2)로 넘어가기 위한 스펙/로그/기준 모델이 정리되어 있음.
 
 ## 2) 주간 루틴
 
@@ -56,4 +56,4 @@
 1. `workflow_v1.md`는 주 1회만 수정(운영 흔들림 방지).
 2. 실험/결정 기록은 `docs/log`에 매일 누적.
 3. v1의 스코프는 ideal Python model 단계까지로 한정한다.
-4. fixed/golden 단계부터는 `workflow_v2.md`를 기준 문서로 사용한다.
+4. 입력 신호 확정 단계부터는 `workflow_v2.md`를 기준 문서로 사용한다.

@@ -8,7 +8,7 @@
 
 1. FIR Decimator ideal 모델의 스펙 잠정 확정(anti-alias FIR + decimation, `Fs=100e6, fp=15e6, fs=25e6, As=60, M=2`).
 2. 구현 순서를 `anti_alias_fir -> decimator -> fir_decimator_ideal`으로 확정.
-3. golden 모델은 `signed 16-bit, Q4.12` 고정소수점으로 구현하되, ideal 모델과 동일한 구조(anti-alias FIR + decimation)로 구현하기로 결정.
+3. golden 모델의 데이터 포맷은 우선 `signed 16-bit, Q4.12`를 작업 가정으로 두되, 입력 신호 생성 제약이 확정된 뒤 최종 확정하기로 결정.
 4. 필터 계수 생성 방식을 Kaiser window 기반으로 확정함.
 5. Kaiser 기반 LPF 계수 생성 함수를 먼저 구현하고 `num_taps`를 가변 파라미터로 열어둠(5/15/35/37/39/41 실험 가능).
 
@@ -38,15 +38,16 @@
 - decimator 단독 검증만으로는 alias 억제 여부를 확인할 수 없어
   FIR 없는 순서는 제외.
 
-### 3. golden 모델을 signed 16-bit Q4.12로 확정한 근거
+### 3. golden 모델의 `signed 16-bit, Q4.12`를 작업 가정으로 둔 근거
 
-- Python golden 모델에서 생성한 실제 필터 계수의 동적 범위를
-  수용하는 오버플로우 마진과 As=60dB 요건을 만족하는 소수부
-  정밀도를 동시에 확보하는 균형점.
+- 현재까지 확인한 필터 계수의 동적 범위와 `As=60dB` 요구만 보면
+  `Q4.12`는 유력한 후보 포맷이다.
 - As=60dB 달성에 필요한 최소 소수부 비트수 약 10bit 대비
-  12bit 소수부로 충분한 여유 확보.
-- ideal 모델과 동일한 FIR+decimation 구조를 유지하여 float64
-  출력과의 오차(SNR/MSE)를 직접 비교 가능.
+  12bit 소수부는 충분한 여유를 제공한다.
+- 다만 입력 멀티톤의 진폭 배분, headroom, crest factor, phase 정책이
+  아직 확정되지 않았으므로 현재 시점에서는 최종 포맷으로 단정할 수 없다.
+- 따라서 `Q4.12`는 fixed/golden 구현 초기 실험을 위한 작업 가정으로만
+  두고, 입력 신호 제약 확정 단계 이후에 최종 결정한다.
 
 ### 4. 필터 계수 생성 방식을 Kaiser window 기반으로 확정한 근거
 
