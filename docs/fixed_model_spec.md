@@ -109,15 +109,17 @@ $$
 | FIR 계수 저장 포맷     | `signed 16-bit, Q1.15` |
 | 샘플 dtype             | `np.int16` (저장 기준)         |
 | 계수 dtype             | `np.int16` (저장 기준)         |
-| 출력 dtype             |                          |
+| 출력 dtype             | `np.int16` (현재 golden 출력 저장 기준) |
 | 내부 곱셈 dtype        | `np.int32` 또는 그 이상, `Q2.30` 해석 |
 | 내부 누산 dtype        |                          |
-| 입력 양자화 방식       | `round` 후 `int16` saturation (`Q1.15`) |
+| 입력 생성 dtype        | `np.float64` |
+| 입력 양자화 방식       | 멀티톤 합산 후 1회 `Q1.15` 양자화 |
 | 계수 양자화 방식       | `Q1.15` 스케일 고정, rounding 모드는 추후 확정 |
-| rounding 시점          |                          |
-| rounding 모드          |                          |
-| saturation 시점        |                          |
-| saturation 범위        |                          |
+| 입력 양자화 rounding 시점 | 합산 후 1회 |
+| 입력 양자화 rounding 모드 | `round-to-nearest, ties-away-from-zero` |
+| 입력 양자화 saturation 시점 | rounding 직후 |
+| 입력 양자화 saturation 범위 | `clip(-32768, 32767)` |
+| 추가 정규화           | 없음 |
 | overflow 처리          |                          |
 | 음수 right shift 해석  |                          |
 | state 초기값           | `0`                    |
@@ -150,6 +152,16 @@ $$
 - coefficient와 동일한 `Q1.15`를 사용하면 내부 곱셈 결과를 일관되게 `Q2.30`으로 해석할 수 있다.
 - 16-bit 양자화 SNR은 약 `96 dB`로, 현재 저지대역 감쇠 목표 `As = 60 dB`를 충분히 상회한다.
 - 확장 데모에서 16-bit ADC 입력을 정규화해 붙일 때도 인터페이스를 바꾸지 않아도 된다.
+
+### 5.3 Bring-up 입력 생성 계약
+
+- 현재 기준 입력 신호는 bring-up용 deterministic 3-tone sine이다.
+- tone 주파수는 `5 MHz`, `20 MHz`, `30 MHz`로 고정한다.
+- 각 tone 진폭은 `0.3`, 위상은 모두 `0`이다.
+- 샘플 수는 `8192`, 생성 dtype은 `np.float64`, 최종 저장은 `1-D np.int16 ndarray`이다.
+- 입력 양자화는 멀티톤 합산 후 1회만 수행한다.
+- 입력 양자화는 `round-to-nearest, ties-away-from-zero` 후 `clip(-32768, 32767)`를 적용한다.
+- 추가 정규화는 수행하지 않는다.
 
 ## 6. 인터페이스 정책
 
@@ -209,10 +221,10 @@ $$
 - [X] `model/fixed/decimator.py` 파일 생성
 - [X] `model/fixed/fir_decimator_golden.py` 파일 생성
 - [X] `anti_alias_fir_golden` 초기 구현 추가
-- [ ] `docs/input_signal_spec.md` 기준으로 입력 신호 제약 확정
-- [ ] quantization 정책 확정
-- [ ] rounding 정책 확정
-- [ ] saturation 정책 확정
+- [X] `docs/input_signal_spec.md` 기준으로 bring-up 입력 신호 제약 확정
+- [X] 입력 quantization 정책 확정
+- [X] 입력 rounding 정책 확정
+- [X] 입력 saturation 정책 확정
 - [ ] overflow 정책 확정
 - [ ] decimator golden 구현
 - [ ] top-level golden 연결 구현
@@ -222,10 +234,10 @@ $$
 
 | 항목                           | 현재 상태 | 비고                                                       |
 | ------------------------------ | --------- | ---------------------------------------------------------- |
-| 입력 신호 생성 제약           | 미정      | tone 개수/진폭/위상/headroom은 `input_signal_spec.md`에서 먼저 확정 |
-| 입력 양자화 기준               | 부분 확정 | 저장 포맷은 `Q1.15`로 확정, 생성 파라미터는 `input_signal_spec.md`에서 확정 |
+| bring-up 입력 신호 생성 제약  | 확정      | `5/20/30 MHz`, `A=0.3`, `phase=0`, `N=8192`, `headroom=0.1` |
+| 입력 양자화 기준               | 확정      | `float64` 합산 후 1회 양자화, `ties-away-from-zero`, `clip(-32768, 32767)` |
 | 계수 양자화 기준               | 부분 확정 | 저장 포맷은 `Q1.15`로 확정, rounding 규칙은 추후 결정      |
-| rounding 모드                  | 미정      | truncation, round-to-nearest 등 결정 필요                  |
+| 39/41탭 기준 최종 demo 입력 신호 | 미정      | bring-up 이후 alias 시각화 목적에 맞춰 재설계 예정          |
 | saturation 적용 지점           | 미정      | 매 tap, 최종 출력, 둘 다 중 어디에 둘지 결정 필요          |
 | overflow 정책                  | 미정      | wrap, saturate, error 중 결정 필요                         |
 | accumulator 비트폭             | 미정      | RTL 대응 폭과 맞춰야 함                                    |

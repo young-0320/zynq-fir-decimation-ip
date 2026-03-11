@@ -30,15 +30,17 @@
 
 ### 2. 기본 데모 신호 설계가 쉽다
 
-- `numpy`로 생성한 멀티톤을 `[-1.0, 1.0)` 범위로 정규화하면 바로 `Q1.15`로 변환할 수 있다.
+- `numpy`로 생성한 멀티톤을 `float64`로 합산한 뒤, 추가 정규화 없이 바로 `Q1.15`로 변환할 수 있다.
 - 예시 변환식:
 
 ```python
-x_fixed = np.clip(
-    np.round(signal * (2**15)),
-    -(2**15),
-    (2**15) - 1,
-).astype(np.int16)
+scaled = signal * (2**15)
+rounded = np.where(
+    scaled >= 0.0,
+    np.floor(scaled + 0.5),
+    np.ceil(scaled - 0.5),
+)
+x_fixed = np.clip(rounded, -32768, 32767).astype(np.int16)
 ```
 
 - 단, `+1.0`은 `Q1.15`에서 정확히 표현되지 않으므로 상한은 `32767`로 saturation한다.

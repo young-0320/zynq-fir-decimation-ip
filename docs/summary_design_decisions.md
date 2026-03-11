@@ -46,6 +46,8 @@
 | 입력/데이터 포맷    | `16-bit signed, Q1.15`                           | 설계 확정 | `04_input_qformat.md`, `input_signal_spec.md`, `fixed_model_spec.md`               |
 | FIR 계수 포맷       | `16-bit signed, Q1.15`                           | 설계 확정 | `sim/python/inspect_kaiser_coeff.py`, `03_coeff_qformat.md`, `fixed_model_spec.md` |
 | 내부 곱셈 결과 포맷 | `32-bit signed, Q2.30`                           | 설계 확정 | `04_input_qformat.md`, `fixed_model_spec.md`                                         |
+| bring-up 입력 프로파일 | `8192`-sample `3`-tone sine, `5/20/30 MHz`, `A=0.3`, `phase=0` | 설계 확정 | `input_signal_spec.md`, `05_bringup_input_signal.md` |
+| 입력 양자화 규칙    | 합산 후 1회 양자화, `ties-away-from-zero`, `clip(-32768, 32767)`, 추가 정규화 없음 | 설계 확정 | `input_signal_spec.md`, `05_bringup_input_signal.md` |
 | 역할                | ideal 기준선과 RTL 사이 bit-exact/golden reference | 설계 확정 | 계획서,`ideal_model_spec.md`                                                           |
 | 처리 순서           | ideal과 동일하게 `FIR -> Decimator` 유지         | 설계 확정 | 계획서,`ideal_model_spec.md`                                                           |
 
@@ -76,7 +78,6 @@
 
 | 항목                                            | 현재 상태 | 비고                                                                                          |
 | ----------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- |
-| 입력 신호 생성 제약(톤 개수/진폭/위상/headroom) | 미정      | 포맷은 `Q1.15`로 확정, 세부 파라미터는 `input_signal_spec.md`와 workflow v2에서 확정 예정 |
-| 멀티톤 입력의 구체적 주파수 조합                | 미정      | 입력 신호 확정 단계에서 함께 결정 예정                                                        |
+| `39/41`탭 기준 최종 demo 입력 신호 profile      | 미정      | 현재 `5/20/30 MHz` 입력은 bring-up용이며, 이후 별도 설계 예정 |
 | symmetry 활용 RTL 세부 구조                     | 미정      | Transposed form 구현 세부 설계 단계에서 확정 예정                                             |
 | AXI-Stream wrapper 및 backpressure 세부 동작    | 미정      | RTL/SoC 통합 단계에서 확정 예정                                                               |

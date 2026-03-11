@@ -5,8 +5,9 @@
 본 문서는 ideal/fixed/RTL 비교에 공통으로 사용할 입력 신호 생성 제약을 정의한다.
 
 - 대상: `Fs_in = 100 MHz` 환경에서의 멀티톤 입력 자극
-- 용도: alias 관찰, ideal 검증, 입력/데이터 Q-format 결정, RTL 비교의 공통 기준선
-- 본 문서에서 입력 신호 제약이 확정된 뒤에 입력/데이터 Q-format을 최종 결정한다
+- 용도: bring-up 동작 확인, ideal 검증, fixed/golden 기준 입력, RTL 비교의 공통 기준선
+- 현재 문서는 bring-up용 입력 프로파일을 확정한다
+- 이후 `N=39` 또는 `N=41` 탭 기준 최종 데모용 입력 프로파일은 별도 revision에서 다시 설계한다
 
 ## 2. 시스템 맥락
 
@@ -19,44 +20,96 @@
 
 ## 3. 입력 신호 계약
 
-### 3.1 멀티톤 구성
+### 3.1 현재 적용 범위
 
-- 톤 개수:
-- 각 톤 주파수:
-- 통과대역 내 톤:
-- 저지대역/alias 관찰용 톤:
-- DC 포함 여부:
+- 현재 확정하는 입력 신호는 bring-up용 deterministic 멀티톤이다.
+- 목표는 `FIR -> decimation` 체인, fixed-point 입출력, RTL I/O 정렬이 정상 동작하는지 빠르게 확인하는 것이다.
+- 따라서 alias 분리가 가장 잘 보이는 최종 데모 벡터가 아니라, 구현/구동 확인에 유리한 간결한 프로파일로 닫는다.
 
-### 3.2 진폭/스케일링
+### 3.2 Bring-up Multitone Profile
 
-- 각 톤 진폭:
-- 총합 peak 목표:
-- 총합 RMS 목표:
-- full-scale 기준: `signed Q1.15` 기준 `[-1.0, +0.999969482421875]`
-- headroom 규칙:
-- clipping 허용 여부:
+| 항목 | 확정값 | 엔지니어링 코멘트 |
+| --- | --- | --- |
+| 파형 종류 | `sine` | `phase=0`에서 시작값이 단순하고 디버깅이 쉽다 |
+| 샘플 수 | `8192` | `2^13` 길이로 메모리/버퍼 관리가 단순하다 |
+| 생성 dtype | `np.float64` | 합성/정규화/분석 기준을 부동소수점으로 유지한다 |
+| 출력 배열 계약 | `np.ndarray`, `1-D` | Python model, testbench, RTL vector dump 인터페이스를 단순화한다 |
+| DC 성분 | 없음 | bring-up 단계에서 offset 이슈를 분리한다 |
+| 추가 정규화 | 없음 | 각 tone amplitude의 의미를 그대로 유지한다 |
 
-### 3.3 위상/재현성
+### 3.3 Tone 구성
 
-- phase 정책:
-- random seed:
-- 동일 seed 재현 요구:
+| 톤 인덱스 | 주파수 | 대역 역할 | 진폭 | 위상 |
+| --- | --- | --- | --- | --- |
+| Tone 0 | `5 MHz` | 통과대역 대표 | `0.3` | `0` |
+| Tone 1 | `20 MHz` | 천이대역 대표 | `0.3` | `0` |
+| Tone 2 | `30 MHz` | 차단대역 대표 | `0.3` | `0` |
 
-### 3.4 길이/해상도
+- 톤 개수: `3`
+- 전체 amplitude 합: `0.9`
+- headroom budget: `0.1`
+- 현재 profile은 bring-up용이므로, 차단대역 tone의 alias가 출력에서 다른 tone과 겹칠 수 있어도 허용한다.
 
-- 입력 길이:
-- 분석 구간 길이:
-- FFT 길이:
-- window 함수:
+### 3.4 생성 수식
+
+입력 신호는 아래 수식으로 생성한다.
+
+$$
+x[n] = \sum_{k=0}^{2} A_k \sin\left(2\pi \frac{f_k}{F_s} n + \phi_k\right)
+$$
+
+여기서:
+
+- `Fs = 100e6`
+- `A = [0.3, 0.3, 0.3]`
+- `f = [5e6, 20e6, 30e6]`
+- `phi = [0, 0, 0]`
+- `n = 0, 1, ..., 8191`
+
+### 3.5 스케일링과 Headroom
+
+| 항목 | 확정값 | 엔지니어링 코멘트 |
+| --- | --- | --- |
+| full-scale 기준 | `signed Q1.15`의 `[-1.0, +0.999969482421875]` | fixed-point 입출력 기준선 |
+| amplitude 합 budget | `0.9` | 각 tone 진폭을 균등 배분한 bring-up budget |
+| headroom | `0.1` | 입력 full-scale 대비 여유를 남긴다 |
+| clipping 허용 여부 | 허용 안 함 | 입력 생성 단계에서 overdrive를 숨기지 않는다 |
 
 ## 4. 생성 모듈/파일 계약
 
 필수 제공 산출물:
 
-- 입력 신호 생성 스크립트/함수:
-- 호출 파라미터:
-- 반환 dtype: `np.int16`
-- 저장 포맷: `signed 16-bit, Q1.15`
+| 항목 | 계약 |
+| --- | --- |
+| 입력 신호 생성 함수 | `model/ideal/gen_multitone.py`의 `generate_multitone()` |
+| Q1.15 양자화 함수 | `model/ideal/gen_multitone.py`의 `quantize_q1_15()` |
+| pre-quant 출력 dtype | `np.float64` |
+| post-quant 출력 dtype | `np.int16` |
+| 배열 shape | `1-D ndarray` |
+| 저장 포맷 | `signed 16-bit, Q1.15` |
+| 양자화 시점 | 멀티톤 합산 후 1회 |
+
+### 4.1 양자화 규칙
+
+입력 양자화는 아래 순서로 수행한다.
+
+1. `float64` 멀티톤을 생성한다.
+2. 합산된 파형 전체에 대해 `2^15` 스케일을 적용한다.
+3. `round-to-nearest, ties-away-from-zero`를 적용한다.
+4. 최종값을 `clip(-32768, 32767)`로 제한한다.
+5. `np.int16`으로 변환한다.
+
+예시 구현:
+
+```python
+scaled = signal * (2**15)
+rounded = np.where(
+    scaled >= 0.0,
+    np.floor(scaled + 0.5),
+    np.ceil(scaled - 0.5),
+)
+x_fixed = np.clip(rounded, -32768, 32767).astype(np.int16)
+```
 
 ## 5. 입력/데이터 Q-format과의 관계
 
@@ -75,7 +128,7 @@
 ```
 
 - 표현 범위: `-1.0 ~ +0.999969482421875`
-- 분해능: `2^-15 ~= 0.0000305`
+- 해상도: `2^-15 ~= 0.0000305`
 
 ### 5.2 확정 근거
 
@@ -83,15 +136,17 @@
    - 계수 최대값이 `0.400133` 수준으로 `Q1.15` 범위 안에 충분히 들어온다.
    - 입력 `Q1.15`와 계수 `Q1.15`를 곱하면 내부 곱셈 결과를 `Q2.30`으로 해석할 수 있어 scaling 기준이 단순하다.
 2. 기본 데모 신호 생성이 쉽다.
-   - `numpy` 멀티톤을 `[-1.0, 1.0)` 범위로 정규화한 뒤 바로 `Q1.15`로 변환할 수 있다.
+   - `numpy` 멀티톤을 `float64`로 합산한 뒤 바로 `Q1.15`로 변환할 수 있다.
    - 예시:
 
 ```python
-x_fixed = np.clip(
-    np.round(signal * (2**15)),
-    -(2**15),
-    (2**15) - 1,
-).astype(np.int16)
+scaled = signal * (2**15)
+rounded = np.where(
+    scaled >= 0.0,
+    np.floor(scaled + 0.5),
+    np.ceil(scaled - 0.5),
+)
+x_fixed = np.clip(rounded, -32768, 32767).astype(np.int16)
 ```
 
 3. 확장 데모 ADC 경로와 호환된다.
@@ -113,20 +168,35 @@ x_fixed = np.clip(
   - 정규화 입력 기준에서는 추가 정수 비트의 실익이 작다.
   - fractional bit 감소로 입력 정밀도만 낮아진다.
 
+### 5.4 Bring-up 입력 프로파일 선택 이유
+
+- `5 MHz`는 통과대역 tone의 정상 전달 여부를 보기 쉽다.
+- `20 MHz`는 천이대역 근처 동작을 간단히 확인하기 좋다.
+- `30 MHz`는 차단대역/alias 자극으로 쓰기 쉽다.
+- 각 tone 진폭을 `0.3`으로 균등 배분하면 합계가 `0.9`가 되어, 입력 budget과 headroom 의도가 직관적으로 보인다.
+- `phase=0`은 가장 재현성이 높고 파형 추적이 단순하다.
+
 ## 6. 검증 기준
 
 - 동일 파라미터로 동일 입력이 재생성 가능해야 한다.
 - alias 관찰 목적의 톤 배치가 문서에 설명되어 있어야 한다.
 - ideal 검증과 fixed 동적 범위 분석에 필요한 신호 통계가 기록되어 있어야 한다.
 - clipping 여부와 peak/RMS 값이 문서에 남아 있어야 한다.
+- 양자화 규칙이 `ties-away-from-zero` 기준으로 재현 가능해야 한다.
 
 ## 7. 체크리스트
 
-- [ ] 멀티톤 주파수 조합 확정
-- [ ] 톤 개수 확정
-- [ ] 진폭 배분 확정
-- [ ] phase 정책 확정
-- [ ] headroom 규칙 확정
-- [ ] 입력 길이/FFT 길이 확정
-- [ ] 재현 명령어 기록
-- [x] 입력 신호 Q-format(`Q1.15`) 확정
+- [X] bring-up 멀티톤 주파수 조합 확정 (`5/20/30 MHz`)
+- [X] 톤 개수 확정 (`3`)
+- [X] 진폭 배분 확정 (`0.3`, `0.3`, `0.3`)
+- [X] phase 정책 확정 (`0`, `0`, `0`)
+- [X] headroom 규칙 확정 (`0.1`)
+- [X] 입력 길이 확정 (`8192`)
+- [X] 생성 dtype 확정 (`np.float64`)
+- [X] 출력 배열 계약 확정 (`1-D ndarray`)
+- [X] 양자화 시점 확정 (합산 후 1회)
+- [X] rounding 모드 확정 (`round-to-nearest, ties-away-from-zero`)
+- [X] saturation 범위 확정 (`clip(-32768, 32767)`)
+- [X] 추가 정규화 없음
+- [ ] `N=39/41` 탭 기준 최종 데모용 입력 신호 재구성
+- [X] 입력 신호 Q-format(`Q1.15`) 확정

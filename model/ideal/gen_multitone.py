@@ -44,5 +44,11 @@ def generate_multitone(
 def quantize_q1_15(x: np.ndarray) -> np.ndarray:
     """Quantize a normalized float waveform to signed Q1.15."""
     x_arr = np.asarray(x, dtype=np.float64)
-    x_q = np.clip(np.round(x_arr * (2**15)), -(2**15), (2**15) - 1)
+    scaled = x_arr * (2**15)
+    rounded = np.where(
+        scaled >= 0.0,
+        np.floor(scaled + 0.5),
+        np.ceil(scaled - 0.5),
+    )
+    x_q = np.clip(rounded, -(2**15), (2**15) - 1)
     return x_q.astype(np.int16)
