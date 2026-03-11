@@ -143,7 +143,7 @@ $$
 ## 7. 향후 golden 모델과의 관계
 
 - ideal 모델은 알고리즘 기준선(reference)이다.
-- `model/fixed/fir_decimator_golden.py`는 Q4.12 고정소수점 및 RTL bit-exact 판정 기준이다.
+- `model/fixed/fir_decimator_golden.py`는 `signed 16-bit, Q1.15` 기반 고정소수점 및 RTL bit-exact 판정 기준이다.
 - golden 모델은 ideal 모델과 동일한 처리 순서(FIR 후 decimation)를 반드시 유지한다.
 
 ## 8. 구현 체크리스트

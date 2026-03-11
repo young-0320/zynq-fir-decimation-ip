@@ -41,15 +41,22 @@ def anti_alias_fir_ideal(x: np.ndarray, h: np.ndarray) -> np.ndarray:
         return np.array([], dtype=np.float64)
 
     y = np.zeros(L, dtype=np.float64)
-
+    all_products: list[float] = []
+    all_acc_values: list[float] = []
     for n in range(len(y)):
         acc = 0.0  # Accumulator
         for k in range(num_taps):
             input_idx = n - k
             if 0 <= input_idx < N:
-                acc += h[k] * x[input_idx]
+                product = float(h[k] * x[input_idx])
+                all_products.append(product)
+                acc += product
+                all_acc_values.append(acc)
 
         # Ideal FIR keeps startup transient and tail in the full convolution.
         y[n] = acc
-
+    if all_products:
+        print(f"[곱셈 노드] min={min(all_products):.4f}, max={max(all_products):.4f}")
+    if all_acc_values:
+        print(f"[누적 노드] min={min(all_acc_values):.4f}, max={max(all_acc_values):.4f}")
     return y
