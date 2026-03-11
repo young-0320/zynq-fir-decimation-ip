@@ -69,14 +69,14 @@ $$
 - `anti_alias_fir_golden(x, h) -> np.ndarray`
   - 입력 `x`, `h`를 받아 causal FIR 출력을 반환
   - 반환 길이는 full convolution 기준 `len(y) = len(x) + len(h) - 1`
-  - 반환 dtype:
+  - 반환 dtype: `np.int16`
   - 입력 `x` 계약: `np.ndarray` 1-D, `signed Q1.15` 샘플 배열
   - 입력 `h` 계약: `np.ndarray` 1-D, `signed Q1.15` 계수 배열
-  - 내부 누산기 폭:
+  - 내부 누산기 폭: golden 구현은 `np.int64`, 현재 `N=41` 기준 최소 요구 폭은 signed `32-bit`
   - 곱셈 결과 스케일 처리: `x(Q1.15) * h(Q1.15) -> product(Q2.30)`
-  - rounding 정책:
-  - saturation 정책:
-  - overflow 정책:
+  - rounding 정책: `Q2.30 -> Q1.15` 변환 시 `round-to-nearest with ties-away-from-zero`
+  - saturation 정책: 최종 출력 배열 저장 직전에만 `clip(-32768, 32767)`
+  - overflow 정책: intermediate wrap/saturation 없이 wide accumulator로 누산
 
 ### 4.2 `model/fixed/decimator.py`
 
@@ -85,10 +85,10 @@ $$
 - `decimate_golden(x, m=2, phase=0) -> np.ndarray`
   - 입력 `x`는 1-D 배열로 받는다
   - 구현 기준: `x[phase::m]`
-  - 입력 dtype:
-  - 반환 dtype:
-  - 입력 검증 정책:
-  - `phase` 해석:
+  - 입력 dtype: `np.int16`
+  - 반환 dtype: `np.int16`
+  - 입력 검증 정책: `1-D ndarray`, integer dtype, `int16/Q1.15` 범위 확인
+  - `phase` 해석: FIR 출력에서 몇 번째 샘플부터 유지할지 정하는 오프셋
 
 ### 4.3 `model/fixed/fir_decimator_golden.py`
 
@@ -99,7 +99,7 @@ $$
   - `return_intermediate`는 `bool`
   - 기본값(False)에서는 `y_decim`만 반환
   - `return_intermediate=True`일 때 `(y_fir, y_decim)` 튜플을 반환
-  - 최종 반환 dtype:
+  - 최종 반환 dtype: `np.int16`
 
 ## 5. 데이터 타입 및 수치 정책
 
@@ -111,17 +111,19 @@ $$
 | 계수 dtype             | `np.int16` (저장 기준)         |
 | 출력 dtype             | `np.int16` (현재 golden 출력 저장 기준) |
 | 내부 곱셈 dtype        | `np.int32` 또는 그 이상, `Q2.30` 해석 |
-| 내부 누산 dtype        |                          |
+| 내부 누산 dtype        | golden 구현은 `np.int64`, RTL 구현 목표는 signed `48-bit` accumulator |
 | 입력 생성 dtype        | `np.float64` |
 | 입력 양자화 방식       | 멀티톤 합산 후 1회 `Q1.15` 양자화 |
-| 계수 양자화 방식       | `Q1.15` 스케일 고정, rounding 모드는 추후 확정 |
+| 계수 양자화 방식       | `float64` 계수를 `Q1.15`로 1회 양자화, 입력과 동일한 rounding 규칙 사용, 재정규화 없음 |
 | 입력 양자화 rounding 시점 | 합산 후 1회 |
 | 입력 양자화 rounding 모드 | `round-to-nearest, ties-away-from-zero` |
 | 입력 양자화 saturation 시점 | rounding 직후 |
 | 입력 양자화 saturation 범위 | `clip(-32768, 32767)` |
 | 추가 정규화           | 없음 |
-| overflow 처리          |                          |
-| 음수 right shift 해석  |                          |
+| 출력 리스케일         | `Q2.30 -> Q1.15`, `round-to-nearest with ties-away-from-zero` |
+| 최종 출력 saturation  | 출력 배열 저장 시점에서 1회 `clip(-32768, 32767)` |
+| overflow 처리          | intermediate wrap/saturation 없음, wide accumulator로 exact accumulation |
+| 음수 right shift 해석  | raw arithmetic shift를 spec으로 사용하지 않음, rounding 규칙으로 정의 |
 | state 초기값           | `0`                    |
 | FIR 출력 길이 정책     | `full convolution`     |
 | decimator phase 기본값 | `0`                    |
@@ -163,19 +165,33 @@ $$
 - 입력 양자화는 `round-to-nearest, ties-away-from-zero` 후 `clip(-32768, 32767)`를 적용한다.
 - 추가 정규화는 수행하지 않는다.
 
+### 5.4 계수 양자화 및 누산기 폭 근거
+
+- FIR 계수도 입력과 동일하게 `float64 -> scale by 2^15 -> round-to-nearest with ties-away-from-zero -> clip(-32768, 32767) -> int16` 규칙으로 양자화한다.
+- 계수 양자화 후 합이 정확히 `1.0`이 되도록 추가 재정규화하지 않는다.
+- `N=41` 계수의 `sum(abs(h_q)) = 55404`, `max|x_q| = 32768`으로 두면, 현재 스펙 기준 누산 상한은 아래와 같다.
+
+$$
+\max |acc| \le 32768 \cdot 55404 = 1,815,478,272
+$$
+
+- 이 값은 signed `32-bit` 범위 안에 들어가므로, 현재 `N=41` 기준 최소 누산 폭은 signed `32-bit`이다.
+- 다만 RTL 구현은 DSP 경로와 정렬하기 위해 signed `48-bit` accumulator를 사용해도 무방하다.
+- full convolution은 출력 길이를 늘릴 뿐, 한 출력 샘플의 최대 누산 항 개수는 tap 수(`N`)를 넘지 않으므로 누산기 폭 결정 기준은 per-sample MAC bound이다.
+
 ## 6. 인터페이스 정책
 
 | 항목                                     | 현재 정책 |
 | ---------------------------------------- | --------- |
 | 입력 `x` 형상                          | `1-D`   |
 | 입력 `h` 형상                          | `1-D`   |
-| 빈 입력 `x` 처리                       |           |
-| 빈 계수 `h` 처리                       |           |
-| `NaN/Inf` 입력 처리                    |           |
-| 비정수 dtype 입력 처리                   |           |
-| `m < 1` 처리                           |           |
-| `phase` 범위 위반 처리                 |           |
-| `return_intermediate` 비-`bool` 처리 |           |
+| 빈 입력 `x` 처리                       | 빈 `np.int16` 배열 반환 |
+| 빈 계수 `h` 처리                       | `ValueError` |
+| `NaN/Inf` 입력 처리                    | integer dtype만 허용하므로 해당 없음 |
+| 비정수 dtype 입력 처리                   | `TypeError` |
+| `m < 1` 처리                           | `ValueError` |
+| `phase` 범위 위반 처리                 | `ValueError` |
+| `return_intermediate` 비-`bool` 처리 | `TypeError` |
 
 ## 7. ideal 모델과의 관계
 
@@ -225,10 +241,10 @@ $$
 - [X] 입력 quantization 정책 확정
 - [X] 입력 rounding 정책 확정
 - [X] 입력 saturation 정책 확정
-- [ ] overflow 정책 확정
-- [ ] decimator golden 구현
-- [ ] top-level golden 연결 구현
-- [ ] `sim/python/test/fixed` 테스트 확장
+- [X] overflow 정책 확정
+- [X] decimator golden 구현
+- [X] top-level golden 연결 구현
+- [X] `sim/python/test/fixed` 테스트 확장
 
 ## 10. 미정 항목
 
@@ -236,9 +252,9 @@ $$
 | ------------------------------ | --------- | ---------------------------------------------------------- |
 | bring-up 입력 신호 생성 제약  | 확정      | `5/20/30 MHz`, `A=0.3`, `phase=0`, `N=8192`, `headroom=0.1` |
 | 입력 양자화 기준               | 확정      | `float64` 합산 후 1회 양자화, `ties-away-from-zero`, `clip(-32768, 32767)` |
-| 계수 양자화 기준               | 부분 확정 | 저장 포맷은 `Q1.15`로 확정, rounding 규칙은 추후 결정      |
+| 계수 양자화 기준               | 확정      | 입력과 동일한 `ties-away-from-zero` 규칙 사용, 추가 재정규화 없음      |
 | 39/41탭 기준 최종 demo 입력 신호 | 미정      | bring-up 이후 alias 시각화 목적에 맞춰 재설계 예정          |
-| saturation 적용 지점           | 미정      | 매 tap, 최종 출력, 둘 다 중 어디에 둘지 결정 필요          |
-| overflow 정책                  | 미정      | wrap, saturate, error 중 결정 필요                         |
-| accumulator 비트폭             | 미정      | RTL 대응 폭과 맞춰야 함                                    |
-| decimator 입력/출력 dtype 계약 | 미정      | FIR 출력과 동일 계약으로 갈지 결정 필요                    |
+| saturation 적용 지점           | 확정      | 최종 출력 배열 저장 시점에서만 1회 clip                    |
+| overflow 정책                  | 확정      | intermediate wrap/saturation 없음, wide accumulator 사용   |
+| accumulator 비트폭             | 확정      | 현재 `N=41` 기준 최소 signed `32-bit`, RTL 구현 목표는 signed `48-bit` |
+| decimator 입력/출력 dtype 계약 | 확정      | FIR 출력과 동일하게 `np.int16` 유지                        |
