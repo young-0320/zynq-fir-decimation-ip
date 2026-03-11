@@ -1,16 +1,16 @@
 import numpy as np
 
-Q4_12_FRACTIONAL_BITS = 12
-Q4_12_MIN = -(1 << 15)
-Q4_12_MAX = (1 << 15) - 1
+Q1_15_FRACTIONAL_BITS = 15
+Q1_15_MIN = -(1 << 15)
+Q1_15_MAX = (1 << 15) - 1
 
 
 def anti_alias_fir_golden(x: np.ndarray, h: np.ndarray) -> np.ndarray:
-    """Apply a full-convolution FIR in signed Q4.12 integer domain.
+    """Apply a full-convolution FIR in signed Q1.15 integer domain.
 
     This model assumes both `x` and `h` are already quantized fixed-point
     integers. Products are accumulated in a wide integer accumulator, shifted
-    back to Q4.12 with an arithmetic right shift, and saturated to int16.
+    back to Q1.15 with an arithmetic right shift, and saturated to int16.
     """
     x_arr = np.asarray(x)
     h_arr = np.asarray(h)
@@ -40,11 +40,11 @@ def anti_alias_fir_golden(x: np.ndarray, h: np.ndarray) -> np.ndarray:
             if 0 <= input_idx < x_q.size:
                 acc += int(h_q[k]) * int(x_q[input_idx])
 
-        shifted = acc >> Q4_12_FRACTIONAL_BITS
-        if shifted > Q4_12_MAX:
-            shifted = Q4_12_MAX
-        elif shifted < Q4_12_MIN:
-            shifted = Q4_12_MIN
+        shifted = acc >> Q1_15_FRACTIONAL_BITS
+        if shifted > Q1_15_MAX:
+            shifted = Q1_15_MAX
+        elif shifted < Q1_15_MIN:
+            shifted = Q1_15_MIN
 
         y[n] = shifted
 

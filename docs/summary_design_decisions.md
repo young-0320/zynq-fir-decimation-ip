@@ -9,17 +9,17 @@
 
 ## 1) 시스템/알고리즘 스펙
 
-| 항목               | 현재 결정                         | 상태 | 근거/출처                                                                  |
-| ------------------ | --------------------------------- | ---- | -------------------------------------------------------------------------- |
-| 입력 샘플링 주파수 | `Fs_in = 100 MHz`               | 확정 | `1 sample/cycle @ 100MHz` 처리율 목표. 계획서, `01_spec_and_kaiser.md` |
-| 디시메이션 계수    | `M = 2`                         | 확정 | 출력 `Fs_out = 50 MHz` 목표. 계획서, `01_spec_and_kaiser.md`           |
-| 출력 샘플링 주파수 | `Fs_out = 50 MHz`               | 확정 | `Fs_in / M`. 계획서, `ideal_model_spec.md`                             |
-| 통과대역 경계      | `fp = 15 MHz`                   | 확정 | 천이대역 `10 MHz` 확보. 계획서, `01_spec_and_kaiser.md`                |
-| 저지대역 시작      | `fs = 25 MHz`                   | 확정 | 출력 나이퀴스트 경계. 계획서,`01_spec_and_kaiser.md`                     |
-| 목표 감쇠          | `As >= 60 dB`                   | 확정 | alias 억제 `1/1000` 수준 목표. 계획서, `01_spec_and_kaiser.md`         |
-| 필터 설계법        | Kaiser window                     | 확정 | 재현성 확보 목적. 계획서,`01_spec_and_kaiser.md`                         |
-| 탭 수 정책         | bring-up `N=5`, 제출용 `N=41` | 확정 | Kaiser 추정 + 여유 확보. 계획서,`01_spec_and_kaiser.md`                  |
-| 처리 순서          | `Anti-alias FIR -> Decimator`   | 확정 | alias 억제는 FIR가 담당.`ideal_model_spec.md`, `01_spec_and_kaiser.md` |
+| 항목               | 현재 결정                                                     | 상태 | 근거/출처                                                                  |
+| ------------------ | ------------------------------------------------------------- | ---- | -------------------------------------------------------------------------- |
+| 입력 샘플링 주파수 | `Fs_in = 100 MHz`                                           | 확정 | `1 sample/cycle @ 100MHz` 처리율 목표. 계획서, `01_spec_and_kaiser.md` |
+| 디시메이션 계수    | `M = 2`                                                     | 확정 | 출력 `Fs_out = 50 MHz` 목표. 계획서, `01_spec_and_kaiser.md`           |
+| 출력 샘플링 주파수 | `Fs_out = 50 MHz`                                           | 확정 | `Fs_in / M`. 계획서, `ideal_model_spec.md`                             |
+| 통과대역 경계      | `fp = 15 MHz`                                               | 확정 | 천이대역 `10 MHz` 확보. 계획서, `01_spec_and_kaiser.md`                |
+| 저지대역 시작      | `fs = 25 MHz`                                               | 확정 | 출력 나이퀴스트 경계. 계획서,`01_spec_and_kaiser.md`                     |
+| 목표 감쇠          | `As >= 60 dB`                                               | 확정 | alias 억제 `1/1000` 수준 목표. 계획서, `01_spec_and_kaiser.md`         |
+| 필터 설계법        | Kaiser window<br />`β=5.65326`                             | 확정 | 재현성 확보 목적. 계획서,`01_spec_and_kaiser.md`                         |
+| 탭 수 정책         | bring-up `N=5`, 테스트용 `N=15/35/37/39`, 제출용 `N=41` | 확정 | Kaiser 추정 + 여유 확보. 계획서,`01_spec_and_kaiser.md`                  |
+| 처리 순서          | `Anti-alias FIR -> Decimator`                               | 확정 | alias 억제는 FIR가 담당.`ideal_model_spec.md`, `01_spec_and_kaiser.md` |
 
 ## 2) Ideal Python 모델 결정
 
@@ -41,11 +41,13 @@
 
 ## 3) Fixed / Golden 모델 결정
 
-| 항목             | 현재 결정                                          | 상태      | 근거/출처                        |
-| ---------------- | -------------------------------------------------- | --------- | -------------------------------- |
-| 데이터/계수 포맷 | `16-bit signed, Q4.12`                           | 작업 가정 | 입력 신호 제약 확정 전 임시 가정. `01_spec_and_kaiser.md`, `fixed_model_spec.md` |
-| 역할             | ideal 기준선과 RTL 사이 bit-exact/golden reference | 설계 확정 | 계획서,`ideal_model_spec.md`   |
-| 처리 순서        | ideal과 동일하게 `FIR -> Decimator` 유지         | 설계 확정 | 계획서,`ideal_model_spec.md`   |
+| 항목                | 현재 결정                                          | 상태      | 근거/출처                                                                                |
+| ------------------- | -------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------- |
+| 입력/데이터 포맷    | `16-bit signed, Q1.15`                           | 설계 확정 | `04_input_qformat.md`, `input_signal_spec.md`, `fixed_model_spec.md`               |
+| FIR 계수 포맷       | `16-bit signed, Q1.15`                           | 설계 확정 | `sim/python/inspect_kaiser_coeff.py`, `03_coeff_qformat.md`, `fixed_model_spec.md` |
+| 내부 곱셈 결과 포맷 | `32-bit signed, Q2.30`                           | 설계 확정 | `04_input_qformat.md`, `fixed_model_spec.md`                                         |
+| 역할                | ideal 기준선과 RTL 사이 bit-exact/golden reference | 설계 확정 | 계획서,`ideal_model_spec.md`                                                           |
+| 처리 순서           | ideal과 동일하게 `FIR -> Decimator` 유지         | 설계 확정 | 계획서,`ideal_model_spec.md`                                                           |
 
 ## 4) RTL / FPGA 계획 결정
 
@@ -72,10 +74,9 @@
 
 ## 6) 미정 항목
 
-| 항목                                         | 현재 상태 | 비고                                              |
-| -------------------------------------------- | --------- | ------------------------------------------------- |
-| 입력 신호 생성 제약(톤 개수/진폭/위상/headroom) | 미정      | `input_signal_spec.md`와 workflow v2에서 확정 예정 |
-| 멀티톤 입력의 구체적 주파수 조합             | 미정      | 입력 신호 확정 단계에서 함께 결정 예정            |
-| Q 포맷 최종 확정                             | 미정      | 입력 신호 제약과 동적 범위 분석 뒤 확정 예정      |
-| symmetry 활용 RTL 세부 구조                  | 미정      | Transposed form 구현 세부 설계 단계에서 확정 예정 |
-| AXI-Stream wrapper 및 backpressure 세부 동작 | 미정      | RTL/SoC 통합 단계에서 확정 예정                   |
+| 항목                                            | 현재 상태 | 비고                                                                                          |
+| ----------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- |
+| 입력 신호 생성 제약(톤 개수/진폭/위상/headroom) | 미정      | 포맷은 `Q1.15`로 확정, 세부 파라미터는 `input_signal_spec.md`와 workflow v2에서 확정 예정 |
+| 멀티톤 입력의 구체적 주파수 조합                | 미정      | 입력 신호 확정 단계에서 함께 결정 예정                                                        |
+| symmetry 활용 RTL 세부 구조                     | 미정      | Transposed form 구현 세부 설계 단계에서 확정 예정                                             |
+| AXI-Stream wrapper 및 backpressure 세부 동작    | 미정      | RTL/SoC 통합 단계에서 확정 예정                                                               |
