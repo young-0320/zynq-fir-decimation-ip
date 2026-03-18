@@ -1,7 +1,17 @@
 # FIR Decimation 프로젝트 워크플로우 v4
 
 - 작성일: 2026-03-11
-- 목적: ideal reference model과 fixed-point golden model의 비교/정량 검증 단계를 재현 가능하게 운영
+- 마지막 sync: 2026-03-18
+- 목적: coefficient 기반 spec-check 이후의 ideal/fixed 비교 및 alias 검증 단계를 재현 가능하게 운영
+
+## 0) 현재 상태 sync
+
+1. `N=5` bring-up ideal-vs-fixed 비교는 `docs/log/06_ideal_vs_fixed_compare_n5.md`로 닫혀 있다.
+2. coefficient 기반 stopband spec-check는 `docs/log/07_coeff_stopband_spec_check.md`로 닫혀 있고, 현재 공식 spec-check tap은 `N=43`이다.
+3. 따라서 v4의 남은 핵심 스코프는:
+   - `N=43` ideal-vs-fixed 비교
+   - PSD/FFT alias 비교
+4. 위 2개가 정리되면 다음 구현 단계는 `N=5 RTL bring-up`이다.
 
 ## 1) 완료 조건 (Definition of Done)
 
@@ -10,10 +20,11 @@
 3. `downsample only` 대비 `FIR -> downsample` 경로의 alias 억제 효과가 PSD/FFT로 확인됨.
 4. 비교 실험 스크립트와 재현 명령어가 문서에 남아 있음.
 5. 결과 해석과 후속 액션이 `docs/log/*.md`에 정리되어 있음.
+6. filter quality/spec satisfaction과 implementation accuracy가 문서에서 분리되어 있음.
 
 ## 2) 주간 루틴
 
-1. 월-화: ideal-vs-fixed 비교 스크립트 작성 및 테스트 벡터 정리.
+1. 월-화: `N=43` ideal-vs-fixed 비교 스크립트 실행 및 테스트 벡터 정리.
 2. 수-목: 정량 지표 산출(SNR, MSE, max error) 및 alias 비교 실험.
 3. 금: 로그 정리(`docs/log/*.md`) + 다음 주 TODO 확정.
 4. 주말: Velog 초안 업데이트(결정-근거-결과 구조).
@@ -56,5 +67,5 @@
 
 1. `workflow_v4.md`는 주 1회만 수정(운영 흔들림 방지).
 2. 실험/결정 기록은 `docs/log`에 매일 누적.
-3. v4의 스코프는 ideal-vs-fixed 비교/정량 검증 단계까지로 한정한다.
+3. v4의 스코프는 coefficient spec-check 이후의 ideal-vs-fixed 비교/정량 검증/alias 비교 단계까지로 한정한다.
 4. RTL bit-exact 비교 단계부터는 별도 워크플로우 문서(v5)를 추가하는 것을 기본 원칙으로 한다.

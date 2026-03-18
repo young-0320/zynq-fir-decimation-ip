@@ -3,6 +3,7 @@
 - 작성일: 2026-03-18
 - 단계: 4
 - 목적: bring-up `N=5` 조건에서 `ideal(float64)` 모델과 `fixed(Q1.15)` golden 모델의 출력 차이를 정량 비교한다
+- 후속 업데이트(2026-03-18): 이후 `docs/log/07_coeff_stopband_spec_check.md`에서 현재 공식 spec-check tap이 `N=43`으로 정리되었다. 아래의 초기 `N=41` 후속 작업 메모는 당시 기준 기록이며, 현재는 `N=43` 기준 확장이 우선이다.
 
 ## 1) 이번 세션 핵심 결정
 
@@ -146,12 +147,12 @@
 - 입력/계수 양자화와 fixed arithmetic을 포함한 총 오차도 작다
 - 양자화된 입력/계수를 기준선으로 두면 arithmetic 오차는 더욱 작게 보인다
 
-즉, 현재 fixed path는 다음 단계(`N=41`, alias 비교, RTL 기준선 준비`)로 넘어갈 만한 품질을 보인다.
+즉, 현재 fixed path는 다음 단계(`N=43` ideal-vs-fixed 확장, alias 비교, RTL 기준선 준비`)로 넘어갈 만한 품질을 보인다.
 
 ## 8) 다음 액션
 
-1. 동일 비교를 `N=41`로 확장한다.
-2. `N=5`와 `N=41`의 ideal-vs-fixed 지표를 나란히 비교한다.
+1. coefficient-based stopband 기준으로 선택된 `N=43`에 대해 동일 비교를 확장한다.
+2. `N=5`와 `N=43`의 ideal-vs-fixed 지표를 나란히 비교하고, 필요하면 `N=39/41`를 비교군으로 추가한다.
 3. `downsample only` 대비 `FIR -> decimation`의 PSD/FFT alias 비교를 문서화한다.
 4. RTL 비교를 염두에 두고 vector dump 형식을 구체화한다.
 

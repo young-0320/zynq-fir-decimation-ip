@@ -3,6 +3,7 @@
 - 작성일: 2026-03-08
 - 단계: 1
 - ideal 모델 초기 설계(anti-alias FIR 중심)
+- 후속 업데이트(2026-03-18): 이 문서의 초기 tap-count 판단 중 `N=41` 제출용 가정은 이후 `docs/log/07_coeff_stopband_spec_check.md`에서 strict coefficient-based stopband 기준으로 재검증되었고, 현재 공식 spec-check tap은 `N=43`이다.
 
 ## 1) 이번 주 핵심 결정
 
@@ -10,7 +11,7 @@
 2. 구현 순서를 `anti_alias_fir -> decimator -> fir_decimator_ideal`으로 확정.
 3. golden 모델의 데이터 포맷은 당시 우선 `signed 16-bit, Q4.12`를 작업 가정으로 두었고, 이후 문서에서 `Q1.15`로 재결정했다.
 4. 필터 계수 생성 방식을 Kaiser window 기반으로 확정함.
-5. Kaiser 기반 LPF 계수 생성 함수를 먼저 구현하고 `num_taps`를 가변 파라미터로 열어둠(5/15/35/37/39/41 실험 가능).
+5. Kaiser 기반 LPF 계수 생성 함수를 먼저 구현하고 `num_taps`를 가변 파라미터로 열어둠(5/15/35/37/39/41/43 실험 가능).
 
 ## 2) 결정 근거
 
@@ -28,8 +29,8 @@
 - 왜 Kaiser window인가? -> 재현성때문.
 - Kaiser 공식 최솟값: 37.22 (order 기준 36.22 + 1)
 - 최초 홀수: 39 (Type-I linear-phase 조건 만족)
-- 확정값: 41 (고정소수점 양자화 오차 감안 보수적 여유 +2)
-- 43 미선택 이유: 41 대비 추가 여유 실익 없고 DSP/LUT 증가 비용 발생
+- 당시 작업 가정: 41 (고정소수점 양자화 오차 감안 보수적 여유 +2)
+- 후속 재검증 결과: strict coefficient-based worst-case stopband 기준에서는 `N=41`이 미달이었고, `N=43`이 현재 기준 첫 만족 tap으로 갱신되었다.
 
 ### 2. 구현 순서 확정 근거
 
@@ -53,7 +54,7 @@
 
 - Kaiser window는 As가 결정되면 N이 수학적으로
   결정되므로 설계 재현성이 보장됨.
-- `β=5.65326`, N=41 두 숫자만 결정되면 Python/MATLAB 등 어떤
+- `β=5.65326`와 tap 수 두 숫자만 결정되면 Python/MATLAB 등 어떤
   환경에서도 동일한 계수 재현 가능 → 오픈소스 튜토리얼 목적에
   직접 부합.
 - 대안 비교:
@@ -68,10 +69,10 @@
 ### 5. num_taps 가변 파라미터로 열어둔 근거
 
 - N 고정 시 단일 합성 결과만 얻어 PPA trade-off 분석 불가.
-- `N=5/15/35/37/39/41` 단계적 실험으로 탭 수 증가에 따른
+- `N=5/15/35/37/39/41/43` 단계적 실험으로 탭 수 증가에 따른
   DSP/LUT/Fmax 변화 곡선 도출 가능.
-- N=39(스펙 최초 만족)과 N=41(여유 확보)의 PPA 차이가
-  핵심 비교 데이터.
+- 현재 기준에서는 `N=39/41` near-spec 비교와 `N=43` spec-satisfying candidate의 PPA 차이가
+  핵심 비교 데이터다.
 
 ## 3) 구현/검증 결과 (숫자 중심)
 
@@ -83,3 +84,4 @@
 - 스펙 예시 검증 (`Fs=100e6, fp=15e6, fs=25e6, As=60`)
   - 추정 탭수: `39`
   - `num_taps=41` 시 `sum(h)=1.0`, 대칭성 확인(`h == h[::-1]`)
+  - strict stopband 재검증 결과는 `docs/log/07_coeff_stopband_spec_check.md`를 따른다

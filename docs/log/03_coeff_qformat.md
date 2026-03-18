@@ -3,12 +3,13 @@
 - 작성일: 2026-03-11
 - 단계: 1
 - fixed/golden FIR coefficient format 결정
+- 후속 업데이트(2026-03-18): `N=43`가 current spec-check tap으로 추가되었지만, coefficient dynamic range는 여전히 `Q1.15` 범위 안에 있다.
 
 ## 1) 이번 세션 핵심 결정
 
 1. FIR 계수 고정소수점 포맷을 `signed 16-bit, Q1.15`로 확정했다.
 2. 이 결정은 입력 신호 제약과 분리해서, 필터 계수 자체의 동적 범위를 근거로 확정했다.
-3. 근거 데이터는 `sim/python/inspect_kaiser_coeff.py`의 `N=5/15/35/37/39/41` 출력으로 남긴다.
+3. 근거 데이터는 `sim/python/inspect_kaiser_coeff.py`와 후속 문서의 `N=5/15/35/37/39/41/43` 결과로 남긴다.
 4. 이후 입력 신호 포맷도 `04_input_qformat.md`에서 `signed 16-bit, Q1.15`로 확정했다.
 
 ## 2) 결정 근거
@@ -26,9 +27,10 @@
 | `N=37` | `0.399868` | `-0.066569` | `1.000000` |
 | `N=39` | `0.400015` | `-0.067482` | `1.000000` |
 | `N=41` | `0.400133` | `-0.068268` | `1.000000` |
+| `N=43` | `0.400053` | `-0.068920` | `1.000000` |
 
-- 현재 데모 대상 탭 수(`N=5/15/35/37/39/41`) 전체에서 계수 최대/최소가 `Q1.15` 표현 범위를 넘지 않는다.
-- 특히 최댓값은 `N=5`일 때 `0.563193`, 최솟값은 `N=41`일 때 `-0.068268`으로, sign bit 외의 추가 정수 비트가 필요하지 않다.
+- 현재 데모 대상 탭 수(`N=5/15/35/37/39/41/43`) 전체에서 계수 최대/최소가 `Q1.15` 표현 범위를 넘지 않는다.
+- 특히 최댓값은 `N=5`일 때 `0.563193`, 최솟값은 `N=43`일 때 `-0.068920` 수준으로, sign bit 외의 추가 정수 비트가 필요하지 않다.
 - 계수 합산이 모두 `1.000000`으로 유지되어 unity DC gain 기준 설계 의도와도 일치한다.
 
 ### 2. 이 결정을 입력 신호 포맷 결정과 분리한 근거
@@ -46,6 +48,7 @@
 .venv/bin/python -m sim.python.inspect_kaiser_coeff --num-taps 37
 .venv/bin/python -m sim.python.inspect_kaiser_coeff --num-taps 39
 .venv/bin/python -m sim.python.inspect_kaiser_coeff --num-taps 41
+.venv/bin/python -m sim.python.inspect_kaiser_coeff --num-taps 43
 ```
 
 ## 4) 후속 액션
