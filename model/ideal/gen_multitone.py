@@ -1,5 +1,7 @@
 import numpy as np
 
+from model.q1_15 import quantize_q1_15
+
 
 def generate_multitone(
     num_samples: int,
@@ -39,30 +41,6 @@ def generate_multitone(
         )
 
     return x
-
-
-def quantize_q1_15(x: np.ndarray) -> np.ndarray:
-    """Quantize a normalized float waveform to signed Q1.15."""
-    x_arr = np.asarray(x, dtype=np.float64)
-    scaled = x_arr * (2**15)
-    rounded = np.where(
-        scaled >= 0.0,
-        np.floor(scaled + 0.5),
-        np.ceil(scaled - 0.5),
-    )
-    # 클리핑 발생 여부 감지
-    clip_mask = (rounded < -(2**15)) | (rounded > (2**15) - 1)
-    if np.any(clip_mask):
-        print(
-            f"[WARN] overdrive 발생: "
-            f"{np.sum(clip_mask)}샘플 클리핑, "
-            f"max={np.max(rounded):.1f}, "
-            f"min={np.min(rounded):.1f}"
-        )
-    
-    x_q = np.clip(rounded, -(2**15), (2**15) - 1)
-    return x_q.astype(np.int16)
-
 if __name__ == "__main__":
     # Example usage:
     fs = 100000000
