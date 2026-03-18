@@ -29,7 +29,7 @@
 
 ## 4) 산출물 위치 규칙
 
-1. 스펙/의사결정: `docs/input_signal_spec.md`, `docs/fixed_model_spec.md`, `docs/log/*.md`
+1. 스펙/의사결정: `docs/spec/bringup_input_signal_spec.md`, `docs/spec/fixed_model_spec.md`, `docs/log/*.md`
 2. ideal 기준 모델: `model/ideal/*.py`
 3. fixed/golden 모델: `model/fixed/*.py`
 4. 비교 테스트/스크립트: `sim/python/*.py`, `sim/python/test/*.py`

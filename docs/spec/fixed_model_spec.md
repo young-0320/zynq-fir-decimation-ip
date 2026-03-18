@@ -6,7 +6,7 @@
 
 - 대상: `FIR anti-aliasing + decimation(M=2)` 파이프라인
 - 용도: RTL bit-exact 비교 기준, ideal 모델과 RTL 사이의 golden reference
-- 선행 조건: 입력 신호 생성 제약은 `docs/input_signal_spec.md`에서 먼저 확정한다
+- 선행 조건: 입력 신호 생성 제약은 `docs/spec/bringup_input_signal_spec.md`에서 먼저 확정한다
 - 단, FIR 계수 포맷은 `sim/python/inspect_kaiser_coeff.py` 결과를 근거로 별도 확정한다
 
 ## 2. 시스템 사양
@@ -237,7 +237,7 @@ $$
 - [X] `model/fixed/decimator.py` 파일 생성
 - [X] `model/fixed/fir_decimator_golden.py` 파일 생성
 - [X] `anti_alias_fir_golden` 초기 구현 추가
-- [X] `docs/input_signal_spec.md` 기준으로 bring-up 입력 신호 제약 확정
+- [X] `docs/spec/bringup_input_signal_spec.md` 기준으로 bring-up 입력 신호 제약 확정
 - [X] 입력 quantization 정책 확정
 - [X] 입력 rounding 정책 확정
 - [X] 입력 saturation 정책 확정

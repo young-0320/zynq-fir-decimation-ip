@@ -69,6 +69,6 @@ x_fixed = np.clip(rounded, -32768, 32767).astype(np.int16)
 
 ## 5) 후속 액션
 
-1. `input_signal_spec.md`에 입력 포맷 계약과 변환 예시를 반영한다.
-2. `fixed_model_spec.md`에 입력/계수/곱셈 결과 포맷을 현재 결정으로 반영한다.
+1. `docs/spec/bringup_input_signal_spec.md`에 입력 포맷 계약과 변환 예시를 반영한다.
+2. `docs/spec/fixed_model_spec.md`에 입력/계수/곱셈 결과 포맷을 현재 결정으로 반영한다.
 3. fixed FIR 구현과 테스트 벡터도 현재 포맷(`Q1.15`) 기준으로 정렬했다.

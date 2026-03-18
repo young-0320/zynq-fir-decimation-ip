@@ -28,7 +28,7 @@
 
 ## 4) 산출물 위치 규칙
 
-1. 스펙/의사결정: `docs/ideal_model_spec.md`, `docs/log/*.md`
+1. 스펙/의사결정: `docs/spec/ideal_model_spec.md`, `docs/log/*.md`
 2. 이상 모델 코드: `model/ideal/*.py`
 3. 테스트: `sim/python/test/ideal/*.py`
 4. 실험 보조 스크립트: `sim/python/*.py`

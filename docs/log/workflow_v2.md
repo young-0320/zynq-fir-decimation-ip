@@ -5,7 +5,7 @@
 
 ## 1) 완료 조건 (Definition of Done)
 
-1. `docs/input_signal_spec.md`에 입력 신호 계약이 정리되어 있음.
+1. `docs/spec/bringup_input_signal_spec.md`에 입력 신호 계약이 정리되어 있음.
 2. 멀티톤 톤 개수, 주파수 조합, 진폭 배분, phase 정책, headroom 규칙이 문서에 명시되어 있음.
 3. 입력 신호 생성이 스크립트/함수/파라미터 기준으로 재현 가능하게 정리되어 있음.
 4. ideal 모델 검증과 이후 fixed Q-format 결정에 필요한 동적 범위 가정이 문서에 남아 있음.
@@ -27,7 +27,7 @@
 
 ## 4) 산출물 위치 규칙
 
-1. 스펙/의사결정: `docs/input_signal_spec.md`, `docs/log/*.md`
+1. 스펙/의사결정: `docs/spec/bringup_input_signal_spec.md`, `docs/log/*.md`
 2. ideal 기준 모델: `model/ideal/*.py`
 3. 입력 신호 생성/실험 보조 스크립트: `sim/python/*.py`
 4. 테스트: 필요 시 `sim/python/test/*.py`

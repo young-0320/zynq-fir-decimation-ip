@@ -50,6 +50,6 @@
 
 ## 4) 후속 액션
 
-1. `fixed_model_spec.md`에 FIR 계수 포맷을 `Q1.15`로 반영한다.
+1. `docs/spec/fixed_model_spec.md`에 FIR 계수 포맷을 `Q1.15`로 반영한다.
 2. 입력/데이터 포맷은 후속으로 `04_input_qformat.md`에서 `Q1.15`로 확정했다.
 3. coefficient quantization의 rounding 정책은 별도 항목으로 확정한다.

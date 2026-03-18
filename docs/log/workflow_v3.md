@@ -5,8 +5,8 @@
 
 ## 1) 완료 조건 (Definition of Done)
 
-1. `docs/input_signal_spec.md` 기준 입력 자극이 고정되어 있음.
-2. `docs/fixed_model_spec.md`에 Q-format, quantization, rounding, saturation, overflow 정책이 명시되어 있음.
+1. `docs/spec/bringup_input_signal_spec.md` 기준 입력 자극이 고정되어 있음.
+2. `docs/spec/fixed_model_spec.md`에 Q-format, quantization, rounding, saturation, overflow 정책이 명시되어 있음.
 3. `model/fixed`에 golden model이 구현되어 있음.
 4. fixed 모델 단독 동작과 예외 처리가 테스트로 검증되어 있음.
 5. 이후 ideal-vs-fixed 비교 단계(v4)로 넘어가기 위한 고정소수점 기준 모델이 정리되어 있음.
@@ -30,7 +30,7 @@
 
 ## 4) 산출물 위치 규칙
 
-1. 스펙/의사결정: `docs/input_signal_spec.md`, `docs/fixed_model_spec.md`, `docs/log/*.md`
+1. 스펙/의사결정: `docs/spec/bringup_input_signal_spec.md`, `docs/spec/fixed_model_spec.md`, `docs/log/*.md`
 2. ideal 기준 모델: `model/ideal/*.py`
 3. fixed/golden 모델: `model/fixed/*.py`
 4. fixed 테스트: `sim/python/test/fixed/*.py`
