@@ -104,3 +104,19 @@ def design_kaiser_lpf(
     # Normalize DC gain to 1 for stable passband reference.
     h /= np.sum(h)
     return h.astype(np.float64, copy=False)
+
+if __name__ == "__main__":
+    # Example usage.
+    fs_in_hz = 100e6
+    fp_hz = 15e6
+    fs_hz = 25e6
+    as_db = 60.0
+    beta = kaiser_beta(as_db) # 5.65326
+    
+    num_taps = estimate_num_taps(
+        fs_in_hz=fs_in_hz,
+        fp_hz=fp_hz,
+        fs_hz=fs_hz,
+        as_db=as_db,
+    )
+    print(num_taps)
