@@ -20,7 +20,8 @@
 - FIR 설계법: Kaiser window
 - 기본 탭 수:
   - bring-up: `N = 5`
-  - 제출용: `N = 41`
+  - 비교/평가: `N = 39`, `N = 41`
+  - 현재 coefficient-based spec-check 대상: `N = 43`
 - 입력/출력 샘플 포맷: `signed 16-bit, Q1.15`
 - FIR 계수 포맷: `signed 16-bit, Q1.15`
 - 내부 곱셈 결과 포맷: `signed 32-bit, Q2.30`
@@ -72,7 +73,7 @@ $$
   - 반환 dtype: `np.int16`
   - 입력 `x` 계약: `np.ndarray` 1-D, `signed Q1.15` 샘플 배열
   - 입력 `h` 계약: `np.ndarray` 1-D, `signed Q1.15` 계수 배열
-  - 내부 누산기 폭: golden 구현은 `np.int64`, 현재 `N=41` 기준 최소 요구 폭은 signed `32-bit`
+  - 내부 누산기 폭: golden 구현은 `np.int64`, 현재 `N=43` 기준 최소 요구 폭은 signed `32-bit`
   - 곱셈 결과 스케일 처리: `x(Q1.15) * h(Q1.15) -> product(Q2.30)`
   - rounding 정책: `Q2.30 -> Q1.15` 변환 시 `round-to-nearest with ties-away-from-zero`
   - saturation 정책: 최종 출력 배열 저장 직전에만 `clip(-32768, 32767)`
@@ -142,8 +143,9 @@ $$
 | `N=37` | `0.399868` | `-0.066569` | `1.000000` |
 | `N=39` | `0.400015` | `-0.067482` | `1.000000` |
 | `N=41` | `0.400133` | `-0.068268` | `1.000000` |
+| `N=43` | `0.400053` | `-0.068920` | `1.000000` |
 
-- 현재 데모 대상 탭 수(`N=5/15/35/37/39/41`) 모두에서 계수 최소/최대/합산 결과가 `Q1.15` 범위 안에 들어간다.
+- 현재 데모 대상 탭 수(`N=5/15/35/37/39/41/43`) 모두에서 계수 최소/최대/합산 결과가 `Q1.15` 범위 안에 들어간다.
 - 따라서 FIR 계수 저장 포맷은 `signed 16-bit, Q1.15`로 확정한다.
 - 이 결정은 입력 멀티톤의 진폭/headroom과 직접 연결되는 샘플 포맷 결정과는 분리한다.
 
@@ -169,13 +171,13 @@ $$
 
 - FIR 계수도 입력과 동일하게 `float64 -> scale by 2^15 -> round-to-nearest with ties-away-from-zero -> clip(-32768, 32767) -> int16` 규칙으로 양자화한다.
 - 계수 양자화 후 합이 정확히 `1.0`이 되도록 추가 재정규화하지 않는다.
-- `N=41` 계수의 `sum(abs(h_q)) = 55404`, `max|x_q| = 32768`으로 두면, 현재 스펙 기준 누산 상한은 아래와 같다.
+- `N=43` 계수의 `sum(abs(h_q)) = 56025`, `max|x_q| = 32768`으로 두면, 현재 스펙 기준 누산 상한은 아래와 같다.
 
 $$
-\max |acc| \le 32768 \cdot 55404 = 1,815,478,272
+\max |acc| \le 32768 \cdot 56025 = 1,835,827,200
 $$
 
-- 이 값은 signed `32-bit` 범위 안에 들어가므로, 현재 `N=41` 기준 최소 누산 폭은 signed `32-bit`이다.
+- 이 값은 signed `32-bit` 범위 안에 들어가므로, 현재 `N=43` 기준 최소 누산 폭은 signed `32-bit`이다.
 - 다만 RTL 구현은 DSP 경로와 정렬하기 위해 signed `48-bit` accumulator를 사용해도 무방하다.
 - full convolution은 출력 길이를 늘릴 뿐, 한 출력 샘플의 최대 누산 항 개수는 tap 수(`N`)를 넘지 않으므로 누산기 폭 결정 기준은 per-sample MAC bound이다.
 
@@ -213,7 +215,7 @@ $$
   - `len(y_fir) == len(x) + len(h) - 1`
 - Decimator 출력 길이:
   - `len(y_decim) == len(y_fir[phase::m])`
-- `N = 5`와 `N = 41` 모두 동작해야 함.
+- `N = 5`와 `N = 43` 모두 동작해야 함.
 
 ### 8.2 bit-level 검증
 
@@ -253,8 +255,8 @@ $$
 | bring-up 입력 신호 생성 제약  | 확정      | `5/20/30 MHz`, `A=0.3`, `phase=0`, `N=8192`, `headroom=0.1` |
 | 입력 양자화 기준               | 확정      | `float64` 합산 후 1회 양자화, `ties-away-from-zero`, `clip(-32768, 32767)` |
 | 계수 양자화 기준               | 확정      | 입력과 동일한 `ties-away-from-zero` 규칙 사용, 추가 재정규화 없음      |
-| 39/41탭 기준 최종 demo 입력 신호 | 미정      | bring-up 이후 alias 시각화 목적에 맞춰 재설계 예정          |
+| 39/41/43탭 기준 최종 demo 입력 신호 | 미정      | bring-up 이후 alias 시각화 목적에 맞춰 재설계 예정          |
 | saturation 적용 지점           | 확정      | 최종 출력 배열 저장 시점에서만 1회 clip                    |
 | overflow 정책                  | 확정      | intermediate wrap/saturation 없음, wide accumulator 사용   |
-| accumulator 비트폭             | 확정      | 현재 `N=41` 기준 최소 signed `32-bit`, RTL 구현 목표는 signed `48-bit` |
+| accumulator 비트폭             | 확정      | 현재 `N=43` 기준 최소 signed `32-bit`, RTL 구현 목표는 signed `48-bit` |
 | decimator 입력/출력 dtype 계약 | 확정      | FIR 출력과 동일하게 `np.int16` 유지                        |

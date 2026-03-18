@@ -19,7 +19,8 @@
 - FIR 설계법: Kaiser window
 - 기본 탭 수:
   - bring-up: `N = 5`
-  - 제출용: `N = 41`
+  - 비교/평가: `N = 39`, `N = 41`
+  - 현재 coefficient-based spec-check 대상: `N = 43`
 
 ## 3. 블록 정의
 
@@ -108,8 +109,16 @@ $$
 비교 실험용 제공 함수:
 
 - `run_downsample_only_ideal(x, m=2, phase=0) -> np.ndarray`
-  - FIR 없이 입력을 바로 decimation하는 baseline 경로
-  - anti-alias FIR 유무에 따른 alias 차이 비교용으로만 사용한다
+- FIR 없이 입력을 바로 decimation하는 baseline 경로
+- anti-alias FIR 유무에 따른 alias 차이 비교용으로만 사용한다
+
+### 4.6 `sim/python/run_check_coeff_stopband_spec.py`
+
+재현 가능한 coefficient 기반 stopband spec-check 스크립트:
+
+- 입력 신호와 무관하게 FIR coefficient 자체의 주파수 응답으로 `As >= 60 dB`를 판정한다
+- `ideal float64 coefficient`와 `Q1.15 quantized coefficient`를 둘 다 평가한다
+- 판정 기준은 `f >= fs_hz` 전체 stopband의 worst-case attenuation이다
 
 ## 5. 데이터 타입 및 수치 정책
 
@@ -134,7 +143,11 @@ $$
 
 - 설계된 FIR의 응답이 아래를 만족해야 함(수치 오차 허용 범위 내):
   - 통과대역 ripple: 프로젝트에서 정한 한계 이하
-  - 저지대역 감쇠: `>= 60 dB`
+  - 저지대역 감쇠: `f >= fs_hz` 전체 stopband에서 worst-case 기준 `>= 60 dB`
+- `25 MHz` 한 점만으로 통과/실패를 판정하지 않는다.
+- 프로젝트의 공식 coefficient spec-check 재현 명령은 아래 스크립트를 사용한다.
+  - `sim/python/run_check_coeff_stopband_spec.py`
+- 프로젝트 기록에서는 `ideal coefficient response`와 `Q1.15 quantized coefficient response`를 함께 남긴다.
 
 ### 6.3 비교 실험 검증
 
@@ -153,4 +166,4 @@ $$
 - [ ] Decimation 함수 구현(`x[phase::m]`)
 - [ ] Top-level 연결 함수 구현
 - [ ] 멀티톤 입력으로 alias 억제 동작 확인
-- [ ] N=5, N=41 모두 동작 확인
+- [ ] N=5, N=43 모두 동작 확인

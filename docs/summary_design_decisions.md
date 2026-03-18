@@ -17,8 +17,9 @@
 | 통과대역 경계      | `fp = 15 MHz`                                               | 확정 | 천이대역 `10 MHz` 확보. 계획서, `01_spec_and_kaiser.md`                |
 | 저지대역 시작      | `fs = 25 MHz`                                               | 확정 | 출력 나이퀴스트 경계. 계획서,`01_spec_and_kaiser.md`                     |
 | 목표 감쇠          | `As >= 60 dB`                                               | 확정 | alias 억제 `1/1000` 수준 목표. 계획서, `01_spec_and_kaiser.md`         |
+| 저지대역 판정 기준 | coefficient 응답의 `f >= 25 MHz` 전체 worst-case attenuation | 확정 | `docs/log/07_coeff_stopband_spec_check.md` |
 | 필터 설계법        | Kaiser window<br />`β=5.65326`                             | 확정 | 재현성 확보 목적. 계획서,`01_spec_and_kaiser.md`                         |
-| 탭 수 정책         | bring-up `N=5`, 테스트용 `N=15/35/37/39`, 제출용 `N=41` | 확정 | Kaiser 추정 + 여유 확보. 계획서,`01_spec_and_kaiser.md`                  |
+| 탭 수 정책         | bring-up `N=5`, 비교/평가 `N=39/41`, 현재 spec 만족 candidate `N=43` | 갱신 | `docs/log/07_coeff_stopband_spec_check.md` |
 | 처리 순서          | `Anti-alias FIR -> Decimator`                               | 확정 | alias 억제는 FIR가 담당.`docs/spec/ideal_model_spec.md`, `01_spec_and_kaiser.md` |
 
 ## 2) Ideal Python 모델 결정
@@ -59,7 +60,7 @@
 | RTL FIR 구조     | Transposed form                                                   | 계획서 기준 확정 | 계획서 2단계 설명    |
 | 구조 선택 이유   | 파이프라인 레지스터 삽입이 자연스럽고 `Fmax 100MHz` 달성에 유리 | 계획서 기준 확정 | 계획서 2단계 설명    |
 | PPA 우선순위     | DSP 사용량 최소화 우선,`Fmax/throughput` 방어                   | 계획서 기준 확정 | 계획서 3, 5단계 설명 |
-| bring-up 전략    | `N=5`로 먼저 동작 확인 후 `N=41` 확장                         | 계획서 기준 확정 | 계획서 3단계 설명    |
+| bring-up 전략    | `N=5`로 먼저 동작 확인 후 near-spec tap을 비교하고, 현재 공식 spec-check 대상은 `N=43` | 갱신 | 계획서 3단계 설명, `docs/log/07_coeff_stopband_spec_check.md` |
 | Baseline 비교군  | Naive RTL, FIR Compiler                                           | 계획서 기준 확정 | 계획서 5단계 설명    |
 | 타겟 보드        | Zybo Z7-20                                                        | 계획서 기준 확정 | 계획서, 예산 항목    |
 | 시스템 실증 방식 | PS-PL + AXI DMA + bare-metal C                                    | 계획서 기준 확정 | 계획서 6단계 설명    |
@@ -78,6 +79,6 @@
 
 | 항목                                            | 현재 상태 | 비고                                                                                          |
 | ----------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- |
-| `39/41`탭 기준 최종 demo 입력 신호 profile      | 미정      | 현재 `5/20/30 MHz` 입력은 bring-up용이며, 이후 별도 설계 예정 |
+| `39/41/43`탭 기준 최종 demo 입력 신호 profile      | 미정      | 현재 `5/20/30 MHz` 입력은 bring-up용이며, 이후 별도 설계 예정 |
 | symmetry 활용 RTL 세부 구조                     | 미정      | Transposed form 구현 세부 설계 단계에서 확정 예정                                             |
 | AXI-Stream wrapper 및 backpressure 세부 동작    | 미정      | RTL/SoC 통합 단계에서 확정 예정                                                               |

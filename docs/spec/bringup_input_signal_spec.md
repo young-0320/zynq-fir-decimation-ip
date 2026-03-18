@@ -7,7 +7,7 @@
 - 대상: `Fs_in = 100 MHz` 환경에서의 멀티톤 입력 자극
 - 용도: bring-up 동작 확인, ideal 검증, fixed/golden 기준 입력, RTL 비교의 공통 기준선
 - 현재 문서는 bring-up용 입력 프로파일을 확정한다
-- 이후 `N=39` 또는 `N=41` 탭 기준 최종 데모용 입력 프로파일은 별도 revision에서 다시 설계한다
+- 이후 `N=39/41/43` 탭 기준 최종 데모용 입력 프로파일은 별도 revision에서 다시 설계한다
 
 ## 2. 시스템 맥락
 
@@ -198,5 +198,5 @@ x_fixed = np.clip(rounded, -32768, 32767).astype(np.int16)
 - [X] rounding 모드 확정 (`round-to-nearest, ties-away-from-zero`)
 - [X] saturation 범위 확정 (`clip(-32768, 32767)`)
 - [X] 추가 정규화 없음
-- [ ] `N=39/41` 탭 기준 최종 데모용 입력 신호 재구성
+- [ ] `N=39/41/43` 탭 기준 최종 데모용 입력 신호 재구성
 - [X] 입력 신호 Q-format(`Q1.15`) 확정
