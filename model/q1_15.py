@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 
+from model.config import FIR_CONFIG
 
-Q1_15_FRACTIONAL_BITS = 15
-Q1_15_SCALE = 1 << Q1_15_FRACTIONAL_BITS
-Q1_15_MIN = -(1 << 15)
-Q1_15_MAX = (1 << 15) - 1
+Q1_15_FRACTIONAL_BITS = FIR_CONFIG.fractional_bits
+Q1_15_SCALE = FIR_CONFIG.q_scale
+Q1_15_MIN = FIR_CONFIG.q_min
+Q1_15_MAX = FIR_CONFIG.q_max
 
 
 def round_ties_away_from_zero(x: np.ndarray) -> np.ndarray:

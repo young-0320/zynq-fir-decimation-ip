@@ -1,14 +1,16 @@
 import numpy as np
+from typing import Sequence
 
+from model.config import FIR_CONFIG
 from model.q1_15 import quantize_q1_15
 
 
 def generate_multitone(
     num_samples: int,
     fs_hz: float,
-    tone_freqs_hz: list[float],
-    amplitudes: list[float],
-    phases_rad: list[float] | None = None,
+    tone_freqs_hz: Sequence[float],
+    amplitudes: Sequence[float],
+    phases_rad: Sequence[float] | None = None,
 ) -> np.ndarray:
     """Generate a float64 multitone waveform."""
     if num_samples < 1:
@@ -43,13 +45,13 @@ def generate_multitone(
     return x
 if __name__ == "__main__":
     # Example usage:
-    fs = 100000000
-    freqs = [5000000.0, 20000000.0, 30000000.0]
-    amps = [0.3, 0.3, 0.3]
-    phases = [0.0, 0.0, 0.0]
+    fs = FIR_CONFIG.fs_in_hz
+    freqs = FIR_CONFIG.bringup_tone_freqs_hz
+    amps = FIR_CONFIG.bringup_tone_amplitudes
+    phases = FIR_CONFIG.bringup_tone_phases_rad
 
     multitone = generate_multitone(
-        num_samples=8192,
+        num_samples=FIR_CONFIG.bringup_num_samples,
         fs_hz=fs,
         tone_freqs_hz=freqs,
         amplitudes=amps,
@@ -64,4 +66,7 @@ if __name__ == "__main__":
     print(f"  max  = {np.max(quantized)}")
     print(f"  min  = {np.min(quantized)}")
     print(f"  peak = {np.max(np.abs(quantized.astype(np.int32)))}")
-    print(f"  클리핑 여부 = {np.any(np.abs(quantized.astype(np.int32)) == 32768) or np.max(quantized) == 32767}")
+    print(
+        "  클리핑 여부 = "
+        f"{np.any(np.abs(quantized.astype(np.int32)) == FIR_CONFIG.q_scale) or np.max(quantized) == FIR_CONFIG.q_max}"
+    )

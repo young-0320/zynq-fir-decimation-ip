@@ -1,7 +1,13 @@
 import numpy as np
 
+from model.config import FIR_CONFIG
 
-def decimate(x: np.ndarray, m: int = 2, phase: int = 0) -> np.ndarray:
+
+def decimate(
+    x: np.ndarray,
+    m: int = FIR_CONFIG.decimation_factor,
+    phase: int = FIR_CONFIG.default_phase,
+) -> np.ndarray:
     """Downsample a 1-D signal by keeping every m-th sample from `phase`.
 
     For example, with `m=2`, `phase=0` keeps indices 0, 2, 4, ...

@@ -8,16 +8,17 @@ from typing import Any, Sequence
 import numpy as np
 from scipy.signal import freqz
 
+from model.config import FIR_CONFIG
 from model.ideal.design_kaiser_coeff import design_kaiser_lpf
 from model.q1_15 import count_clipped_q1_15, dequantize_q1_15, quantize_q1_15
 
 
-DEFAULT_FS_IN_HZ = 100_000_000.0
-DEFAULT_FP_HZ = 15_000_000.0
-DEFAULT_FS_HZ = 25_000_000.0
-DEFAULT_AS_DB = 60.0
-DEFAULT_NUM_TAPS = [39, 41, 43]
-DEFAULT_NUM_FREQ_SAMPLES = 524_288
+DEFAULT_FS_IN_HZ = FIR_CONFIG.fs_in_hz
+DEFAULT_FP_HZ = FIR_CONFIG.fp_hz
+DEFAULT_FS_HZ = FIR_CONFIG.fs_hz
+DEFAULT_AS_DB = FIR_CONFIG.as_db
+DEFAULT_NUM_TAPS = FIR_CONFIG.tap_sweep
+DEFAULT_NUM_FREQ_SAMPLES = FIR_CONFIG.stopband_num_freq_samples
 _DB_EPSILON = 1e-300
 
 

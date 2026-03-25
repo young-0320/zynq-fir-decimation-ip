@@ -1,13 +1,14 @@
 import numpy as np
 import pytest
 
+from model.config import FIR_CONFIG
 from model.ideal.design_kaiser_coeff import design_kaiser_lpf, estimate_num_taps
 
 
-FS_IN_HZ = 100e6
-FP_HZ = 15e6
-FS_HZ = 25e6
-AS_DB = 60.0
+FS_IN_HZ = FIR_CONFIG.fs_in_hz
+FP_HZ = FIR_CONFIG.fp_hz
+FS_HZ = FIR_CONFIG.fs_hz
+AS_DB = FIR_CONFIG.as_db
 
 
 def test_design_kaiser_lpf_returns_float64_array_with_requested_length() -> None:

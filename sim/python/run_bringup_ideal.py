@@ -3,23 +3,24 @@ from pathlib import Path
 
 import numpy as np
 
+from model.config import FIR_CONFIG
 from model.ideal.design_kaiser_coeff import design_kaiser_lpf
 from model.ideal.fir_decimator_ideal import run_fir_decimator_ideal
 from model.ideal.gen_multitone import generate_multitone, quantize_q1_15
 from sim.python.downsample_only_ideal import run_downsample_only_ideal
 
 
-DEFAULT_FS_IN_HZ = 100_000_000.0
-DEFAULT_FP_HZ = 15_000_000.0
-DEFAULT_FS_HZ = 25_000_000.0
-DEFAULT_AS_DB = 60.0
-DEFAULT_NUM_TAPS = 5
-DEFAULT_NUM_SAMPLES = 8192
-DEFAULT_FREQS_HZ = [5_000_000.0, 20_000_000.0, 30_000_000.0]
-DEFAULT_AMPLITUDES = [0.3, 0.3, 0.3]
-DEFAULT_PHASES_RAD = [0.0, 0.0, 0.0]
-DEFAULT_DECIMATION = 2
-DEFAULT_PHASE = 0
+DEFAULT_FS_IN_HZ = FIR_CONFIG.fs_in_hz
+DEFAULT_FP_HZ = FIR_CONFIG.fp_hz
+DEFAULT_FS_HZ = FIR_CONFIG.fs_hz
+DEFAULT_AS_DB = FIR_CONFIG.as_db
+DEFAULT_NUM_TAPS = FIR_CONFIG.bringup_num_taps
+DEFAULT_NUM_SAMPLES = FIR_CONFIG.bringup_num_samples
+DEFAULT_FREQS_HZ = FIR_CONFIG.bringup_tone_freqs_hz
+DEFAULT_AMPLITUDES = FIR_CONFIG.bringup_tone_amplitudes
+DEFAULT_PHASES_RAD = FIR_CONFIG.bringup_tone_phases_rad
+DEFAULT_DECIMATION = FIR_CONFIG.decimation_factor
+DEFAULT_PHASE = FIR_CONFIG.default_phase
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

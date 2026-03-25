@@ -1,5 +1,6 @@
 import numpy as np
 
+from model.config import FIR_CONFIG
 from model.ideal.anti_alias_fir import anti_alias_fir_ideal
 from model.ideal.decimator import decimate
 
@@ -7,8 +8,8 @@ from model.ideal.decimator import decimate
 def run_fir_decimator_ideal(
     x: np.ndarray,
     h: np.ndarray,
-    m: int = 2,
-    phase: int = 0,
+    m: int = FIR_CONFIG.decimation_factor,
+    phase: int = FIR_CONFIG.default_phase,
     return_intermediate: bool = False,
 ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Ideal FIR-Decimator 체인을 실행한다.

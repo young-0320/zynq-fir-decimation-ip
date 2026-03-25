@@ -1,10 +1,12 @@
 import numpy as np
 
+from model.config import FIR_CONFIG
+
 
 def decimate_golden(
     x: np.ndarray,
-    m: int = 2,
-    phase: int = 0,
+    m: int = FIR_CONFIG.decimation_factor,
+    phase: int = FIR_CONFIG.default_phase,
 ) -> np.ndarray:
     """Downsample a fixed-point 1-D signal by keeping every m-th sample."""
     if not isinstance(x, np.ndarray):
@@ -24,7 +26,7 @@ def decimate_golden(
     if x.size > 0:
         x_min = int(np.min(x))
         x_max = int(np.max(x))
-        if x_min < -(1 << 15) or x_max > (1 << 15) - 1:
+        if x_min < FIR_CONFIG.q_min or x_max > FIR_CONFIG.q_max:
             raise ValueError("x must stay within signed Q1.15/int16 range.")
 
     x_q = x.astype(np.int16, copy=False)

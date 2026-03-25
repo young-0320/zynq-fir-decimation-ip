@@ -1,12 +1,13 @@
 import numpy as np
 
+from model.config import FIR_CONFIG
 from model.ideal.decimator import decimate
 
 
 def run_downsample_only_ideal(
     x: np.ndarray,
-    m: int = 2,
-    phase: int = 0,
+    m: int = FIR_CONFIG.decimation_factor,
+    phase: int = FIR_CONFIG.default_phase,
 ) -> np.ndarray:
     """FIR 없이 입력 신호를 바로 decimation하는 비교용 baseline 경로."""
     return decimate(x, m=m, phase=phase)

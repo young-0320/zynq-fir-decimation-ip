@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from model.config import FIR_CONFIG
 from sim.python.run_compare_ideal_vs_fixed import compute_error_metrics, run_compare_ideal_vs_fixed
 
 
@@ -24,10 +25,10 @@ def test_compute_error_metrics_rejects_shape_mismatch() -> None:
 
 def test_run_compare_ideal_vs_fixed_returns_expected_shapes_and_keys() -> None:
     artifacts, summary = run_compare_ideal_vs_fixed(
-        num_taps=5,
+        num_taps=FIR_CONFIG.bringup_num_taps,
         num_samples=64,
-        m=2,
-        phase=0,
+        m=FIR_CONFIG.decimation_factor,
+        phase=FIR_CONFIG.default_phase,
     )
 
     assert artifacts["input_float"].shape == (64,)

@@ -1,8 +1,11 @@
 import numpy as np
 
-Q1_15_FRACTIONAL_BITS = 15
-Q1_15_MIN = -(1 << 15)
-Q1_15_MAX = (1 << 15) - 1
+from model.config import FIR_CONFIG
+
+
+Q1_15_FRACTIONAL_BITS = FIR_CONFIG.fractional_bits
+Q1_15_MIN = FIR_CONFIG.q_min
+Q1_15_MAX = FIR_CONFIG.q_max
 
 
 def _validate_q1_15_int_array(x: np.ndarray, name: str) -> np.ndarray:

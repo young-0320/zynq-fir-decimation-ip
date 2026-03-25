@@ -2,8 +2,12 @@
 """Utilities to generate ideal FIR coefficients for simulation."""
 
 from __future__ import annotations
+
 import math
+
 import numpy as np
+
+from model.config import FIR_CONFIG
 
 
 def _validate_design_inputs(
@@ -107,16 +111,17 @@ def design_kaiser_lpf(
 
 if __name__ == "__main__":
     # Example usage.
-    fs_in_hz = 100e6
-    fp_hz = 15e6
-    fs_hz = 25e6
-    as_db = 60.0
-    beta = kaiser_beta(as_db) # 5.65326
-    
+    fs_in_hz = FIR_CONFIG.fs_in_hz
+    fp_hz = FIR_CONFIG.fp_hz
+    fs_hz = FIR_CONFIG.fs_hz
+    as_db = FIR_CONFIG.as_db
+    beta = kaiser_beta(as_db)
+
     num_taps = estimate_num_taps(
         fs_in_hz=fs_in_hz,
         fp_hz=fp_hz,
         fs_hz=fs_hz,
         as_db=as_db,
     )
-    print(num_taps)
+    print(f"beta={beta:.5f}")
+    print(f"num_taps={num_taps}")
