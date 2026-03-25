@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from model.fixed.fir_decimator_golden import run_fir_decimator_golden
+from model.fixed.direct_form.fir_decimator_golden import run_fir_decimator_golden
 
 
 def test_run_fir_decimator_golden_runs_fir_then_decimation() -> None:

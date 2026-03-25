@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 
 from model.config import FIR_CONFIG
-from model.fixed.fir_decimator_golden import run_fir_decimator_golden
+from model.fixed.direct_form.fir_decimator_golden import run_fir_decimator_golden
 from model.ideal.design_kaiser_coeff import design_kaiser_lpf
 from model.ideal.fir_decimator_ideal import run_fir_decimator_ideal
 from model.ideal.gen_multitone import generate_multitone

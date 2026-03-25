@@ -63,7 +63,7 @@ $$
 
 ## 4. 모듈/파일 계약
 
-### 4.1 `model/fixed/anti_alias_fir.py`
+### 4.1 `model/fixed/direct_form/anti_alias_fir.py`
 
 필수 제공 함수:
 
@@ -91,7 +91,7 @@ $$
   - 입력 검증 정책: `1-D ndarray`, integer dtype, `int16/Q1.15` 범위 확인
   - `phase` 해석: FIR 출력에서 몇 번째 샘플부터 유지할지 정하는 오프셋
 
-### 4.3 `model/fixed/fir_decimator_golden.py`
+### 4.3 `model/fixed/direct_form/fir_decimator_golden.py`
 
 필수 제공 함수:
 
@@ -235,9 +235,9 @@ $$
 
 ## 9. 구현 체크리스트
 
-- [X] `model/fixed/anti_alias_fir.py` 파일 생성
+- [X] `model/fixed/direct_form/anti_alias_fir.py` 파일 생성
 - [X] `model/fixed/decimator.py` 파일 생성
-- [X] `model/fixed/fir_decimator_golden.py` 파일 생성
+- [X] `model/fixed/direct_form/fir_decimator_golden.py` 파일 생성
 - [X] `anti_alias_fir_golden` 초기 구현 추가
 - [X] `docs/spec/bringup_input_signal_spec.md` 기준으로 bring-up 입력 신호 제약 확정
 - [X] 입력 quantization 정책 확정

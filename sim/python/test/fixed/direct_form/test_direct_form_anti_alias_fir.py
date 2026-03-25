@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from model.fixed.anti_alias_fir import anti_alias_fir_golden
+from model.fixed.direct_form.anti_alias_fir import anti_alias_fir_golden
 
 
 def test_anti_alias_fir_golden_returns_full_length_q1_15_output() -> None:

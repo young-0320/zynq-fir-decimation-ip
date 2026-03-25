@@ -1,7 +1,7 @@
 import numpy as np
 
 from model.config import FIR_CONFIG
-from model.fixed.anti_alias_fir import anti_alias_fir_golden
+from model.fixed.direct_form.anti_alias_fir import anti_alias_fir_golden
 from model.fixed.decimator import decimate_golden
 
 
