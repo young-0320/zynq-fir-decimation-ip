@@ -16,23 +16,23 @@
 
 ## 2) 확정 프로파일
 
-| 항목 | 확정값 |
-| --- | --- |
-| 목적 | bring-up 동작 확인 |
-| 파형 종류 | `sine` |
-| 샘플 수 | `8192` |
-| 생성 dtype | `np.float64` |
-| 출력 배열 | `1-D ndarray` |
-| 저장 포맷 | `signed 16-bit, Q1.15` |
-| tone 개수 | `3` |
-| 주파수 | `5 MHz`, `20 MHz`, `30 MHz` |
-| 각 tone 진폭 | `0.3`, `0.3`, `0.3` |
-| 위상 | `0`, `0`, `0` |
-| headroom budget | `0.1` |
-| 추가 정규화 | 없음 |
-| 양자화 시점 | 합산 후 1회 |
-| rounding 모드 | `round-to-nearest, ties-away-from-zero` |
-| saturation 범위 | `clip(-32768, 32767)` |
+| 항목            | 확정값                                    |
+| --------------- | ----------------------------------------- |
+| 목적            | bring-up 동작 확인                        |
+| 파형 종류       | `sine`                                  |
+| 샘플 수         | `8192`                                  |
+| 생성 dtype      | `np.float64`                            |
+| 출력 배열       | `1-D ndarray`                           |
+| 저장 포맷       | `signed 16-bit, Q1.15`                  |
+| tone 개수       | `3`                                     |
+| 주파수          | `5 MHz`, `20 MHz`, `30 MHz`         |
+| 각 tone 진폭    | `0.3`, `0.3`, `0.3`                 |
+| 위상            | `0`, `0`, `0`                       |
+| headroom budget | `0.1`                                   |
+| 추가 정규화     | 없음                                      |
+| 양자화 시점     | 합산 후 1회                               |
+| rounding 모드   | `round-to-nearest, ties-away-from-zero` |
+| saturation 범위 | `clip(-32768, 32767)`                   |
 
 ## 3) 입력 생성 수식
 
@@ -56,19 +56,17 @@ $$
 
 ### 2. 대역별 자극을 최소 구성으로 포함한다
 
-- `5 MHz`: passband 대표
-- `20 MHz`: transition band 대표
-- `30 MHz`: stopband 대표
-
-- 이 profile은 alias가 가장 잘 분리되는 최종 데모 벡터는 아니지만, bring-up 단계에서는 대역별 반응 확인에 충분하다.
+1. `5 MHz`: passband 대표
+1. `20 MHz`: transition band 대표
+1. `30 MHz`: stopband 대표
+1. 이 profile은 alias가 가장 잘 분리되는 최종 데모 벡터는 아니지만, bring-up 단계에서는 대역별 반응 확인에 충분하다.
 
 ### 3. 양자화 규칙을 명시적으로 닫아 bit-exact 혼선을 줄인다
 
-- `ties-away-from-zero`는 signed 데이터에서 규칙 해석이 직관적이다.
-- `clip(-32768, 32767)`를 함께 명시하면 `int16` 변환 경계가 모호하지 않다.
-- 톤별 양자화가 아니라 합산 후 1회 양자화를 사용하면 불필요한 quantization noise를 줄일 수 있다.
-
-### 4. 추가 정규화를 금지해 amplitude 계약을 보존한다
+1. `ties-away-from-zero`는 signed 데이터에서 규칙 해석이 직관적이다.
+1. `clip(-32768, 32767)`를 함께 명시하면 `int16` 변환 경계가 모호하지 않다.
+1. 톤별 양자화가 아니라 합산 후 1회 양자화를 사용하면 불필요한 quantization noise를 줄일 수 있다.
+1- 4. 추가 정규화를 금지해 amplitude 계약을 보존한다
 
 - 각 tone 진폭을 `0.3`으로 명시했으면, 합성 후 다시 normalize하면 이 계약이 깨진다.
 - 따라서 amplitude 합 `0.9`, headroom budget `0.1`은 설계 budget으로 그대로 유지한다.
