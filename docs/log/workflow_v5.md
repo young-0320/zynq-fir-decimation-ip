@@ -22,9 +22,9 @@ reset_conditioner
 ```
 
 5. 현재 latency 계약은 아래와 같다.
-   - FIR latency: `2 cycles`
+   - FIR latency: `4 cycles`
    - decimator latency: `1 cycle`
-   - top latency: `3 cycles`
+   - top latency: `5 cycles`
 
 ## 1) 완료 조건 (Definition of Done)
 

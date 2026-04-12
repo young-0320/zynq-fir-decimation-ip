@@ -171,16 +171,18 @@ RTL도 같은 순서를 따라야 bit-exact로 맞는다.
 이 모듈은 registered output이며, 현재 bring-up RTL에서는 FIR 내부에 파이프라인 register가 한 단계 더 들어가 있다.
 
 - 입력 accepted 기준
-- FIR output은 `2 cycles` 뒤에 나온다.
+- FIR output은 `4 cycles` 뒤에 나온다.
 
 구조를 순서대로 보면:
 
 1. 입력 sample을 tap register에 저장
-2. 저장된 tap 집합으로 `multiply + adder tree`를 계산하고 accumulator register에 저장
-3. 그 accumulator register를 round/saturate 해서 최종 `out_sample`에 저장
+2. 저장된 tap 집합으로 `5개 multiply`를 계산하고 product register에 저장
+3. product register 값들을 wide accumulation 해서 accumulator register에 저장
+4. accumulator register 값을 `Q2.30 -> Q1.15`로 round 해서 round register에 저장
+5. round register 값을 saturation 해서 최종 `out_sample`에 저장
 
-즉 현재 direct-form FIR는 “입력 저장 stage”와 “wide accumulate stage”, “최종 출력 stage”로 해석할 수 있다.
-이렇게 한 이유는 arithmetic 조합 경로를 잘라서 bring-up 타이밍 여유를 확보하기 위해서다.
+즉 현재 direct-form FIR는 “입력 저장 stage”, “multiply register stage”, “wide accumulate stage”, “round register stage”, “최종 출력 stage”로 해석할 수 있다.
+이렇게 한 이유는 먼저 `DSP -> 긴 carry chain -> acc_reg` 경로를 자르고, 그다음 `acc_reg -> round/saturate -> out_sample` 경로도 한 번 더 나눠서 `125 MHz` bring-up 타이밍을 실제로 닫기 위해서다.
 
 ---
 
@@ -285,10 +287,10 @@ in_valid/in_sample
 
 현재 구조에서는:
 
-- FIR = `2 cycles`
+- FIR = `4 cycles`
 - Decimator = `1 cycle`
 
-이므로 keep되는 샘플 기준 top latency는 `3 cycles`다.
+이므로 keep되는 샘플 기준 top latency는 `5 cycles`다.
 
 ---
 
@@ -389,6 +391,7 @@ in_valid/in_sample
 
 - `input_mem`
   - `input_q15.hex`를 읽어 저장하는 메모리
+  - 현재 구현에서는 BRAM-friendly ROM으로 유도해 보드 build에서 실제 BRAM 자원을 쓰게 했다
 
 - `sample_idx`
   - 현재 몇 번째 샘플을 내보내는지 추적
@@ -453,6 +456,7 @@ reset이 풀린 뒤 첫 active 구간에:
 
 - `expected_mem`
   - golden decimated output 저장
+  - 현재 구현에서는 BRAM-friendly synchronous ROM 형태로 읽히도록 구성
 
 - `observed_count`
   - 지금까지 valid 출력 샘플을 몇 개 받았는지
@@ -463,10 +467,14 @@ reset이 풀린 뒤 첫 active 구간에:
 - `done`, `pass`, `fail`, `mismatch_seen`
   - 최종 상태 latch
 
+- `sample_pipe`, `expected_pipe`, `compare_pending`
+  - 현재 cycle에서 들어온 DUT sample과 ROM에서 읽은 expected sample을 한 cycle 늦춰 안정적으로 비교하기 위한 register
+
 #### 비교 규칙
 
 - `in_valid=1`인 cycle만 비교
-- `observed_count`번째 expected sample과 현재 `in_sample` 비교
+- `observed_count`번째 expected sample을 synchronous ROM read로 읽고
+- 다음 cycle에 `sample_pipe`와 `expected_pipe`를 비교
 
 만약:
 
@@ -494,6 +502,7 @@ source가 끝났다고 해서 checker도 즉시 끝낼 수는 없다.
 로 처리한다.
 
 즉 checker는 mismatch뿐 아니라 **출력 부족**도 잡아낸다.
+그리고 비교 경로를 register로 한 번 분리해서, 보드 bring-up shell에서도 `125 MHz` timing closure에 유리하도록 만들었다.
 
 ---
 

@@ -149,16 +149,16 @@ $$
 
 latency는 아래와 같이 고정한다.
 
-- FIR latency: accepted input 기준 `2 cycles`
+- FIR latency: accepted input 기준 `4 cycles`
 - decimator latency: kept FIR sample 기준 `1 cycle`
-- top latency: keep되는 sample에 대해 accepted input 기준 `3 cycles`
+- top latency: keep되는 sample에 대해 accepted input 기준 `5 cycles`
 
 phase=0에서 첫 번째 keep sample 경로는 아래와 같다.
 
 ```text
 accepted input @ cycle t
--> FIR output @ t+2
--> decimator output @ t+3
+-> FIR output @ t+4
+-> decimator output @ t+5
 ```
 
 drop되는 샘플은 top-level `out_valid`를 만들지 않는다.
@@ -166,8 +166,8 @@ drop되는 샘플은 top-level `out_valid`를 만들지 않는다.
 이렇게 결정한 이유:
 
 - registered output은 타이밍을 맞추기 쉽고, 파형과 블록 경계가 깔끔하다.
-- 현재 direct-form FIR에서는 `multiply + adder tree` 뒤에 accumulator register를 한 번 두고, 다음 stage에서 round/saturate를 수행하도록 파이프라인을 넣었다.
-- 이로 인해 FIR latency는 1 cycle 늘었지만, 가장 긴 arithmetic 경로가 잘려 bring-up 타이밍 여유가 좋아진다.
+- 현재 direct-form FIR에서는 입력 tap 저장 뒤에 multiply 결과를 product register에 한 번 저장하고, 그 다음 stage에서 wide accumulation을 수행한 뒤, round 결과를 한 번 더 register에 저장하고, 마지막 stage에서 saturation만 수행하도록 파이프라인을 넣었다.
+- 이로 인해 FIR latency는 다시 1 cycle 늘었지만, `acc_reg -> round/saturate -> out_sample` 경로가 잘려 `125 MHz` bring-up timing closure에 유리해졌다.
 - 현재 decimator는 FIR 출력 2개를 모아서 계산하는 블록이 아니라, FIR valid마다 keep/drop를 즉시 판정하는 selector이므로 첫 출력 생성을 위해 두 샘플을 모두 기다릴 필요가 없다.
 - exact cycle contract는 문서에 남기되, testbench pass/fail은 `out_valid` 기준 비교로 두는 편이 불필요한 복잡도를 줄인다.
 
