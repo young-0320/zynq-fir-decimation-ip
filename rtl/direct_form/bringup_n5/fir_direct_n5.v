@@ -20,10 +20,14 @@ module fir_direct_n5 (
     localparam signed [47:0] Q15_MAX    = 48'sd32767;
     localparam signed [47:0] Q15_MIN    = -48'sd32768;
 
+    reg signed [15:0] sample_0;
     reg signed [15:0] delay_1;
     reg signed [15:0] delay_2;
     reg signed [15:0] delay_3;
     reg signed [15:0] delay_4;
+    reg               tap_valid;
+    reg signed [47:0] acc_reg;
+    reg               acc_valid;
 
     wire signed [31:0] prod_0;
     wire signed [31:0] prod_1;
@@ -34,7 +38,7 @@ module fir_direct_n5 (
     wire signed [47:0] rounded_wide;
     wire signed [15:0] saturated_q15;
 
-    assign prod_0 = COEFF_0 * in_sample;
+    assign prod_0 = COEFF_0 * sample_0;
     assign prod_1 = COEFF_1 * delay_1;
     assign prod_2 = COEFF_2 * delay_2;
     assign prod_3 = COEFF_3 * delay_3;
@@ -46,7 +50,7 @@ module fir_direct_n5 (
                     + {{16{prod_3[31]}}, prod_3}
                     + {{16{prod_4[31]}}, prod_4};
 
-    assign rounded_wide = round_q2_30_to_q1_15(acc_wide);
+    assign rounded_wide = round_q2_30_to_q1_15(acc_reg);
     assign saturated_q15 = saturate_to_q1_15(rounded_wide);
 
     function automatic signed [47:0] round_q2_30_to_q1_15;
@@ -54,6 +58,9 @@ module fir_direct_n5 (
         reg signed [47:0] magnitude;
         reg signed [47:0] rounded_magnitude;
         begin
+            // In this N=5 bring-up FIR, the reachable accumulator range is far
+            // smaller than the 48-bit signed limit, so abs(value) never sees
+            // the most-negative 48-bit corner case.
             if (value < 0) begin
                 magnitude = -value;
             end else begin
@@ -85,22 +92,40 @@ module fir_direct_n5 (
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
+            sample_0   <= 16'sd0;
             delay_1    <= 16'sd0;
             delay_2    <= 16'sd0;
             delay_3    <= 16'sd0;
             delay_4    <= 16'sd0;
+            tap_valid  <= 1'b0;
+            acc_reg    <= 48'sd0;
+            acc_valid  <= 1'b0;
             out_valid  <= 1'b0;
             out_sample <= 16'sd0;
         end else begin
-            if (in_valid) begin
-                delay_4    <= delay_3;
-                delay_3    <= delay_2;
-                delay_2    <= delay_1;
-                delay_1    <= in_sample;
+            if (acc_valid) begin
                 out_valid  <= 1'b1;
                 out_sample <= saturated_q15;
             end else begin
                 out_valid <= 1'b0;
+            end
+
+            if (tap_valid) begin
+                acc_reg   <= acc_wide;
+                acc_valid <= 1'b1;
+            end else begin
+                acc_valid <= 1'b0;
+            end
+
+            if (in_valid) begin
+                delay_4    <= delay_3;
+                delay_3    <= delay_2;
+                delay_2    <= delay_1;
+                delay_1    <= sample_0;
+                sample_0   <= in_sample;
+                tap_valid  <= 1'b1;
+            end else begin
+                tap_valid <= 1'b0;
             end
         end
     end

@@ -168,13 +168,19 @@ RTL도 같은 순서를 따라야 bit-exact로 맞는다.
 
 #### latency
 
-이 모듈은 registered output이므로:
+이 모듈은 registered output이며, 현재 bring-up RTL에서는 FIR 내부에 파이프라인 register가 한 단계 더 들어가 있다.
 
 - 입력 accepted 기준
-- FIR output은 `1 cycle` 뒤에 나온다.
+- FIR output은 `2 cycles` 뒤에 나온다.
 
-즉 `in_valid=1`로 받은 샘플이 same-cycle combinational path로 바로 나가는 것이 아니라,
-다음 clock edge에서 `out_valid/out_sample`로 나타난다.
+구조를 순서대로 보면:
+
+1. 입력 sample을 tap register에 저장
+2. 저장된 tap 집합으로 `multiply + adder tree`를 계산하고 accumulator register에 저장
+3. 그 accumulator register를 round/saturate 해서 최종 `out_sample`에 저장
+
+즉 현재 direct-form FIR는 “입력 저장 stage”와 “wide accumulate stage”, “최종 출력 stage”로 해석할 수 있다.
+이렇게 한 이유는 arithmetic 조합 경로를 잘라서 bring-up 타이밍 여유를 확보하기 위해서다.
 
 ---
 
@@ -279,10 +285,10 @@ in_valid/in_sample
 
 현재 구조에서는:
 
-- FIR = `1 cycle`
+- FIR = `2 cycles`
 - Decimator = `1 cycle`
 
-이므로 keep되는 샘플 기준 top latency는 `2 cycles`다.
+이므로 keep되는 샘플 기준 top latency는 `3 cycles`다.
 
 ---
 

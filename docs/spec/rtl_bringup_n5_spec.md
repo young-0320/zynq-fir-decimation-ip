@@ -149,7 +149,9 @@ $$
 - FIR:
 
   - 입력 1개를 accepted할 때마다 FIR 출력 샘플 1개를 생성합니다.
-  - FIR 출력은 registered output으로 두고, accepted input 기준 FIR latency는 `1 cycle`로 고정합니다.
+  - FIR 출력은 registered output으로 두고, accepted input 기준 FIR latency는 `2 cycles`로 고정합니다.
+  - direct-form bring-up RTL은 입력 tap 저장 stage와 wide accumulate stage, 그리고 최종 round/saturate 출력 stage를 분리합니다.
+  - 구체적으로는 `multiply + adder tree` 결과를 accumulator register에 한 번 저장하고, 그 다음 cycle에 round/saturate를 거쳐 최종 `out_sample`을 만듭니다.
 - decimator:
 
   - decimator는 FIR 출력 2개를 모아서 계산하는 블록이 아니라, FIR valid가 들어올 때마다 현재 phase state로 keep/drop를 즉시 판정하는 selector 블록으로 둡니다.
@@ -159,8 +161,8 @@ $$
 - top:
 
   - `FIR -> Decimator`를 직렬 연결합니다.
-  - 따라서 phase=0에서 첫 번째 keep 샘플 경로는 `accepted input @ cycle t -> FIR output @ t+1 -> decimator output @ t+2`가 됩니다.
-  - 즉 keep되는 샘플에 대해서는 accepted input 기준 top latency를 `2 cycles`로 둡니다.
+  - 따라서 phase=0에서 첫 번째 keep 샘플 경로는 `accepted input @ cycle t -> FIR output @ t+2 -> decimator output @ t+3`가 됩니다.
+  - 즉 keep되는 샘플에 대해서는 accepted input 기준 top latency를 `3 cycles`로 둡니다.
   - drop되는 샘플은 top-level `out_valid`를 만들지 않습니다.
 
   이 규칙을 정하더라도 bring-up testbench의 1차 비교 기준은 absolute cycle보다 `out_valid`입니다.
