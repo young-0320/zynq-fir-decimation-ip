@@ -6,10 +6,10 @@ module top_zybo_bringup_n5 #(
     parameter integer POWER_ON_RESET_CYCLES    = 32'd16,
     parameter integer SOURCE_INPUT_LEN         = 8192,
     parameter integer SOURCE_FLUSH_LEN         = 4,
-    parameter SOURCE_MEM_FILE = "sim/vectors/direct_form/bringup_n5/input_q15.hex",
+    parameter SOURCE_MEM_FILE = "input_q15.hex",
     parameter integer CHECKER_EXPECTED_LEN     = 4098,
     parameter integer CHECKER_DRAIN_TIMEOUT    = 64,
-    parameter CHECKER_MEM_FILE = "sim/vectors/direct_form/bringup_n5/expected_decim_q15.hex"
+    parameter CHECKER_MEM_FILE = "expected_decim_q15.hex"
 ) (
     input  wire       clk,
     input  wire       reset_btn,

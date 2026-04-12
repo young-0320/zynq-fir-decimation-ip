@@ -58,9 +58,12 @@ reset_conditioner
 - `sim/vectors/direct_form/bringup_n5/expected_decim_q15.hex`
 
 주의:
+
 - 현재 `bringup_vector_source.v`와 `bringup_output_checker.v`는 `$readmemh(...)`를 사용한다.
 - 따라서 Vivado 프로젝트에도 위 `hex` 파일이 실제로 들어가 있어야 한다.
 - RTL만 넣고 `hex`를 안 넣으면 합성 후 메모리 내용이 비어 있을 수 있다.
+- 처음 추가하면 `Unknown`으로 보일 수 있다.
+- 이 경우 우클릭 후 `Set File Type -> Memory Initialization Files`로 바꾼다.
 
 ## 3) 보드 연결 기준
 
@@ -115,6 +118,7 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
 3. source tree에서 `top_zybo_bringup_n5`를 top module로 설정
 
 확인 포인트:
+
 - top을 `fir_decimator_direct_n5_top`로 잘못 잡으면 안 된다.
 - 실제 bitstream top은 `top_zybo_bringup_n5`다.
 
@@ -124,6 +128,7 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
 2. `rtl/direct_form/bringup_n5/constrs/zybo_n5.xdc` 추가
 
 확인 포인트:
+
 - 다른 Zybo 템플릿 XDC를 동시에 넣지 않는다.
 - 현재 bring-up top 포트명은 `clk`, `reset_btn`, `led[3:0]`이다.
 
@@ -147,6 +152,7 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
    - 심각한 memory init warning 없는지 확인
 
 확인 포인트:
+
 - `$readmemh` 관련 warning
 - inferred ROM/BRAM 관련 warning
 - unconnected port warning
@@ -157,12 +163,14 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
 2. 완료 후 timing summary 확인
 
 현재 구조는:
+
 - 보드 clock `125 MHz`
 - period `8.00 ns`
 
 즉 WNS/TNS를 확인해서 timing closure가 되는지 본다.
 
 핵심 체크:
+
 - WNS >= 0
 - 심각한 hold violation 없는지
 
@@ -216,12 +224,14 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
 ```
 
 즉:
+
 - `running=0`
 - `done=1`
 - `pass=1`
 - `fail=0`
 
 이 상태면:
+
 - source가 끝까지 재생되었고
 - DUT 출력이 `expected_decim_q15.hex`와 일치했고
 - checker가 mismatch 없이 종료했다는 뜻이다.
@@ -229,14 +239,14 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
 #### 비정상 동작 예시
 
 - `1000` 또는 `0001`
+
   - fail이 켜진 경우
   - 출력 mismatch, extra output, 또는 drain timeout failure 가능성
-
 - `0000` 상태에 멈춤
+
   - reset이 안 풀렸거나
   - top이 아예 실행되지 않았거나
   - bitstream/programming/XDC/top 설정 문제일 수 있음
-
 - `0001`이 아니라 `1000`처럼 보이는지 여부는 보드 LED ordering을 육안으로 다시 확인
 
 ### 5.3 reset 버튼으로 확인하는 방법
@@ -277,26 +287,27 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
 문제가 생기면 아래 순서로 점검한다.
 
 1. **top 설정 확인**
+
    - Vivado top이 `top_zybo_bringup_n5`인지
-
 2. **XDC 확인**
-   - `clk`, `reset_btn`, `led[3:0]`가 현재 top 포트명과 정확히 맞는지
 
+   - `clk`, `reset_btn`, `led[3:0]`가 현재 top 포트명과 정확히 맞는지
 3. **hex 파일 포함 여부 확인**
+
    - `input_q15.hex`
    - `expected_decim_q15.hex`
    - Vivado project source에 실제 포함됐는지
-
 4. **timing summary 확인**
+
    - timing failure로 동작이 불안정하지 않은지
-
 5. **reset polarity 확인**
+
    - `btn[0]`이 현재 보드에서 눌렀을 때 active-high처럼 들어오는지
-
 6. **LED polarity/ordering 확인**
-   - 원하는 LED가 실제 같은 번호 위치에 연결됐는지
 
+   - 원하는 LED가 실제 같은 번호 위치에 연결됐는지
 7. **simulation 재확인**
+
    - board top sanity가 PASS 상태인지
 
 ## 7) 필요하면 추가하면 좋은 확인 수단
@@ -316,6 +327,7 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
 - `checker_fail`
 
 이렇게 하면 보드에서 실제로:
+
 - reset이 언제 풀리는지
 - source가 언제 시작/종료하는지
 - DUT 출력이 나오고 있는지
@@ -341,9 +353,10 @@ Vivado에 올리기 전에 아래가 맞는지 먼저 확인한다.
 핵심은 아래 두 가지다.
 
 1. **Vivado에서 재현 가능하게 같은 구조를 올릴 것**
-   - top/XDC/hex 파일을 빠뜨리지 않기
 
+   - top/XDC/hex 파일을 빠뜨리지 않기
 2. **보드에서 의도한 동작을 명확한 관측값으로 확인할 것**
+
    - 최종 LED `0110`
    - reset release 후 자동 실행
    - reset 반복 시 재시작 가능
