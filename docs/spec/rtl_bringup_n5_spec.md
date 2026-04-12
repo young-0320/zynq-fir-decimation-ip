@@ -27,6 +27,17 @@
   단, 물리 버튼을 실제 보드에서 reset 소스로 쓸 때는 버튼 신호를 DUT의 `rst`에 직접 연결하지 않고,
   debounce + synchronizer를 거친 clean reset net을 `rst`로 넣는 것을 권장합니다.
 
+  FPGA bring-up 데모의 실행 제어는 아래처럼 고정합니다.
+
+- 별도 `start` 버튼은 두지 않습니다.
+- 전원 인가 직후에는 `reset_conditioner.v`가 power-on reset을 일정 cycle 동안 유지합니다.
+- power-on reset이 해제되면 데모는 sample index `0`부터 자동으로 실행을 시작합니다.
+- 사용자가 reset 버튼을 누르면 시스템은 즉시 reset 상태로 들어갑니다.
+- 사용자가 reset 버튼을 떼면, release가 debounce된 뒤 reset이 해제되고 데모는 다시 sample index `0`부터 자동 실행됩니다.
+
+  즉 현재 bring-up 구조에서 run 시작 이벤트는 “버튼을 눌렀을 때”가 아니라 “reset이 최종 해제되었을 때”입니다.
+  전원 인가 후 반드시 버튼을 한 번 눌러야 시작하는 구조는 아닙니다. power-on reset 종료 후에는 자동 실행됩니다.
+
 3. valid 규칙
    왜 필요한가: 데이터가 “매 클럭 유효한지”를 명확히 해야 sample counting과 decimation counting이
    맞습니다.
@@ -254,6 +265,8 @@ core 모듈이다.
 
 - `rtl/direct_form/bringup_n5/reset_conditioner.v`
   - 보드 reset 버튼 입력을 debounce + synchronizer 처리하여 clean active-high `rst`를 생성
+  - reset assert는 즉시, reset release는 debounce 후에만 반영
+  - power-on reset 종료 후 별도 start 버튼 없이 자동 실행되도록 run control 기준 신호 제공
 - `rtl/direct_form/bringup_n5/bringup_vector_source.v`
   - `input_q15.hex`를 내부 memory에 preload하고, contiguous `in_valid` 스트림으로 DUT에 공급
   - 실제 입력 `8192`개 뒤 zero `4`개 flush까지 포함해 구동
@@ -264,6 +277,20 @@ core 모듈이다.
   - Zybo 보드 데모용 최상위 top
   - `reset_conditioner`, `bringup_vector_source`, `fir_decimator_direct_n5_top`, `bringup_output_checker`를 연결
   - LED 또는 동등한 단순 status output으로 `running/done/pass/fail`를 외부에서 확인 가능하게 함
+  - 별도 start 버튼 없이, power-on reset 해제 또는 reset 버튼 release 후 자동 실행
+
+### 11.3.1 FPGA bring-up run-control 규칙
+
+보드 데모용 bring-up은 “시작 버튼”이 있는 구조가 아니라 “reset release 후 자동 실행” 구조로 고정합니다.
+
+- 보드 system clock은 Zybo의 입력 system clock을 직접 사용합니다.
+- `reset_conditioner.v`는 power-on reset과 버튼 reset을 하나의 clean active-high `rst`로 합칩니다.
+- `rst=1` 동안 `bringup_vector_source`, DUT, `bringup_output_checker`는 모두 초기 상태를 유지합니다.
+- `rst=0`이 되는 첫 동작 구간부터 `bringup_vector_source`가 sample `0`부터 contiguous stream을 재생합니다.
+- 데모 실행 중 reset 버튼을 누르면 전체 체인이 즉시 초기 상태로 돌아갑니다.
+- reset 버튼을 떼면 debounce된 release 뒤에 다시 sample `0`부터 자동 실행됩니다.
+
+이 규칙의 목적은 control path를 최소화하면서도, 전원 인가 직후 자동 실행과 사용자의 명확한 재시작 동작을 동시에 보장하는 것입니다.
 
 ### 11.4 이번 범위에서 제외하는 항목
 

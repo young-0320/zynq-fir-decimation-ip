@@ -40,12 +40,16 @@ reset 시 아래 stateful register는 모두 `0`으로 초기화한다.
 
 bring-up RTL은 `always @(posedge clk or posedge rst)` 형태를 기준으로 한다. 물리 버튼을 실제 보드에서 reset 소스로 쓸 때는 버튼 신호를 DUT에 직접 넣지 않고, debounce + synchronizer를 거친 clean reset net을 `rst`로 넣는다.
 
+FPGA bring-up 데모에서는 별도 `start` 버튼을 두지 않는다. 전원 인가 직후 power-on reset이 끝나면 자동 실행하고, 이후 reset 버튼을 누르면 즉시 초기화되며, 버튼 release가 debounce된 뒤 sample `0`부터 자동 재시작한다.
+
 이렇게 결정한 이유:
 
 - reset 직후 FIR delay line과 decimator phase 상태가 정해져 있지 않으면 첫 샘플부터 golden 비교가 꼬인다.
 - active-high `rst`는 현재 세션에서 가장 직관적으로 읽히는 polarity이며, 문서와 구현을 일치시키기 쉽다.
 - reset 시 `out_sample=0`으로 고정하면 reset 구간 파형 해석이 단순해진다.
 - 실제 FPGA 버튼은 bounce와 비동기 입력 문제가 있으므로, DUT 바깥에서 conditioning을 해야 bring-up 시연까지 안전하게 갈 수 있다.
+- bring-up 단계에서 별도 start 버튼을 두지 않으면 top-level 제어가 단순해지고, reset release를 재시작 이벤트로 사용해 데모를 반복하기 쉽다.
+- power-on reset 종료 후 자동 실행으로 두면 “전원 인가 후 반드시 버튼을 한 번 더 눌러야 시작”하는 비직관적 UX를 피할 수 있다.
 
 ### 3. valid 규칙
 

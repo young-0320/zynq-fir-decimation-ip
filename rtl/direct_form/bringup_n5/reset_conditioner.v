@@ -11,6 +11,9 @@ module reset_conditioner #(
     output wire rst
 );
 
+    // Reset is asserted immediately by POR or a pressed button.
+    // Release is delayed until the button release has been debounced.
+
     reg sync_0;
     reg sync_1;
     reg [31:0] debounce_count;
