@@ -115,7 +115,20 @@ RTL은 signed 48-bit 사용 (여유 + DSP48 정렬)
 
 ---
 
-## 5. decimator_m2_phase0.v 동작 규칙
+## 5. 데모 시나리오 (확정)
+
+| 시나리오 | 방식 | 핵심 |
+|----------|------|------|
+| 0 — 비교 시연 | PC Python만으로 실행 (보드 불필요) | FIR 없이 다운샘플만 → 앨리어싱 발생 / FIR 적용 → 제거. "왜 필요한가" |
+| 1 — 기본 동작 | PS C코드로 고정 멀티톤(5/20/30MHz) 생성 → DMA → PL → UART → PC FFT | "제대로 동작하는가" |
+| 2 — 인터랙티브 | 청중이 주파수 지정 → PC Python이 UART로 값 전송 → PS 즉석 생성 → 동일 파이프라인 | "직접 체험" |
+
+전체 파이프라인: `docs/하드웨어 파이프라인.md` 참고.
+처리 방식: 블록 처리. UART로는 주파수 값(숫자 몇 바이트)만 전송, 신호 데이터 아님.
+
+---
+
+## 6. decimator_m2_phase0.v 동작 규칙
 
 재사용 모듈. 동작 규칙을 반드시 준수할 것.
 
@@ -126,7 +139,7 @@ RTL은 signed 48-bit 사용 (여유 + DSP48 정렬)
 
 ---
 
-## 6. 디렉토리 구조
+## 7. 디렉토리 구조
 
 ```
 rtl/
@@ -152,6 +165,11 @@ model/
 ├── ideal/                                     ✅
 └── fixed/                                     ✅ (direct_form + transposed_form)
 
+docs/
+    study_roadmap.md                               ✅ 단계별 학습 자료 (ZipCPU/Xilinx 문서 링크)
+    하드웨어 파이프라인.md                          ✅ 데모 시나리오 0/1/2 및 파이프라인 구조
+    summary_design_decisions.md                    ✅ 핵심 설계 결정 요약
+
 docs/log/
     09_bringup_rtl_decisions.md
     13_transposed_form_golden_policy.md
@@ -170,7 +188,7 @@ sim/vectors/transposed_form/n43/
 
 ---
 
-## 7. 코드 스타일 규칙
+## 8. 코드 스타일 규칙
 
 ### Verilog
 
@@ -213,7 +231,7 @@ sim/vectors/transposed_form/n43/
 
 ---
 
-## 8. 자주 쓰는 명령어
+## 9. 자주 쓰는 명령어
 
 ```bash
 # pytest 전체
