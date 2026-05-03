@@ -4,12 +4,15 @@ import argparse
 import json
 import math
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
 from model.config import FIR_CONFIG
 from model.fixed.direct_form.fir_decimator_golden import run_fir_decimator_golden
+from model.fixed.transposed_form.fir_decimator_golden import (
+    run_fir_decimator_transposed_golden,
+)
 from model.ideal.design_kaiser_coeff import design_kaiser_lpf
 from model.ideal.fir_decimator_ideal import run_fir_decimator_ideal
 from model.ideal.gen_multitone import generate_multitone
@@ -28,6 +31,8 @@ DEFAULT_PHASES_RAD = FIR_CONFIG.bringup_tone_phases_rad
 DEFAULT_DECIMATION = FIR_CONFIG.decimation_factor
 DEFAULT_PHASE = FIR_CONFIG.default_phase
 
+FIR_FORM = Literal["direct", "transposed"]
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -45,16 +50,34 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--m", type=int, default=DEFAULT_DECIMATION)
     parser.add_argument("--phase", type=int, default=DEFAULT_PHASE)
     parser.add_argument(
+        "--form",
+        type=str,
+        choices=["direct", "transposed"],
+        default="direct",
+        help=(
+            "FIR golden model to use. "
+            "'direct' uses Direct Form golden (default), "
+            "'transposed' uses Transposed Form golden. "
+            "Affects default save-dir name."
+        ),
+    )
+    parser.add_argument(
         "--save-dir",
         type=Path,
         default=None,
-        help="Directory to store outputs. Defaults to repo_root/sim/output/ideal_vs_fixed_n{N}.",
+        help=(
+            "Directory to store outputs. "
+            "Defaults to repo_root/sim/output/ideal_vs_fixed_n{N} for direct, "
+            "repo_root/sim/output/ideal_vs_fixed_trans_n{N} for transposed."
+        ),
     )
     return parser
 
 
-def _default_save_dir(num_taps: int) -> Path:
+def _default_save_dir(num_taps: int, form: str) -> Path:
     repo_root = Path(__file__).resolve().parents[2]
+    if form == "transposed":
+        return repo_root / "sim" / "output" / f"ideal_vs_fixed_trans_n{num_taps}"
     return repo_root / "sim" / "output" / f"ideal_vs_fixed_n{num_taps}"
 
 
@@ -103,6 +126,7 @@ def run_compare_ideal_vs_fixed(
     as_db: float = DEFAULT_AS_DB,
     m: int = DEFAULT_DECIMATION,
     phase: int = DEFAULT_PHASE,
+    form: str = "direct",
 ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     x_float = generate_multitone(
         num_samples=num_samples,
@@ -140,13 +164,24 @@ def run_compare_ideal_vs_fixed(
         phase=phase,
         return_intermediate=True,
     )
-    fixed_fir_q15, fixed_decim_q15 = run_fir_decimator_golden(
-        x=x_q15,
-        h=h_q15,
-        m=m,
-        phase=phase,
-        return_intermediate=True,
-    )
+
+    if form == "transposed":
+        fixed_fir_q15, fixed_decim_q15 = run_fir_decimator_transposed_golden(
+            x=x_q15,
+            h=h_q15,
+            m=m,
+            phase=phase,
+            return_intermediate=True,
+        )
+    else:
+        fixed_fir_q15, fixed_decim_q15 = run_fir_decimator_golden(
+            x=x_q15,
+            h=h_q15,
+            m=m,
+            phase=phase,
+            return_intermediate=True,
+        )
+
     fixed_fir_float = dequantize_q1_15(fixed_fir_q15)
     fixed_decim_float = dequantize_q1_15(fixed_decim_q15)
 
@@ -181,6 +216,7 @@ def run_compare_ideal_vs_fixed(
             "as_db": as_db,
             "m": m,
             "phase": phase,
+            "form": form,
             "tone_freqs_hz": DEFAULT_FREQS_HZ,
             "amplitudes": DEFAULT_AMPLITUDES,
             "phases_rad": DEFAULT_PHASES_RAD,
@@ -225,6 +261,7 @@ def _write_summary_text(path: Path, summary: dict[str, Any]) -> None:
         "[Ideal vs Fixed Compare]",
         f"num_taps                     : {summary['config']['num_taps']}",
         f"num_samples                  : {summary['config']['num_samples']}",
+        f"form                         : {summary['config']['form']}",
         f"input_clip_count_q15         : {summary['input']['input_clip_count_q15']}",
         f"coeff_clip_count_q15         : {summary['coeff']['coeff_clip_count_q15']}",
         f"vs_ideal_raw_fir_rmse        : {summary['metrics']['vs_ideal_raw']['fir']['rmse']:.12e}",
@@ -241,7 +278,11 @@ def _write_summary_text(path: Path, summary: dict[str, Any]) -> None:
 
 def main() -> None:
     args = build_arg_parser().parse_args()
-    save_dir = args.save_dir if args.save_dir is not None else _default_save_dir(args.num_taps)
+    save_dir = (
+        args.save_dir
+        if args.save_dir is not None
+        else _default_save_dir(args.num_taps, args.form)
+    )
     save_dir.mkdir(parents=True, exist_ok=True)
 
     artifacts, summary = run_compare_ideal_vs_fixed(
@@ -253,6 +294,7 @@ def main() -> None:
         as_db=args.as_db,
         m=args.m,
         phase=args.phase,
+        form=args.form,
     )
 
     for name, array in artifacts.items():
