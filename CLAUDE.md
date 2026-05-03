@@ -171,10 +171,16 @@ docs/
     summary_design_decisions.md                    ✅ 핵심 설계 결정 요약
 
 docs/log/
-    09_bringup_rtl_decisions.md
-    13_transposed_form_golden_policy.md
-    14_transposed_form_rtl_decisions.md
-    15_rtl_vector_pipeline_extension.md
+    01~08  스펙·포맷·입력·브링업·비교 (초기 단계)
+    09     bringup_rtl_decisions          ← N=5 RTL 결정
+    10     bringup_rtl_module_walkthrough
+    11     vivado_timing_violation_and_fir_pipelining
+    12     project_direction_change       ← 교수 피드백 후 방향 전환
+    13     transposed_form_golden_policy
+    14     transposed_form_rtl_decisions  ← N=43 RTL 핵심 결정
+    15     rtl_vector_pipeline_extension
+    16     vivado_timing_closure_transposed_n43  ← 최신
+    workflow_v1~v9  워크플로우 변천 이력 (v9가 현행)
 ```
 
 생성 벡터 구성:
