@@ -13,7 +13,6 @@ set TOP       fir_decimator_transposed_n43_top
 # -----------------------------------------------------------------------
 create_project $PROJ_NAME $BUILD_DIR -part $PART -force
 
-set_property board_part digilentinc.com:zybo-z7-20:part0:1.1 [current_project]
 set_property target_language Verilog [current_project]
 
 # -----------------------------------------------------------------------
@@ -50,17 +49,28 @@ if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
 }
 
 # -----------------------------------------------------------------------
-# 타이밍 리포트
+# 리포트
 # -----------------------------------------------------------------------
 open_run impl_1
+
 report_timing_summary \
     -file $BUILD_DIR/${PROJ_NAME}_timing_summary.rpt \
     -warn_on_violation
+
+report_utilization \
+    -file $BUILD_DIR/${PROJ_NAME}_utilization.rpt
 
 puts ""
 puts "=== WNS / TNS ==="
 set wns [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
 puts "WNS = $wns ns"
-puts "Timing report: $BUILD_DIR/${PROJ_NAME}_timing_summary.rpt"
+
+puts ""
+puts "=== DSP48 usage ==="
+set dsp_count [llength [get_cells -hierarchical -filter {REF_NAME =~ DSP48*}]]
+puts "DSP48 used = $dsp_count  (expected 16)"
+puts ""
+puts "Timing report:      $BUILD_DIR/${PROJ_NAME}_timing_summary.rpt"
+puts "Utilization report: $BUILD_DIR/${PROJ_NAME}_utilization.rpt"
 
 close_project
