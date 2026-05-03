@@ -123,7 +123,7 @@ golden_output.txt
 # Project-specific simulation paths
 sim/build
 sim/output/
-
+sim/vectors/
 # =============================================================================
 # Xilinx SDK / Vitis (bare-metal C)
 # =============================================================================
