@@ -86,6 +86,8 @@ module fir_transposed_n43 (
   // Stage 2 레지스터
   // -----------------------------------------------------------------------
   reg signed  [47:0] z          [0:42];  // delay register, Q2.30
+  reg signed  [47:0] round_reg;          // round 결과 저장 (3단계 확장)
+  reg                round_valid;
 
   // -----------------------------------------------------------------------
   // 조합 논리: 16x16 → 32bit 곱셈, sign-extend → 48bit
@@ -265,16 +267,15 @@ module fir_transposed_n43 (
   end
 
   // -----------------------------------------------------------------------
-  // Stage 2: 누산 → z[k] 갱신, 반올림/포화 → 출력
+  // Stage 2: 누산 → z[k] 갱신, round 결과 → round_reg
   // -----------------------------------------------------------------------
   always @(posedge clk or posedge rst) begin
     if (rst) begin
-      out_valid  <= 1'b0;
-      out_sample <= 16'sd0;
+      round_valid <= 1'b0;
+      round_reg   <= 48'sd0;
       for (i = 0; i <= 42; i = i + 1) z[i] <= 48'sd0;
     end else begin
       if (prod_valid) begin
-        // k=0..41: new_z[k] = prod_reg[k] + z[k+1]
         z[0] <= prod_reg[0] + z[1];
         z[1] <= prod_reg[1] + z[2];
         z[2] <= prod_reg[2] + z[3];
@@ -317,13 +318,27 @@ module fir_transposed_n43 (
         z[39] <= prod_reg[39] + z[40];
         z[40] <= prod_reg[40] + z[41];
         z[41] <= prod_reg[41] + z[42];
-        // k=42: z[43] 없음, 곱셈 결과만 (B안)
         z[42] <= prod_reg[42];
+        // non-blocking 특성상 z[0] 직접 참조 불가 → prod_reg[0]+z[1] 직접 계산
+        round_reg   <= round_q2_30_to_q1_15(prod_reg[0] + z[1]);
+        round_valid <= 1'b1;
+      end else begin
+        round_valid <= 1'b0;
+      end
+    end
+  end
 
-        // 출력: z[0] 현재값(갱신 전) 기준으로 반올림/포화
-        // → prod_reg[0] + z[1] 를 직접 계산해서 출력
-        out_sample <= saturate_to_q1_15(round_q2_30_to_q1_15(prod_reg[0] + z[1]));
-        out_valid <= 1'b1;
+  // -----------------------------------------------------------------------
+  // Stage 3: 포화 → 출력
+  // -----------------------------------------------------------------------
+  always @(posedge clk or posedge rst) begin
+    if (rst) begin
+      out_valid  <= 1'b0;
+      out_sample <= 16'sd0;
+    end else begin
+      if (round_valid) begin
+        out_sample <= saturate_to_q1_15(round_reg);
+        out_valid  <= 1'b1;
       end else begin
         out_valid <= 1'b0;
       end

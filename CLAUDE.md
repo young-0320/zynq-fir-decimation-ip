@@ -88,9 +88,9 @@ sim/vectors/transposed_form/n43/
 
 ## 4. 지금 하고 있는 작업
 
-**Step 3: Vivado 100MHz 타이밍 클로저**
+**Step 4: AXI-Stream 래퍼 구현 (M4 안전 마감선)**
 
-완료 체크 (Step 2 전체 완료):
+완료 체크 (Step 3 전체 완료):
 
 - [X] `rtl/transposed_form/n43/fir_transposed_n43.v` 구현
 - [X] iverilog 문법 체크 통과
@@ -98,8 +98,10 @@ sim/vectors/transposed_form/n43/
 - [X] iverilog self-checking 시뮬레이션 PASS
 - [X] `fir_decimator_transposed_n43_top.v` 구현
 - [X] `tb_fir_decimator_transposed_n43_top.v` PASS (4117 samples)
-- [ ] Vivado 100MHz 타이밍 클로저 (WNS ≥ 0)
-- [ ] Vivado 100MHz 타이밍 클로저 (WNS ≥ 0)
+- [X] Vivado 100MHz 타이밍 클로저 WNS=+0.278ns (3단계 파이프라인, DSP48=16, LUT=1827)
+- [ ] AXI-Stream 래퍼 설계
+- [ ] AXI-Stream TB PASS
+- [ ] Vivado AXI-Stream 타이밍 클로저
 
 ---
 
