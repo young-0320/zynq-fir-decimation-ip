@@ -21,7 +21,7 @@ set_property target_language Verilog [current_project]
 add_files [list \
     $REPO_ROOT/rtl/transposed_form/n43/fir_transposed_n43.v \
     $REPO_ROOT/rtl/transposed_form/n43/fir_decimator_transposed_n43_top.v \
-    $REPO_ROOT/rtl/direct_form/decimator_m2_phase0.v \
+    $REPO_ROOT/rtl/transposed_form/decimator_m2_phase0.v \
 ]
 
 add_files -fileset constrs_1 \

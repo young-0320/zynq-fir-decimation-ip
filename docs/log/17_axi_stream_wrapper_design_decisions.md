@@ -83,14 +83,15 @@ N=256이면 195kHz/bin으로 분해능이 절반이 되고, N=1024이면 블록 
 
 AXI-Stream 명세에서 TREADY=0으로 인한 일시 정지는 정상 동작으로 정의되어 있다. DMA는 이 동작을 기본으로 가정하고 설계된다.
 
-구체적인 동작 흐름:
+출력 버퍼는 reg0/reg1/reg2 depth-3 구조다. stall 조건은 `s_axis_tready = !valid2`이다.
+
+`valid2`는 등록된(registered) 신호이므로 stall이 1사이클 늦게 전파된다. 이 지연 동안 in_valid가 최대 3번 새어 들어가고, FIR 3-cycle 파이프라인 + M=2 조합상 그 중 최대 2개가 decimated 출력으로 emerge한다. depth-3이 이를 모두 수용하는 최소 크기다.
 
 ```
-출력 holding 레지스터 꽉 참 (M_AXIS_TVALID=1, M_AXIS_TREADY=0)
+valid2=1 (reg2 꽉 참)
     → S_AXIS_TREADY = 0
-    → 코어에 새 샘플 진입 차단
-    → out_valid 펄스 발생 안 함
-    → holding 레지스터 내용 보존
+    → 새 샘플 진입 차단
+    → 파이프라인 잔류 샘플은 reg0/reg1/reg2가 흡수
 ```
 
 ---
