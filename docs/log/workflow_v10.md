@@ -108,11 +108,11 @@ vvp sim_top.out
 
 ### 현재 단계 완료 기준
 
-- [ ] `fir_decimator_transposed_n43_axis_top.v` 작성, iverilog 컴파일 통과
-- [ ] `tb_fir_decimator_transposed_n43_axis_top.v` TREADY=1 시나리오 — M_AXIS 핸드셰이크 기준 `expected_decim_q15.hex`와 출력 일치
-- [ ] 백프레셔 시나리오 — TREADY 주기적 LOW 동안 핸드셰이크 카운트 일치
-- [ ] TLAST 시나리오 — 512·1024번째 핸드셰이크에서 TLAST=1 확인
-- [ ] aresetn 시나리오 — 리셋 후 버퍼·카운터 초기화 확인
+- [x] `fir_decimator_transposed_n43_axis_top.v` 작성, iverilog 컴파일 통과
+- [x] `tb_fir_decimator_transposed_n43_axis_top.v` TREADY=1 시나리오 — M_AXIS 핸드셰이크 기준 `expected_decim_q15.hex`와 출력 일치
+- [x] 백프레셔 시나리오 — TREADY 주기적 LOW 동안 핸드셰이크 카운트 일치
+- [x] TLAST 시나리오 — 512·1024번째 핸드셰이크에서 TLAST=1 확인
+- [x] aresetn 시나리오 — 리셋 후 버퍼·카운터 초기화 확인
 
 ---
 
@@ -129,7 +129,7 @@ vvp sim_top.out
 
 ---
 
-### Step 5 — AXI-Stream 래퍼 구현 ← 현재
+### Step 5 — AXI-Stream 래퍼 구현 ✅
 
 ```
 rtl/transposed_form/n43/fir_decimator_transposed_n43_axis_top.v
