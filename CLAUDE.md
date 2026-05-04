@@ -113,7 +113,6 @@ M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정
 - `docs/log/NN_*.md` 형식, 제목 영어, 본문 한국어
 - 커밋: conventional commits (feat/fix/test/docs/refactor)
 - 로그 헤더 형식:
-
 ```markdown
 # NN. English Title
 
