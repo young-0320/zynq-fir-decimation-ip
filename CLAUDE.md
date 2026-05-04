@@ -4,7 +4,7 @@ zynq-axi-fir-decimation-ip
 
 Updated: 2026-05-04
 Repository root: `/home/young/dev/10_zynq-fir-decimation-ip`
-README.md root: 
+README.md root:
 
 ---
 
@@ -13,6 +13,7 @@ README.md root:
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
 
 Before implementing:
+
 - State your assumptions explicitly. If uncertain, ask.
 - If multiple interpretations exist, present them - don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
@@ -35,12 +36,14 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 **Touch only what you must. Clean up only your own mess.**
 
 When editing existing code:
+
 - Don't "improve" adjacent code, comments, or formatting.
 - Don't refactor things that aren't broken.
 - Match existing style, even if you'd do it differently.
 - If you notice unrelated dead code, mention it - don't delete it.
 
 When your changes create orphans:
+
 - Remove imports/variables/functions that YOUR changes made unused.
 - Don't remove pre-existing dead code unless asked.
 
@@ -51,11 +54,13 @@ The test: Every changed line should trace directly to the user's request.
 **Define success criteria. Loop until verified.**
 
 Transform tasks into verifiable goals:
+
 - "Add validation" → "Write tests for invalid inputs, then make them pass"
 - "Fix the bug" → "Write a test that reproduces it, then make it pass"
 - "Refactor X" → "Ensure tests pass before and after"
 
 For multi-step tasks, state a brief plan:
+
 ```
 1. [Step] → verify: [check]
 2. [Step] → verify: [check]
@@ -64,58 +69,24 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
-
-
-
-
-
-
 ---
 
-## FIR spec
-
-| 항목     | 값                          |
-| -------- | --------------------------- |
-| Fs_in    | 100 MHz                     |
-| Fs_out   | 50 MHz (M=2)                |
-| fp       | 15 MHz                      |
-| fs       | 25 MHz                      |
-| As       | ≥ 60 dB                    |
-| N        | 43 (Kaiser window β=5.653) |
-| 포맷     | Q1.15 signed 16-bit         |
-| FIR 구조 | Transposed Form             |
-| 클럭     | 100 MHz (Clocking Wizard)   |
-
----
 
 ## 현재 완료 상태 및 작업 순서
 
-```
 Step 1  ✅  N=43 RTL 벡터 생성
 Step 2  ✅  fir_transposed_n43.v + TB iverilog PASS
 Step 3  ✅  fir_decimator_transposed_n43_top.v + TB PASS (4117 samples)
 Step 4  ✅  Vivado 100MHz 타이밍 클로저 WNS=+0.278ns (DSP48=16, LUT=1827)
-Step 5  🔄  AXI-Stream 래퍼  ← 현재 / M4 안전 마감선 (6월 말)
+Step 5  🔄  AXI-Stream 래퍼  ← 현재 
 Step 6      PS-PL DMA 연동
 Step 7      bare-metal C + UART
 Step 8      PC Python FFT 실시간 시각화
-```
 
 M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정.
 
 
-## decimator_m2_phase0.v 동작 규칙
-
-재사용 모듈. 동작 규칙을 반드시 준수할 것.
-
-- keep/drop 패턴: reset 후 첫 FIR-valid → keep, 다음 → drop, 이후 반복
-- state 전진 조건: FIR-side `in_valid=1`일 때만 phase 토글 (매 클럭이 아님)
-- decimator latency: kept FIR sample 기준 1 cycle
-- `out_valid=0`일 때 `out_sample`: 이전 값 hold (비교 대상 아님)
-
 ---
-
-
 
 ## code style
 
@@ -159,4 +130,3 @@ M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정
 - `단계` 값: 직전 로그 +1 (현재 최신 16번 = 단계 8)
 
 ---
-

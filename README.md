@@ -51,6 +51,20 @@
 | z[42] 경계  | B안:`z[42] <= prod_reg[42]` (z[43] 더미 없음) |
 
 
+## FIR spec
+
+| 항목     | 값                         |
+| -------- | -------------------------- |
+| Fs_in    | 100 MHz                    |
+| Fs_out   | 50 MHz (M=2)               |
+| fp       | 15 MHz                     |
+| fs       | 25 MHz                     |
+| As       | ≥ 60 dB                    |
+| N        | 43 (Kaiser window β=5.653) |
+| 포맷     | Q1.15 signed 16-bit        |
+| FIR 구조 | Transposed Form            |
+| 클럭     | 100 MHz (Clocking Wizard)  |
+
 
 
 ---
