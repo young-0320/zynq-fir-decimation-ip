@@ -79,21 +79,21 @@ module fir_transposed_n43 (
   // -----------------------------------------------------------------------
   // Stage 1 레지스터
   // -----------------------------------------------------------------------
-  reg signed  [47:0] prod_reg   [0:42];
-  reg                prod_valid;
+  reg signed [47:0] prod_reg[0:42];
+  reg prod_valid;
 
   // -----------------------------------------------------------------------
   // Stage 2 레지스터
   // -----------------------------------------------------------------------
-  reg signed  [47:0] z          [0:42];  // delay register, Q2.30
-  reg signed  [47:0] round_reg;          // round 결과 저장 (3단계 확장)
-  reg                round_valid;
+  reg signed [47:0] z[0:42];  // delay register, Q2.30
+  reg signed [47:0] round_reg;  // round 결과 저장 (3단계 확장)
+  reg round_valid;
 
   // -----------------------------------------------------------------------
   // 조합 논리: 16x16 → 32bit 곱셈, sign-extend → 48bit
   // -----------------------------------------------------------------------
-  wire signed [31:0] prod_comb  [0:42];
-  wire signed [47:0] prod_wide  [0:42];
+  wire signed [31:0] prod_comb[0:42];
+  wire signed [47:0] prod_wide[0:42];
 
   assign prod_comb[0]  = COEFF_0 * in_sample;
   assign prod_comb[1]  = COEFF_1 * in_sample;
@@ -320,7 +320,7 @@ module fir_transposed_n43 (
         z[41] <= prod_reg[41] + z[42];
         z[42] <= prod_reg[42];
         // non-blocking 특성상 z[0] 직접 참조 불가 → prod_reg[0]+z[1] 직접 계산
-        round_reg   <= round_q2_30_to_q1_15(prod_reg[0] + z[1]);
+        round_reg <= round_q2_30_to_q1_15(prod_reg[0] + z[1]);
         round_valid <= 1'b1;
       end else begin
         round_valid <= 1'b0;
