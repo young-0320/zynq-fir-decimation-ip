@@ -4,7 +4,7 @@ zynq-axi-fir-decimation-ip
 
 Updated: 2026-05-04
 Repository root: `/home/young/dev/10_zynq-fir-decimation-ip`
-README.md root:
+README.md root: `/home/young/dev/10_zynq-fir-decimation-ip/README.md`
 
 ---
 
@@ -123,9 +123,9 @@ M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정
 - 선행 문서: `docs/log/NN_*.md`  ← 없으면 생략
 ```
 
-- 섹션 번호: `## 1)` 형식 사용 (`)` 사용, `.` 아님)
-- 섹션 사이 `---` 구분선 사용 안 함
-- 마지막 섹션: `## N) 의미` 서술형 — 결론 테이블 쓰지 않음
+- 섹션 번호: `## 1.` 형식 사용 (`)` 사용, `)` 아님)
+- 섹션 사이 `---` 구분선 사용 
+- 마지막 섹션: `## N. 의미` 서술형 — 결론 테이블 쓰지 않음
 - 각 결정마다 근거(왜 이렇게 했는가) 포함
 - `단계` 값: 직전 로그 +1 (현재 최신 16번 = 단계 8)
 

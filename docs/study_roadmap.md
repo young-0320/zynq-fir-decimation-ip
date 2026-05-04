@@ -12,10 +12,13 @@
 |------|------|-----------|
 | ZipCPU — Learning AXI: Where to start? | https://zipcpu.com/blog/2022/05/07/learning-axi.html | 입문 가이드, 읽는 순서 안내 |
 | ZipCPU — AXI Handshaking Rules | https://zipcpu.com/blog/2021/08/28/axi-rules.html | TVALID/TREADY 악수 규칙 6개, 핵심 |
+
 | ZipCPU — AXI Stream is broken | https://zipcpu.com/blog/2022/02/23/axis-abort.html | FIFO + 백프레셔 패턴 실습 |
 
 **최소 학습량:** 위 세 글 순서대로 읽으면 래퍼 구현 가능.
 
+**추가 학습**
+| ZipCPU — skidbuffe | https://zipcpu.com/blog/2019/05/22/skidbuffer.html | 데이터 처리량을 위해서 필요. 지금은 오버엔지니어링일 수 있음 |
 ---
 
 ## Step 6 — Vivado Block Design + PS-PL DMA 연동
