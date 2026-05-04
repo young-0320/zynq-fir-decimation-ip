@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module fir_decimator_transposed_n43_axis_top #(
+module fir_decimator_n43_axis #(
     parameter integer TLAST_N = 512
 ) (
     input wire aclk,
@@ -27,7 +27,7 @@ module fir_decimator_transposed_n43_axis_top #(
   wire               core_out_valid;
   wire signed [15:0] core_out_sample;
 
-  fir_decimator_transposed_n43_top u_core (
+  fir_decimator_n43 u_core (
       .clk       (aclk),
       .rst       (rst_core),
       .in_valid  (s_axis_tvalid & s_axis_tready),

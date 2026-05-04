@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module fir_decimator_transposed_n43_top (
+module fir_decimator_n43 (
     input  wire               clk,
     input  wire               rst,
     input  wire               in_valid,
@@ -13,7 +13,7 @@ module fir_decimator_transposed_n43_top (
   wire               fir_out_valid;
   wire signed [15:0] fir_out_sample;
 
-  fir_transposed_n43 u_fir_transposed_n43 (
+  fir_n43 u_fir_n43 (
       .clk(clk),
       .rst(rst),
       .in_valid(in_valid),

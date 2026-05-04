@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module tb_fir_decimator_transposed_n43_axis_top;
+module tb_fir_decimator_n43_axis;
 
     localparam integer CLK_HALF  = 5;
     localparam integer TLAST_N   = 512;
@@ -34,7 +34,7 @@ module tb_fir_decimator_transposed_n43_axis_top;
     // -------------------------------------------------------------------------
     // DUT
     // -------------------------------------------------------------------------
-    fir_decimator_transposed_n43_axis_top #(.TLAST_N(TLAST_N)) dut (
+    fir_decimator_n43_axis #(.TLAST_N(TLAST_N)) dut (
         .aclk         (aclk),
         .aresetn      (aresetn),
         .s_axis_tvalid(s_axis_tvalid),
@@ -219,7 +219,7 @@ module tb_fir_decimator_transposed_n43_axis_top;
         drain_and_check(EXP_LEN);
         $display("PASS [S3] aresetn recovery: %0d samples", obs_cnt);
 
-        $display("PASS tb_fir_decimator_transposed_n43_axis_top: all scenarios");
+        $display("PASS tb_fir_decimator_n43_axis: all scenarios");
         $finish;
     end
 
@@ -230,7 +230,7 @@ endmodule
 `timescale 1ns / 1ps
 `default_nettype none
 
-module tb_fir_decimator_transposed_n43_axis_top;
+module tb_fir_decimator_n43_axis;
 
     localparam integer CLK_HALF  = 5;
     localparam integer TLAST_N   = 512;
@@ -267,7 +267,7 @@ module tb_fir_decimator_transposed_n43_axis_top;
     // -------------------------------------------------------------------------
     // DUT 인스턴스
     // -------------------------------------------------------------------------
-    fir_decimator_transposed_n43_axis_top #(.TLAST_N(TLAST_N)) dut (
+    fir_decimator_n43_axis #(.TLAST_N(TLAST_N)) dut (
         .aclk         (aclk),
         .aresetn      (aresetn),
         .s_axis_tvalid(s_axis_tvalid),

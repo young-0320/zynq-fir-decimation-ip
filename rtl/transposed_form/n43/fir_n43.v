@@ -15,7 +15,7 @@
 // 포화   : 출력 1회 clip(-32768, 32767)
 // z[42]  : prod_reg[42] only (z[43] 없음, B안)
 
-module fir_transposed_n43 (
+module fir_n43 (
     input  wire               clk,
     input  wire               rst,
     input  wire               in_valid,

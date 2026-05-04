@@ -11,16 +11,16 @@ VVP      := vvp
 # Source lists
 # -----------------------------------------------------------------------------
 RTL_TRANS_N43_CORE := \
-	$(RTL)/transposed_form/n43/fir_transposed_n43.v
+	$(RTL)/transposed_form/n43/fir_n43.v
 
 RTL_TRANS_N43_TOP := \
 	$(RTL)/direct_form/decimator_m2_phase0.v \
 	$(RTL_TRANS_N43_CORE) \
-	$(RTL)/transposed_form/n43/fir_decimator_transposed_n43_top.v
+	$(RTL)/transposed_form/n43/fir_decimator_n43.v
 
 RTL_TRANS_N43_AXIS := \
 	$(RTL_TRANS_N43_TOP) \
-	$(RTL)/transposed_form/n43/fir_decimator_transposed_n43_axis_top.v
+	$(RTL)/transposed_form/n43/fir_decimator_n43_axis.v
 
 RTL_DIRECT_N5_CORE := \
 	$(RTL)/direct_form/bringup_n5/fir_direct_n5.v
@@ -34,9 +34,9 @@ RTL_DIRECT_N5_TOP := \
 # Compiled targets (all output to sim/build/)
 # -----------------------------------------------------------------------------
 BINS := \
-	$(BUILD)/tb_fir_transposed_n43.out \
-	$(BUILD)/tb_fir_decimator_transposed_n43_top.out \
-	$(BUILD)/tb_fir_decimator_transposed_n43_axis_top.out \
+	$(BUILD)/tb_fir_n43.out \
+	$(BUILD)/tb_fir_decimator_n43.out \
+	$(BUILD)/tb_fir_decimator_n43_axis.out \
 	$(BUILD)/tb_fir_direct_n5.out \
 	$(BUILD)/tb_fir_decimator_direct_n5_top.out
 
@@ -59,18 +59,18 @@ $(BUILD):
 # -----------------------------------------------------------------------------
 # Transposed form N=43
 # -----------------------------------------------------------------------------
-$(BUILD)/tb_fir_transposed_n43.out: \
-	$(TB)/transposed_form/tb_fir_transposed_n43.v \
+$(BUILD)/tb_fir_n43.out: \
+	$(TB)/transposed_form/tb_fir_n43.v \
 	$(RTL_TRANS_N43_CORE) | $(BUILD)
 	$(IVERILOG) -g2012 -o $@ $^
 
-$(BUILD)/tb_fir_decimator_transposed_n43_top.out: \
-	$(TB)/transposed_form/tb_fir_decimator_transposed_n43_top.v \
+$(BUILD)/tb_fir_decimator_n43.out: \
+	$(TB)/transposed_form/tb_fir_decimator_n43.v \
 	$(RTL_TRANS_N43_TOP) | $(BUILD)
 	$(IVERILOG) -g2012 -o $@ $^
 
-$(BUILD)/tb_fir_decimator_transposed_n43_axis_top.out: \
-	$(TB)/transposed_form/tb_fir_decimator_transposed_n43_axis_top.v \
+$(BUILD)/tb_fir_decimator_n43_axis.out: \
+	$(TB)/transposed_form/tb_fir_decimator_n43_axis.v \
 	$(RTL_TRANS_N43_AXIS) | $(BUILD)
 	$(IVERILOG) -g2012 -o $@ $^
 

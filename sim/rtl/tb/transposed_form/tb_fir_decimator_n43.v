@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module tb_fir_decimator_transposed_n43_top;
+module tb_fir_decimator_n43;
 
     localparam integer CLK_HALF_PERIOD_NS = 5;
     localparam integer INPUT_LEN          = 8192;
@@ -25,7 +25,7 @@ module tb_fir_decimator_transposed_n43_top;
     integer drain_cycles;
     reg signed [15:0] expected_sample;
 
-    fir_decimator_transposed_n43_top dut (
+    fir_decimator_n43 dut (
         .clk(clk),
         .rst(rst),
         .in_valid(in_valid),
@@ -54,14 +54,14 @@ module tb_fir_decimator_transposed_n43_top;
 
             if (out_valid) begin
                 if (observed_count >= EXPECTED_LEN) begin
-                    $display("FAIL tb_fir_decimator_transposed_n43_top: extra output at cycle=%0d actual=%0d (0x%04h)", cycle_count, out_sample, out_sample);
+                    $display("FAIL tb_fir_decimator_n43: extra output at cycle=%0d actual=%0d (0x%04h)", cycle_count, out_sample, out_sample);
                     $fatal(1);
                 end
 
                 expected_sample = $signed(expected_mem[observed_count]);
                 if (out_sample !== expected_sample) begin
                     $display(
-                        "FAIL tb_fir_decimator_transposed_n43_top: sample_idx=%0d cycle=%0d actual=%0d (0x%04h) expected=%0d (0x%04h)",
+                        "FAIL tb_fir_decimator_n43: sample_idx=%0d cycle=%0d actual=%0d (0x%04h) expected=%0d (0x%04h)",
                         observed_count,
                         cycle_count,
                         out_sample,
@@ -111,7 +111,7 @@ module tb_fir_decimator_transposed_n43_top;
 
         if (observed_count != EXPECTED_LEN) begin
             $display(
-                "FAIL tb_fir_decimator_transposed_n43_top: expected %0d samples but observed %0d after %0d drain cycles",
+                "FAIL tb_fir_decimator_n43: expected %0d samples but observed %0d after %0d drain cycles",
                 EXPECTED_LEN,
                 observed_count,
                 drain_cycles
@@ -119,7 +119,7 @@ module tb_fir_decimator_transposed_n43_top;
             $fatal(1);
         end
 
-        $display("PASS tb_fir_decimator_transposed_n43_top: observed %0d samples", observed_count);
+        $display("PASS tb_fir_decimator_n43: observed %0d samples", observed_count);
         $finish;
     end
 
@@ -130,7 +130,7 @@ endmodule
 `timescale 1ns / 1ps
 `default_nettype none
 
-module tb_fir_decimator_transposed_n43_top;
+module tb_fir_decimator_n43;
 
     localparam integer CLK_HALF_PERIOD_NS = 5;
     localparam integer INPUT_LEN          = 8192;
@@ -153,7 +153,7 @@ module tb_fir_decimator_transposed_n43_top;
     int observed_count;
     int cycle_count;
 
-    fir_decimator_transposed_n43_top dut (
+    fir_decimator_n43 dut (
         .clk(clk),
         .rst(rst),
         .in_valid(in_valid),

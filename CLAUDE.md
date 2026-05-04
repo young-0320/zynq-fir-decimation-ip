@@ -75,8 +75,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ## 현재 완료 상태 및 작업 순서
 
 Step 1  ✅  N=43 RTL 벡터 생성
-Step 2  ✅  fir_transposed_n43.v + TB iverilog PASS
-Step 3  ✅  fir_decimator_transposed_n43_top.v + TB PASS (4117 samples)
+Step 2  ✅  fir_n43.v + TB iverilog PASS
+Step 3  ✅  fir_decimator_n43.v + TB PASS (4117 samples)
 Step 4  ✅  Vivado 100MHz 타이밍 클로저 WNS=+0.278ns (DSP48=16, LUT=1827)
 Step 5  ✅  AXI-Stream 래퍼 
 Step 5-1 🔄 transposed form 모듈의 계층 구조 재설계 및 네이밍 확립 ← 현재  
