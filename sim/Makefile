@@ -60,17 +60,17 @@ $(BUILD):
 # Transposed form N=43
 # -----------------------------------------------------------------------------
 $(BUILD)/tb_fir_n43.out: \
-	$(TB)/transposed_form/tb_fir_n43.v \
+	$(TB)/transposed_form/tb_fir_n43.sv \
 	$(RTL_TRANS_N43_CORE) | $(BUILD)
 	$(IVERILOG) -g2012 -o $@ $^
 
 $(BUILD)/tb_fir_decimator_n43.out: \
-	$(TB)/transposed_form/tb_fir_decimator_n43.v \
+	$(TB)/transposed_form/tb_fir_decimator_n43.sv \
 	$(RTL_TRANS_N43_TOP) | $(BUILD)
 	$(IVERILOG) -g2012 -o $@ $^
 
 $(BUILD)/tb_fir_decimator_n43_axis.out: \
-	$(TB)/transposed_form/tb_fir_decimator_n43_axis.v \
+	$(TB)/transposed_form/tb_fir_decimator_n43_axis.sv \
 	$(RTL_TRANS_N43_AXIS) | $(BUILD)
 	$(IVERILOG) -g2012 -o $@ $^
 
