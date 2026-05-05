@@ -37,12 +37,13 @@ module fir_decimator_n43_axis #(
   );
 
   // -------------------------------------------------------------------------
-  // depth-3 출력 버퍼: reg0(출력) / reg1 / reg2(오버플로)
-  // s_axis_tready = ~valid2: reg2가 찰 때 입력 차단
+  // depth-3 출력 버퍼: reg0(출력) / reg1 / reg2(예비)
+  // s_axis_tready = ~valid1: reg1이 찰 때 입력 차단
   //
-  // 근거: s_axis_tready는 등록(registered) valid2 기반 → 1사이클 지연.
-  // 그 사이 in_valid 최대 3번 누출, 3-cycle FIR + M=2 조합상
-  // 최대 2개의 decimated 출력이 emerge → depth-3이 최소 안전 크기.
+  // 근거: valid1/valid2는 registered → s_axis_tready는 1사이클 지연.
+  // valid1 전환 직후 1개 샘플이 누출되고, 2사이클 후 decimated 출력 1개 발생.
+  // ~valid1로 트리거하면 valid2가 해당 출력을 흡수 → 오버플로 없음.
+  // (~valid2로 트리거 시: 버퍼 full 상태에서 in-flight 출력 도달 → DROP 발생)
   // -------------------------------------------------------------------------
   reg valid0, valid1, valid2;
   reg signed [15:0] data0, data1, data2;
@@ -106,7 +107,7 @@ module fir_decimator_n43_axis #(
   // -------------------------------------------------------------------------
   // 출력
   // -------------------------------------------------------------------------
-  assign s_axis_tready = ~valid2;
+  assign s_axis_tready = ~valid1;
   assign m_axis_tvalid = valid0;
   assign m_axis_tdata  = data0;
   assign m_axis_tlast  = valid0 & (tlast_cnt == TLAST_N - 1);
