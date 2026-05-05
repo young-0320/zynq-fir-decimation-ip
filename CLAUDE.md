@@ -71,22 +71,20 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
-
 ## 현재 완료 상태 및 작업 순서
 
 Step 1  ✅  N=43 RTL 벡터 생성
 Step 2  ✅  fir_n43.v + TB iverilog PASS
 Step 3  ✅  fir_decimator_n43.v + TB PASS (4117 samples)
 Step 4  ✅  Vivado 100MHz 타이밍 클로저 WNS=+0.278ns (DSP48=16, LUT=1827)
-Step 5  ✅  AXI-Stream 래퍼 
-Step 5-1 🔄 transposed form 모듈의 계층 구조 재설계 및 네이밍 확립 ← 현재  
-Step 5-2 🔄 AXI-Stream 버그 수정 및 tb robustness 강화(.sv) 
-Step 6      PS-PL DMA 연동
+Step 5  ✅  AXI-Stream 래퍼
+Step 5-1 ✅ transposed form 모듈의 계층 구조 재설계 및 네이밍 확립
+Step 5-2 ✅ AXI-Stream 버그 수정 및 tb robustness 강화(.sv)
+Step 6  🔄  PS-PL DMA 연동 ← 현재
 Step 7      bare-metal C + UART
 Step 8      PC Python FFT 실시간 시각화
 
 M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정.
-
 
 ---
 
@@ -115,6 +113,7 @@ M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정
 - `docs/log/NN_*.md` 형식, 제목 영어, 본문 한국어
 - 커밋: conventional commits (feat/fix/test/docs/refactor)
 - 로그 헤더 형식:
+
 ```markdown
 # NN. English Title
 
@@ -125,7 +124,7 @@ M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정
 ```
 
 - 섹션 번호: `## 1.` 형식 사용 (`)` 사용, `)` 아님)
-- 섹션 사이 `---` 구분선 사용 
+- 섹션 사이 `---` 구분선 사용
 - 마지막 섹션: `## N. 의미` 서술형 — 결론 테이블 쓰지 않음
 - 각 결정마다 근거(왜 이렇게 했는가) 포함
 - `단계` 값: 직전 로그 +1 (현재 최신 16번 = 단계 8)
