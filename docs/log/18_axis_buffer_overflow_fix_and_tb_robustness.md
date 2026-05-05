@@ -28,15 +28,16 @@ in_sample <= sample;
 
 그 외 확인된 이슈:
 
-| 이슈 | 영향 |
-|------|------|
-| drain loop에 timeout 없음 (`tb_fir_decimator_n43`) | 버그 시 시뮬레이션 무한 hang |
-| watchdog 없음 (`tb_fir_decimator_n43`) | driving 중 파이프라인 stall 감지 불가 |
-| `int` 변수를 `always` 블록 내부에서 선언 | static lifetime always 블록에서 기술적 비정상 |
-| `expected_mem` push 시 `$signed()` 누락 | 16-bit unsigned → 32-bit int 변환 시 부호 불일치로 모든 음수 샘플 FAIL |
-| `$get_initial_random_seed()` 사용 | iverilog 미지원 |
+| 이슈                                                 | 영향                                                                    |
+| ---------------------------------------------------- | ----------------------------------------------------------------------- |
+| drain loop에 timeout 없음 (`tb_fir_decimator_n43`) | 버그 시 시뮬레이션 무한 hang                                            |
+| watchdog 없음 (`tb_fir_decimator_n43`)             | driving 중 파이프라인 stall 감지 불가                                   |
+| `int` 변수를 `always` 블록 내부에서 선언         | static lifetime always 블록에서 기술적 비정상                           |
+| `expected_mem` push 시 `$signed()` 누락          | 16-bit unsigned → 32-bit int 변환 시 부호 불일치로 모든 음수 샘플 FAIL |
+| `$get_initial_random_seed()` 사용                  | iverilog 미지원                                                         |
 
 모든 TB를 `.sv`로 확장자 변경하고 위 이슈를 수정했다. 추가된 기능:
+
 - Scoreboard 큐 (`int expected_q[$]`): pop_front 방식으로 순서 검증
 - Watchdog timer: 1000 사이클 비활성 시 fatal
 - S2 랜덤 버블: `$urandom_range`로 0~3 사이클 입력 갭 무작위 주입
@@ -57,32 +58,50 @@ FAIL tb_fir_decimator_n43_axis: idx=288 actual=-5061 expected=-9830
 
 ## 4. 버그 원인 분석
 
-**핵심: `s_axis_tready = ~valid2`의 1-cycle 전파 지연**
+**핵심: 버퍼가 다 찼다는 정보가 1 클럭 늦게 전달된다**
 
-출력 버퍼에서 `valid2`는 registered 신호다. `s_axis_tready`는 `assign s_axis_tready = ~valid2`로 combinational하게 연결되어 있으나, `valid2`가 NBA update region에서 0→1로 바뀌는 posedge의 active region에서는 여전히 `valid2_old = 0`이다.
+`s_axis_tready`는 "나 지금 입력 받을 수 있어"를 알리는 신호다. 코드에서는 이렇게 정의되어 있다:
 
-```
-posedge K (active region):  valid2_old = 0 → s_axis_tready = 1 → in_valid = 1  ← 1개 샘플 누출
-posedge K (NBA region):     valid2 ← 1
-posedge K+1 (active region): s_axis_tready = ~1 = 0  (입력 차단)
+```verilog
+assign s_axis_tready = ~valid2;
 ```
 
-버퍼가 full 상태(valid0=1, valid1=1, valid2=1)가 되는 시점에, 이미 1개 샘플이 FIR에 진입해 있다. 이 샘플은 2-stage 파이프라인 + M=2 decimation을 거쳐 posedge K+2에서 `core_out_valid=1`로 나온다.
+`valid2`는 플립플롭이다. 플립플롭은 클럭 엣지가 올 때 값이 바뀐다. 그런데 여기서 문제가 생긴다.
 
-이때 버퍼가 여전히 full이면 해당 출력은 어디에도 저장되지 못하고 **silently drop**된다:
+**클럭 K에서 무슨 일이 벌어지는가:**
+
+버퍼 마지막 슬롯(`valid2`)이 막 찬다고 하자. 이 순간 두 가지 일이 **동시에** 일어난다:
+
+1. FIR 코어: `s_axis_tready`를 보고 입력을 받을지 결정한다
+2. 버퍼 로직: `valid2`를 0→1로 업데이트한다
+
+문제는 플립플롭의 동작 방식이다. **플립플롭은 클럭 엣지 직전의 값을 캡처하고, 새 값은 엣지 이후에 출력에 반영된다.** 즉, 클럭 K에서:
+
+- FIR 코어가 `s_axis_tready`를 볼 때: `valid2`는 아직 0 (이전 값) → `s_axis_tready = 1` → 샘플 1개를 받아들임
+- 클럭 K가 지나고 나서야: `valid2 = 1`로 업데이트 → `s_axis_tready = 0`으로 바뀜
+
+결과적으로 **버퍼가 꽉 찬 바로 그 클럭에, 샘플 1개가 몰래 FIR 안으로 들어간다.** 다음 클럭(K+1)에서야 비로소 입력이 차단된다.
+
+**그 샘플이 왜 문제가 되는가:**
+
+FIR 파이프라인은 2 클럭 지연 + M=2 decimation이 있다. 클럭 K에 들어간 샘플은 약 2 클럭 뒤(K+2)에 출력으로 나온다. 이때 버퍼 상태를 보면:
+
+- 버퍼는 여전히 세 슬롯 모두 가득 찬 상태일 수 있다
+- 하지만 버퍼를 채울 빈 슬롯이 없다
+- RTL 코드에는 이 경우에 대한 처리가 없다 → **출력 샘플이 조용히 사라진다**
 
 ```verilog
 else if (core_out_valid) begin
-    if (!valid0)      valid0 <= 1; // 이미 1
-    else if (!valid1) valid1 <= 1; // 이미 1
-    else if (!valid2) valid2 <= 1; // 이미 1
-    // else: 조건 없음 → 출력 소실
+    if      (!valid0) valid0 <= 1;  // 가득 참
+    else if (!valid1) valid1 <= 1;  // 가득 참
+    else if (!valid2) valid2 <= 1;  // 가득 참
+    // 세 슬롯 모두 찬 경우: 아무 동작 없음 → 샘플 소실
 end
 ```
 
-TREADY가 30% 확률이면 K+1에서 transfer가 일어나지 않을 확률이 70%다. K+2까지 연속으로 transfer가 없을 확률은 0.7² = 49%로, 재현성이 높다.
+**왜 30% TREADY에서만 발생했는가:**
 
-기존 분석 (`s_axis_tready = ~valid2`, depth-3이 충분하다는 근거)은 오류였다. `~valid2` 기준으로 backpressure가 걸리는 시점은 이미 버퍼 3슬롯이 전부 찬 직후이므로, 누출된 in-flight 출력을 흡수할 여유가 없다.
+K+2에서 출력이 나올 때까지 버퍼가 비워져 있으면 괜찮다. 버퍼에서 샘플이 나가려면 `m_axis_tready=1`이어야 한다. TREADY가 30% 확률이면, K+1과 K+2 두 클럭 연속으로 TREADY=0일 확률은 0.7² = **49%**다. 즉 절반 가까운 확률로 버퍼가 비워지지 않아 샘플이 드롭된다. 기존 테스트의 75% TREADY(3:1 패턴)에서는 같은 계산으로 0.25² = 6%라서 거의 발생하지 않았다.
 
 ---
 
@@ -102,12 +121,12 @@ assign s_axis_tready = ~valid1;
 
 동작 검증:
 
-| 시점 | 버퍼 상태 | 이벤트 |
-|------|-----------|--------|
-| posedge M (active) | [1,0,0] | `core_out_valid` → valid1 NBA 예정. `s_axis_tready=~valid1_old=1`. 1샘플 누출 |
-| posedge M+1 | [1,1,0] | `s_axis_tready=0`. 입력 차단. `core_out_valid=0` (dec phase=1) |
-| posedge M+2 | [1,1,0] | 누출 샘플의 FIR 출력. `core_out_valid=1` → valid2 채움 |
-| 결과 | [1,1,1] | 버퍼 full이지만 오버플로 없음 ✓ |
+| 시점               | 버퍼 상태 | 이벤트                                                                             |
+| ------------------ | --------- | ---------------------------------------------------------------------------------- |
+| posedge M (active) | [1,0,0]   | `core_out_valid` → valid1 NBA 예정. `s_axis_tready=~valid1_old=1`. 1샘플 누출 |
+| posedge M+1        | [1,1,0]   | `s_axis_tready=0`. 입력 차단. `core_out_valid=0` (dec phase=1)                 |
+| posedge M+2        | [1,1,0]   | 누출 샘플의 FIR 출력.`core_out_valid=1` → valid2 채움                           |
+| 결과               | [1,1,1]   | 버퍼 full이지만 오버플로 없음 ✓                                                   |
 
 TREADY=1 고정(S1) 조건에서는 M=2 decimation으로 2 사이클에 1개 출력이 나오고, transfer도 매 사이클 일어나므로 valid1이 거의 채워지지 않는다. 기존 S1 동작에 영향 없음.
 
