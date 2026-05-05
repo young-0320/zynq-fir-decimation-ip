@@ -170,8 +170,8 @@ module tb_fir_decimator_n43_axis;
     drain_and_check();
     $display("PASS [S1] TREADY=1 data+TLAST: %0d samples", obs_cnt);
 
-    // S2: 무작위 백프레셔(30% accept) + 입력 버블
-    check_mode = 1;
+    // S2: 무작위 백프레셔(30% accept) + 입력 버블, 데이터+TLAST 검증
+    check_mode = 2;
     bp_en      = 1'b1;
     do_reset();
     for (int i = 0; i < EXP_LEN; i++) expected_q.push_back($signed(exp_mem[i]));
