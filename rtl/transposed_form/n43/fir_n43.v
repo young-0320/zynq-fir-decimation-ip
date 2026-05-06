@@ -5,11 +5,12 @@
 //
 // 설계 기준: docs/log/14_transposed_form_rtl_decisions.md
 //
-// 파이프라인 2단계:
+// 파이프라인 3단계 (타이밍 위반으로 2→3단계 확장, log/16 참고):
 //   Stage 1: in_valid=1 → h[k]*in_sample → prod_reg[k]  (k=0..42 병렬)
-//   Stage 2: prod_reg[k] + z[k+1] → z[k], round(z[0]) → out_sample
+//   Stage 2: prod_reg[k] + z[k+1] → z[k], round(z[0]) → round_reg
+//   Stage 3: saturate(round_reg) → out_sample
 //
-// Latency: 2 cycles (accepted input 기준)
+// Latency: 3 cycles (accepted input 기준)
 // z[k]   : signed 48-bit (Q2.30)
 // 반올림 : ties-away-from-zero, 출력 1회
 // 포화   : 출력 1회 clip(-32768, 32767)
