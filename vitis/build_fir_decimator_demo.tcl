@@ -5,7 +5,7 @@
 set REPO_ROOT  [file normalize [file dirname [file dirname [info script]]]]
 set XSA        /mnt/workspace/10_zynq-fir-decimation-ip_build/fir_decimator_trans_n43/bd_fir_dma_wrapper.xsa
 set WORKSPACE  /mnt/workspace/10_zynq-fir-decimation-ip_build/fir_decimator_demo
-set SRC        $REPO_ROOT/ps/fir_decimator_demo.c
+set SRC        $REPO_ROOT/sw/fir_decimator_demo.c
 
 setws $WORKSPACE
 

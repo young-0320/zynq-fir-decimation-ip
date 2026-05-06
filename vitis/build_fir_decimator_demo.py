@@ -8,7 +8,7 @@ import os
 REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 XSA       = "/mnt/workspace/10_zynq-fir-decimation-ip_build/fir_decimator_trans_n43/bd_fir_dma_wrapper.xsa"
 WORKSPACE = "/mnt/workspace/10_zynq-fir-decimation-ip_build/fir_decimator_demo"
-SRC       = os.path.join(REPO_ROOT, "ps", "fir_decimator_demo.c")
+SRC       = os.path.join(REPO_ROOT, "sw", "fir_decimator_demo.c")
 
 client = vitis.create_client()
 client.set_workspace(WORKSPACE)

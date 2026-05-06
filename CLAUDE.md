@@ -2,7 +2,7 @@
 
 zynq-axi-fir-decimation-ip
 
-Updated: 2026-05-06
+Updated: 2026-05-07
 Repository root: `/home/young/dev/10_zynq-fir-decimation-ip`
 README.md root: `/home/young/dev/10_zynq-fir-decimation-ip/README.md`
 
@@ -81,9 +81,9 @@ Step 5  ✅  AXI-Stream 래퍼
 Step 5-1 ✅ transposed form 모듈의 계층 구조 재설계 및 네이밍 확립
 Step 5-2 ✅ AXI-Stream 버그 수정 및 tb robustness 강화(.sv)
 Step 6  ✅  PS-PL DMA 연동 (Block Design, 비트스트림, XSA 생성 완료, WNS=+1.239ns)
-Step 7  🔄  bare-metal C + UART (sw/fir_decimator_demo.c 완성, 보드 검증 대기)
+Step 7  🔄  bare-metal C + UART (sw/fir_decimator_demo.c 완성, vitis/ 경로 버그 수정 완료, 보드 검증 대기)
 Step 8  🔄  PC Python FFT 실시간 시각화 (sw/fir_decimator_demo.py 완성, 보드 검증 대기) ← 현재
 
-다음: 보드 연결 후 Step 7 Vitis 빌드 → minicom 동작 확인 → Step 8 실보드 연동
+다음: 보드 연결 후 Step 7 Vitis 빌드(xsct vitis/build_fir_decimator_demo.tcl) → minicom 동작 확인 → Step 8 실보드 연동
 
 M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정.
