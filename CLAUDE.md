@@ -2,7 +2,7 @@
 
 zynq-axi-fir-decimation-ip
 
-Updated: 2026-05-04
+Updated: 2026-05-06
 Repository root: `/home/young/dev/10_zynq-fir-decimation-ip`
 README.md root: `/home/young/dev/10_zynq-fir-decimation-ip/README.md`
 
@@ -80,53 +80,10 @@ Step 4  ✅  Vivado 100MHz 타이밍 클로저 WNS=+0.278ns (DSP48=16, LUT=1827)
 Step 5  ✅  AXI-Stream 래퍼
 Step 5-1 ✅ transposed form 모듈의 계층 구조 재설계 및 네이밍 확립
 Step 5-2 ✅ AXI-Stream 버그 수정 및 tb robustness 강화(.sv)
-Step 6  🔄  PS-PL DMA 연동 ← 현재
-Step 7      bare-metal C + UART
-Step 8      PC Python FFT 실시간 시각화
+Step 6  ✅  PS-PL DMA 연동 (Block Design, 비트스트림, XSA 생성 완료, WNS=+1.239ns)
+Step 7  🔄  bare-metal C + UART (sw/fir_decimator_demo.c 완성, 보드 검증 대기)
+Step 8  🔄  PC Python FFT 실시간 시각화 (sw/fir_decimator_demo.py 완성, 보드 검증 대기) ← 현재
+
+다음: 보드 연결 후 Step 7 Vitis 빌드 → minicom 동작 확인 → Step 8 실보드 연동
 
 M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정.
-
----
-
-## code style
-
-### Verilog
-
-```verilog
-`timescale 1ns / 1ps
-`default_nettype none
-// ... 모듈 내용
-`default_nettype wire
-```
-
-- reset: `always @(posedge clk or posedge rst)`
-- 출력 레지스터: `output reg`
-- signed 명시: `signed [47:0]`, `signed [15:0]`
-
-### Python
-
-- type hint 필수, docstring 필수
-- 기존 `model/` 구조 패턴 유지
-
-### 문서
-
-- `docs/log/NN_*.md` 형식, 제목 영어, 본문 한국어
-- 커밋: conventional commits (feat/fix/test/docs/refactor)
-- 로그 헤더 형식:
-
-```markdown
-# NN. English Title
-
-- 작성일: YYYY-MM-DD
-- 단계: N          ← 이전 로그 단계 +1, "Step N" 형식 쓰지 않음
-- 목적: 한 줄 설명 (마침표 없음)
-- 선행 문서: `docs/log/NN_*.md`  ← 없으면 생략
-```
-
-- 섹션 번호: `## 1.` 형식 사용 (`)` 사용, `)` 아님)
-- 섹션 사이 `---` 구분선 사용
-- 마지막 섹션: `## N. 의미` 서술형 — 결론 테이블 쓰지 않음
-- 각 결정마다 근거(왜 이렇게 했는가) 포함
-- `단계` 값: 직전 로그 +1 (현재 최신 16번 = 단계 8)
-
----
