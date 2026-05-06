@@ -6,7 +6,7 @@ set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
 set BUILD_DIR /mnt/workspace/10_zynq-fir-decimation-ip_build/fir_transposed_n43
 set PROJ_NAME fir_transposed_n43
 set PART      xc7z020clg400-1
-set TOP       fir_decimator_transposed_n43_top
+set TOP       fir_decimator_n43
 
 # -----------------------------------------------------------------------
 # 프로젝트 생성
@@ -19,8 +19,8 @@ set_property target_language Verilog [current_project]
 # 소스 추가
 # -----------------------------------------------------------------------
 add_files [list \
-    $REPO_ROOT/rtl/transposed_form/n43/fir_transposed_n43.v \
-    $REPO_ROOT/rtl/transposed_form/n43/fir_decimator_transposed_n43_top.v \
+    $REPO_ROOT/rtl/transposed_form/n43/fir_n43.v \
+    $REPO_ROOT/rtl/transposed_form/n43/fir_decimator_n43.v \
     $REPO_ROOT/rtl/transposed_form/decimator_m2_phase0.v \
 ]
 
