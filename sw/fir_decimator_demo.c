@@ -12,8 +12,7 @@
 
 /* --- 수정 가능한 설정 -------------------------------------------------- */
 #define UART_BAUD_RATE 115200                   /* 느리면 921600으로 변경 */
-#define UART_DEVICE_ID XPAR_XUARTPS_1_DEVICE_ID /* Zybo Z7-20 USB-UART 브릿지 \
-                                                 */
+#define UART_DEVICE_ID 0 /* UART1 단일 인스턴스 → canonical index 0 */
 
 #define DMA_BASE 0x40400000u /* bd_fir_dma.tcl assign_bd_address 기준 */
 #define N_IN 8192            /* 입력 샘플 수 */
