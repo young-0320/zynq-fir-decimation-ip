@@ -9,11 +9,15 @@ set ELF $REPO_ROOT/build/output/fir_decimator_demo.elf
 
 connect
 
+# rst -system → BootROM 실행 → DDR 컨트롤러 초기화
+# (rst -processor는 CPU만 리셋하고 DDR을 초기화하지 않음)
 targets -set -filter {name =~ "APU*"}
+rst -system
+after 3000
+
 fpga $BIT
 
 targets -set -filter {name =~ "*A9*#0"}
-rst -processor
 dow $ELF
 con
 
