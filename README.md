@@ -1,207 +1,113 @@
-## 1. 프로젝트 환경
+# zynq-axi-fir-decimation-ip
 
-1. 보드: Zybo Z7-20 (Zynq-7000, xc7z020clg400-1)
-2. 개발 환경: Linux 데스크탑, Vivado 2024.2 네이티브, Python 3.13, uv 패키지 매니저
-3. Python 실행: `.venv/bin/python` 또는 `uv run --no-sync python`
-4. 시뮬레이션: iverilog (`-g2012`) + vvp
-5. GitHub: young-0320/zynq-axi-fir-decimation-ip
-6. Vivado 빌드 경로: `/mnt/workspace/10_zynq-fir-decimation-ip_build/`
-7. Vivado 프로젝트: `fir_decimator_trans_n43` (Block Design: `bd_fir_dma`)
-8. XSA 경로: `/mnt/workspace/10_zynq-fir-decimation-ip_build/fir_decimator_trans_n43/`
+N=43 Transposed Form FIR LPF + M=2 Decimator IP on Zybo Z7-20 (Zynq-7000).
+
+- FIR: Kaiser β=5.653, fp=15MHz, fs=25MHz, As≥60dB, Q1.15 signed 16-bit
+- AXI-Stream wrapper → AXI DMA → PS DDR (Simple DMA, HP0)
+- PS bare-metal C: UART(115200) + DMA transfer + PC-side Python FFT 확인
 
 ---
 
-## 2. RTL 설계 확정 사항
+## 재현 방법
 
+### 사전 조건
 
-### 파이프라인 구조
+#### 1. Vivado + Vitis Embedded Development 2024.2
 
-```
-[Stage 1] in_valid=1
-    → h[k] * in_sample  (k=0..42, 43개 병렬) → prod_reg[k] 저장 (signed 48-bit)
-    → prod_valid = 1
+AMD Unified Web Installer로 설치. **반드시 `Vitis Embedded Development` 컴포넌트를 포함해야 한다.**
 
-[Stage 2] prod_valid=1
-    → z[k] = prod_reg[k] + z[k+1]  (k=0..41)
-      z[42] = prod_reg[42]           ← B안: z[43] 더미 없음
-    → round_reg = round(prod_reg[0] + z[1])
-      ※ non-blocking 특성상 z[0] 직접 참조 불가 → prod_reg[0]+z[1] 직접 계산
-    → round_valid = 1
+> **주의:** `Vitis (Core Development Kit)`와 `Vitis Embedded Development`는 별개 제품이다.
+> Zynq-7000 bare-metal ELF 빌드에는 후자가 필요하다. Core만 설치하면 ARM 툴체인, Lopper, BSP 템플릿이 없어서 ELF 생성이 불가능하다.
 
-[Stage 3] round_valid=1
-    → out_sample = saturate(round_reg)
-    → out_valid = 1
+설치 후 확인:
+```bash
+# 아래 두 바이너리가 모두 존재해야 한다
+ls ~/Xilinx/Vitis/2024.2/bin/vitis        # Vitis Core
+ls ~/Xilinx/Vitis/2024.2/bin/xsdb         # Vitis Embedded Development
 ```
 
-### 확정 결정 요약
+#### 2. Lopper 수동 설치 확인 (AMD 설치 버그 대응)
 
-| 항목 | 결정 |
-|---|---|
-| 처리 구조 | 1 sample/cycle 병렬 (N=43개 MAC 동시) |
-| 파이프라인 | 3단계 (100MHz 타이밍 위반으로 확장) |
-| FIR latency | 3 cycles |
-| Top latency | 4 cycles (keep sample 기준) |
-| z[k] 비트폭 | signed 48-bit (Q2.30) |
-| prod_reg[k] | signed 48-bit (32-bit 곱 → sign-extend) |
-| 반올림 | ties-away-from-zero, z[0] 출력 1회만 |
-| 포화 | 출력 1회 clip(-32768, 32767) |
-| in_valid=0 | z[k] hold, prod_valid=0, out_valid=0 |
-| reset | active-high, 전체 state 0 |
-| 계수 저장 | localparam 하드코딩 43개 |
-| z[42] 경계 | B안: `z[42] <= prod_reg[42]` (z[43] 더미 없음) |
-
----
-
-## 4. FIR 스펙
-
-| 항목 | 값 |
-|---|---|
-| Fs_in | 100 MHz |
-| Fs_out | 50 MHz (M=2) |
-| fp | 15 MHz |
-| fs | 25 MHz |
-| As | ≥ 60 dB |
-| N | 43 (Kaiser window β=5.653) |
-| 포맷 | Q1.15 signed 16-bit |
-| FIR 구조 | Transposed Form |
-| 클럭 | 100 MHz |
-
----
-
-## 5. 데모 시나리오 (확정)
-
-| 시나리오 | 방식 | 핵심 |
-|---|---|---|
-| 0 — 비교 시연 | PC Python만으로 실행 (보드 불필요) | FIR 없이 다운샘플만 → 앨리어싱 발생 / FIR 적용 → 제거 |
-| 1 — 기본 동작 | PS C코드로 고정 멀티톤(5/20/30MHz) 생성 → DMA → PL → UART → PC FFT | "제대로 동작하는가" |
-| 2 — 인터랙티브 | 청중이 주파수 지정 → PC Python이 UART로 값 전송 → PS 즉석 생성 → 동일 파이프라인 | "직접 체험" |
-
-전체 파이프라인: `docs/데모 시나리오.md` 참고.
-
----
-
-## 6. 자주 쓰는 명령어
+AMD 설치 프로그램에 알려진 버그가 있어 Lopper pip install이 실패해도 설치 완료로 표시된다.
+Vitis가 XSA → BSP 변환 시 Lopper를 내부적으로 호출하므로, 설치되어 있지 않으면 플랫폼 빌드가 실패한다.
 
 ```bash
-# pytest 전체
-.venv/bin/pytest -q
+# 설치 여부 확인
+ls ~/Xilinx/Vitis/2024.2/tps/lnx64/lopper-1.1.0/env/lib/python3.8/site-packages/lopper/
 
-# 벡터 생성 (2단계)
-.venv/bin/python -m sim.python.run_compare_ideal_vs_fixed --num-taps 43 --form transposed
-.venv/bin/python -m sim.python.export_rtl_bringup_vectors \
+# 위 경로가 비어 있으면 수동 설치 필요:
+LD_LIBRARY_PATH=~/Xilinx/Vitis/2024.2/tps/lnx64/python-3.8.3/lib \
+~/Xilinx/Vitis/2024.2/tps/lnx64/lopper-1.1.0/env/bin/pip install \
+  -r ~/Xilinx/Vitis/2024.2/tps/lnx64/lopper-1.1.0-packages/py38/requirements.txt \
+  --find-links ~/Xilinx/Vitis/2024.2/tps/lnx64/lopper-1.1.0-packages/py38/wheels \
+  --no-index
+```
+
+#### 3. 환경변수 설정 (터미널 세션마다)
+
+`vivado`, `vitis`, `xsdb` 명령어를 쓰려면 매 터미널 세션에서 한 번 소싱해야 한다.
+
+```bash
+source ~/Xilinx/Vivado/2024.2/settings64.sh
+# 설치 경로가 다르면 해당 경로로 수정
+```
+
+#### 4. 기타 의존성
+
+| 항목 | 버전 | 용도 |
+|------|------|------|
+| iverilog | 11 이상 | RTL 시뮬레이션 |
+| Python | 3.13 | PC 측 FFT 스크립트 |
+| uv | 최신 | Python 가상환경 관리 |
+| minicom | 임의 | UART 터미널 (보드 검증 시) |
+| Zybo Z7-20 보드 파일 | — | Vivado 보드 지원 |
+
+```bash
+# Ubuntu 기준 설치
+sudo apt install iverilog minicom
+pip install uv   # 또는 공식 설치 방법: https://docs.astral.sh/uv/
+```
+
+---
+
+### 빌드 순서
+
+```bash
+# 1. Python 환경
+uv sync
+
+# 2. 시뮬레이션 벡터 생성
+uv run python -m sim.python.run_compare_ideal_vs_fixed --num-taps 43 --form transposed
+uv run python -m sim.python.export_rtl_bringup_vectors \
     --num-taps 43 \
     --input-dir sim/output/ideal_vs_fixed_trans_n43 \
     --output-dir sim/vectors/transposed_form/n43
 
-# FIR 단독 시뮬레이션
-iverilog -g2012 -Wall -o sim/build/tb_fir_n43.out \
-    sim/rtl/tb/transposed_form/tb_fir_n43.sv \
-    rtl/transposed_form/n43/fir_n43.v
-vvp sim/build/tb_fir_n43.out
+# 3. Python 모델 테스트
+uv run pytest -q
 
-# Decimator 포함 시뮬레이션
-iverilog -g2012 -Wall -o sim/build/tb_fir_decimator_n43.out \
-    sim/rtl/tb/transposed_form/tb_fir_decimator_n43.sv \
-    rtl/transposed_form/n43/fir_decimator_n43.v \
-    rtl/transposed_form/n43/fir_n43.v \
-    rtl/transposed_form/decimator_m2_phase0.v
-vvp sim/build/tb_fir_decimator_n43.out
-
-# AXI-Stream 래퍼 시뮬레이션
-iverilog -g2012 -Wall -o sim/build/tb_fir_decimator_n43_axis.out \
+# 4. RTL 시뮬레이션 (iverilog -g2012)
+iverilog -g2012 -o sim/build/tb_fir_decimator_n43_axis.out \
     sim/rtl/tb/transposed_form/tb_fir_decimator_n43_axis.sv \
     rtl/transposed_form/n43/fir_decimator_n43_axis.v \
     rtl/transposed_form/n43/fir_decimator_n43.v \
     rtl/transposed_form/n43/fir_n43.v \
     rtl/transposed_form/decimator_m2_phase0.v
 vvp sim/build/tb_fir_decimator_n43_axis.out
+
+# 5. Vivado: 비트스트림 + XSA 생성 → build/output/bd_fir_dma_wrapper.xsa
+#    (실행 전: source <Xilinx 설치경로>/Vivado/2024.2/settings64.sh)
+mkdir -p build/vivado
+vivado -mode batch \
+  -journal build/vivado/vivado.jou \
+  -log build/vivado/vivado.log \
+  -source vivado/build_bd_fir_dma.tcl
+
+# 6. Vitis: BSP + ELF 빌드 → build/output/fir_decimator_demo.elf
+rm -rf build/vitis
+vitis -s vitis/build_fir_decimator_demo.py
+
+# 7. 보드 검증 → docs/log/workflow_v11.md 참고
 ```
 
----
-
-## 7. 디렉토리 구조
-
-```
-rtl/
-├── direct_form/
-│   └── bringup_n5/                            ✅ N=5 bring-up (참고용)
-└── transposed_form/
-    ├── decimator_m2_phase0.v                  ✅ M=2 데시메이터
-    └── n43/
-        ├── fir_n43.v                          ✅ FIR 코어 (N=43)
-        ├── fir_decimator_n43.v                ✅ FIR + 데시메이터
-        ├── fir_decimator_n43_axis.v           ✅ AXI-Stream 래퍼 (top)
-        └── constrs/zybo_n43.xdc              ⚠️ 단독 합성 전용 (Block Design에 포함 금지)
-
-sim/
-├── rtl/tb/transposed_form/
-│   ├── tb_fir_n43.sv                          ✅
-│   ├── tb_fir_decimator_n43.sv                ✅
-│   └── tb_fir_decimator_n43_axis.sv           ✅
-├── build/                                     시뮬레이션 바이너리 (.out)
-├── output/ideal_vs_fixed_trans_n43/           ✅ .npy 벡터
-└── vectors/transposed_form/n43/               ✅ hex 벡터 (4종)
-
-model/
-├── ideal/                                     ✅
-└── fixed/transposed_form/                     ✅
-
-ps/
-└── fir_decimator_demo.c                       🔄 bare-metal C (Step 7)
-
-vitis/
-├── build_fir_decimator_demo.py                Vitis 빌드 자동화
-└── build_fir_decimator_demo.tcl               Vitis TCL 빌드 스크립트
-
-vivado/
-├── build_fir_transposed_n43.tcl               단독 합성 빌드 스크립트
-└── bd_fir_dma.tcl                             Block Design 익스포트 TCL
-
-docs/
-└── 데모 시나리오.md                            시나리오 0·1·2 파이프라인 상세
-
-docs/log/
-    01~08  스펙·포맷·입력·브링업·비교 (초기 단계)
-    09     bringup_rtl_decisions
-    10     bringup_rtl_module_walkthrough
-    11     vivado_timing_violation_and_fir_pipelining
-    12     project_direction_change
-    13     transposed_form_golden_policy
-    14     transposed_form_rtl_decisions        ← RTL 핵심 결정
-    15     rtl_vector_pipeline_extension
-    16     vivado_timing_closure_transposed_n43
-    17     axi_stream_wrapper_design_decisions
-    18     axis_buffer_overflow_fix_and_tb_robustness
-    19     ps_pl_dma_integration_design         ← Block Design 설계 결정
-    20     baremetal_c_fir_dma                  ← PS C 코드 설계 (Step 7)
-    21     vitis_build_and_uart_usage
-    22     pc_python_fft_visualization_plan
-```
-
-생성 벡터 구성:
-
-```
-sim/vectors/transposed_form/n43/
-    input_q15.hex          (8192 lines)
-    coeff_q15.hex          (43 lines)
-    expected_fir_q15.hex   (8234 lines = 8192 + 42 flush)
-    expected_decim_q15.hex (4117 lines)
-```
-
----
-
-## 8. Block Design (Step 6)
-
-Vivado IP Integrator로 구성. `bd_fir_dma` Block Design.
-
-| IP | 역할 |
-|---|---|
-| ZYNQ7 Processing System | ARM 코어 + DDR + FCLK_CLK0(100MHz) + HP0 포트 |
-| AXI Direct Memory Access | DDR ↔ AXI-Stream 브리지 (Simple DMA, Stream 16-bit) |
-| fir_decimator_n43_axis | Module Reference로 삽입 |
-| Processor System Reset | PS 리셋 → PL 동기화 (자동 생성) |
-| AXI SmartConnect | PS GP0 → DMA S_AXI_LITE 연결 (자동 생성) |
-
-**주의:** `zybo_n43.xdc`는 단독 FIR 합성 전용 제약 파일이다. Block Design 프로젝트에 포함되면 합성 top이 `fir_decimator_n43_axis`로 잘못 설정되어 비트스트림 생성이 실패한다. Block Design 프로젝트에서는 반드시 Disable 처리해야 한다.
-
----
+> 트러블슈팅 상세 기록 → `docs/log/23_vitis_embedded_build_troubleshooting.md`
