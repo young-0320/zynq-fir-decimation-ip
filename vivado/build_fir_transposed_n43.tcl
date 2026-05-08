@@ -1,9 +1,9 @@
 # build_fir_transposed_n43.tcl
 # Usage: vivado -mode batch -source vivado/build_fir_transposed_n43.tcl
-# Run from repo root: /home/young/dev/10_zynq-fir-decimation-ip
+# Run from repo root
 
 set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
-set BUILD_DIR /mnt/workspace/10_zynq-fir-decimation-ip_build/fir_transposed_n43
+set BUILD_DIR $REPO_ROOT/build/vivado
 set PROJ_NAME fir_transposed_n43
 set PART      xc7z020clg400-1
 set TOP       fir_decimator_n43
