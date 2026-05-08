@@ -107,7 +107,15 @@ vivado -mode batch \
 rm -rf build/vitis
 vitis -s vitis/build_fir_decimator_demo.py
 
-# 7. 보드 검증 → docs/log/workflow_v11.md 참고
+# 7. 보드에 비트스트림 + ELF 다운로드 (USB 케이블 연결 후)
+xsdb vitis/download_and_run.tcl
+
+# 8. UART 동작 확인
+minicom -D /dev/ttyUSB1 -b 115200
+# minicom에서 입력: 3 5000000 20000000 30000000
+
+# 9. PC Python FFT 시각화
+python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1
 ```
 
 > 트러블슈팅 상세 기록 → `docs/log/23_vitis_embedded_build_troubleshooting.md`
