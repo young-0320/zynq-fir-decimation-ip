@@ -1,17 +1,18 @@
 # build_bd_fir_dma.tcl
 # Usage: vivado -mode batch -source vivado/build_bd_fir_dma.tcl
-# Run from repo root: /home/young/dev/10_zynq-fir-decimation-ip
+# Run from repo root
 #
 # 사전 조건: Digilent Zybo Z7-20 보드 파일 설치
 #   $XILINX_VIVADO/data/boards/ 또는 ~/.Xilinx/Vivado/ 아래에 있어야 함
 #   없으면 board_part 설정 생략 — PS DDR 설정이 BD에 이미 포함되어 있어 재현 가능
 #
 # 산출물:
-#   $BUILD_DIR/bd_fir_dma_wrapper.xsa  ← vitis/build_fir_decimator_demo.tcl 입력
-#   $BUILD_DIR/$PROJ_NAME.runs/impl_1/bd_fir_dma_wrapper.bit
+#   build/output/bd_fir_dma_wrapper.xsa  ← vitis/build_fir_decimator_demo.tcl 입력
+#   build/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit
 
 set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
-set BUILD_DIR /mnt/workspace/10_zynq-fir-decimation-ip_build/fir_decimator_trans_n43
+set BUILD_DIR $REPO_ROOT/build/vivado
+set OUT_DIR   $REPO_ROOT/build/output
 set PROJ_NAME fir_decimator_trans_n43
 set PART      xc7z020clg400-1
 set BOARD     digilentinc.com:zybo-z7-20:part0:1.1
@@ -19,6 +20,8 @@ set BOARD     digilentinc.com:zybo-z7-20:part0:1.1
 # -----------------------------------------------------------------------
 # 프로젝트 생성
 # -----------------------------------------------------------------------
+file mkdir $OUT_DIR
+
 create_project $PROJ_NAME $BUILD_DIR -part $PART -force
 
 set_property target_language Verilog [current_project]
@@ -35,7 +38,7 @@ add_files [list \
     $REPO_ROOT/rtl/transposed_form/n43/fir_n43.v \
     $REPO_ROOT/rtl/transposed_form/n43/fir_decimator_n43.v \
     $REPO_ROOT/rtl/transposed_form/n43/fir_decimator_n43_axis.v \
-    $REPO_ROOT/rtl/direct_form/decimator_m2_phase0.v \
+    $REPO_ROOT/rtl/transposed_form/decimator_m2_phase0.v \
 ]
 
 update_compile_order -fileset sources_1
@@ -91,7 +94,7 @@ puts "WNS = $wns ns"
 # -----------------------------------------------------------------------
 # XSA 내보내기 (비트스트림 포함, Vitis 입력)
 # -----------------------------------------------------------------------
-set XSA $BUILD_DIR/bd_fir_dma_wrapper.xsa
+set XSA $OUT_DIR/bd_fir_dma_wrapper.xsa
 
 write_hw_platform -fixed -include_bit -force -file $XSA
 
