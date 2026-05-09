@@ -99,11 +99,13 @@ static void gen_multitone(const float* freqs, int n_tones) {
 }
 
 static void dma_run(void) {
-  /* DMA는 캐시를 우회해 DDR 직접 접근 → flush로 CPU 캐시를 DDR에 반영 */
   Xil_DCacheFlushRange((UINTPTR)src_buf, N_IN * sizeof(int16_t));
 
-  /* S2MM 먼저: MM2S 시작 후 FIR 출력이 즉시 나오므로 수신 채널이 먼저 열려야 함
-   */
+  /* AXI DMA soft reset: bit 2 resets the entire core (PG021).
+   * Must complete before configuring either channel. */
+  DMA_REG(MM2S_DMACR) = (1u << 2);
+  while (DMA_REG(MM2S_DMACR) & (1u << 2));
+
   DMA_REG(S2MM_DMACR) = DMA_RS_BIT;
   DMA_REG(S2MM_DA) = (uint32_t)(UINTPTR)dst_buf;
   DMA_REG(S2MM_LENGTH) = N_OUT * sizeof(int16_t);
@@ -134,6 +136,9 @@ static void uart_send_result(void) {
 
 int main(void) {
   uart_init();
+
+  uart_putb('R'); uart_putb('E'); uart_putb('A'); uart_putb('D');
+  uart_putb('Y'); uart_putb('\r'); uart_putb('\n');
 
   while (1) {
     float freqs[MAX_TONES];
