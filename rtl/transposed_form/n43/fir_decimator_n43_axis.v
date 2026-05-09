@@ -2,7 +2,7 @@
 `default_nettype none
 
 module fir_decimator_n43_axis #(
-    parameter integer TLAST_N = 512
+    parameter integer TLAST_N = 4096
 ) (
     input wire aclk,
     input wire aresetn,
