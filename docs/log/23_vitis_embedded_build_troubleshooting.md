@@ -254,3 +254,5 @@ build/output/fir_decimator_demo.elf   ← Vitis 산출물 (242KB)
 2. **Vitis와 Vitis Embedded Development는 별개 제품이다.** bare-metal 개발은 후자가 필요.
 3. **새 SDT 기반 BSP는 XSA에 명시된 주변장치만 포함한다.** Block Design에서 UART 등 PS 주변장치를 반드시 활성화해야 한다.
 4. **AMD 설치 프로그램에 버그가 있다.** Lopper pip install 실패 후 성공으로 표시. 수동 확인 필요.
+
+→ JTAG 다운로드 트러블슈팅: `24_jtag_download_troubleshooting.md` 참조
