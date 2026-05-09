@@ -5,7 +5,7 @@
 
 set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
 set BIT      $REPO_ROOT/build/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit
-set ELF      $REPO_ROOT/build/output/fir_decimator_demo.elf
+set MWR_TCL  $REPO_ROOT/build/output/load_elf.tcl
 set PS7_INIT $REPO_ROOT/build/vitis/fir_decimator_demo/_ide/psinit/ps7_init.tcl
 
 connect
@@ -22,7 +22,11 @@ source $PS7_INIT
 ps7_init
 ps7_post_config
 
-dow $ELF
+# L2 캐시 무효화: 이전 펌웨어 stale 데이터 제거 (PL310 Invalidate by Way)
+mwr 0xF8F0277C 0x0000FFFF
+after 200
+
+source $MWR_TCL
 con
 
 puts ""
