@@ -1,4 +1,4 @@
-# build_fir_decimator_demo.py
+# build_fir_decimator_demo.pyplatform
 # Usage: vitis -s vitis/build_fir_decimator_demo.py  (repo root에서 실행)
 #
 # 산출물: build/output/fir_decimator_demo.elf
@@ -21,7 +21,7 @@ client = vitis.create_client()
 client.update_workspace(WORKSPACE)
 
 # 플랫폼 생성 (XSA → BSP)
-platform = client.create_platform_component(
+ = client.create_platform_component(
     name         = "fir_dma_platform",
     hw_design    = XSA,
     os           = "standalone",

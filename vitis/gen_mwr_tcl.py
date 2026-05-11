@@ -39,7 +39,7 @@ def main():
             (word,) = struct.unpack_from("<I", chunk)
             addr = p_paddr + j
             cmds.append(f"mwr 0x{addr:08X} 0x{word:08X}")
-            cmds.append(f"mrd 0x{addr:08X} 1")  # flush JTAG write buffer
+            cmds.append(f"after 0")
             n_words += 1
 
     cmds.append(f"rwr pc 0x{e_entry:08X}")

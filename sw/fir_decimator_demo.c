@@ -11,8 +11,8 @@
 #endif
 
 /* --- 수정 가능한 설정 -------------------------------------------------- */
-#define UART_BAUD_RATE 115200                   /* 느리면 921600으로 변경 */
-#define UART_DEVICE_ID 0 /* UART1 단일 인스턴스 → canonical index 0 */
+#define UART_BAUD_RATE 115200 /* 느리면 921600으로 변경 */
+#define UART_DEVICE_ID 0      /* UART1 단일 인스턴스 → canonical index 0 */
 
 #define DMA_BASE 0x40400000u /* bd_fir_dma.tcl assign_bd_address 기준 */
 #define N_IN 8192            /* 입력 샘플 수 */
@@ -137,8 +137,13 @@ static void uart_send_result(void) {
 int main(void) {
   uart_init();
 
-  uart_putb('R'); uart_putb('E'); uart_putb('A'); uart_putb('D');
-  uart_putb('Y'); uart_putb('\r'); uart_putb('\n');
+  uart_putb('R');
+  uart_putb('E');
+  uart_putb('A');
+  uart_putb('D');
+  uart_putb('Y');
+  uart_putb('\r');
+  uart_putb('\n');
 
   while (1) {
     float freqs[MAX_TONES];
