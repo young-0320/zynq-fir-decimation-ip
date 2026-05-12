@@ -29,7 +29,7 @@ Vitis 2024.2 버전의 Unified IDE가 임베디드 개발 모드와 HLS(High-Lev
 **해결**
 충돌을 일으키는 설정 파일을 강제 제거하여 IDE의 환경 판별 로직을 초기화함.
 
-조치 사항: 터미널을 통해 Vitis 설치 루트 디렉토리로 이동 후, 인식 오류의 주범인 .vitis_for_hls 파일을 삭제함.
+조치 사항: 터미널을 통해 Vitis 설치 루트 디렉토리로 이동 후, 인식 오류의 주범인 `.vitis_for_hls` 파일을 삭제함.
 
 결과: IDE 재실행 시 임베디드 개발 환경이 정상적으로 스캔되며 'Create Platform Component' 버튼이 활성화됨을 확인.
 
@@ -70,19 +70,78 @@ RTL 래퍼 내부에 **Auto-Flush 상태 머신** 도입.
 3. IP 코어의 데이터 입력 포트에 0(Dummy Data)을 강제로 주입하여 파이프라인 내부를 계속 밀어냄.
 4. `target_out_cnt`만큼의 출력이 밖으로 모두 빠져나오는 순간 `m_axis_tlast`를 동기화하여 출력하고 Flush 상태 종료.
 
+## 문제 3
+
+xsdb% exec nm /home/young/dev/10_zynq-fir-decimation-ip/build/vitis_5_11/fir_decimator_demo/build/fir_decimator_demo.elf | grep _start
+
+00110048 N __ARM.attributes_start
+
+00110060 B __bss_start
+
+001096d4 D __data1_start
+
+00108fe8 D __data_start
+
+00110010 D __drvcfgsecdata_start
+
+001096d4 D __eh_framehdr_start
+
+00110000 R __exidx_start
+
+0011000c D __fini_array_start
+
+001096d4 D __fixup_start
+
+00116270 B _heap_start
+
+00110008 D __init_array_start
+
+0010c000 R __mmu_tbl_start
+
+00110008 D __preinit_array_start
+
+00108fe7 D __rodata1_start
+
+00108930 R __rodata_start
+
+00108fe7 D __sbss2_start
+
+00110048 N __sbss_start
+
+00108fe7 D __sdata2_start
+
+00110048 N __sdata_start
+
+00100b00 T _start
+
+00110048 N __tbss_start
+
+00110048 N __tdata_start
+
+-> elf 파일의 실제 엔트리 포인트 _start는 0x00100b00에 위치해 있음.
+하지만 xsdb는 0x00100000에서 실행을 시도하고 있음.
+
+원인?
+xsdb가 ELF 파일의 실제 엔트리 포인트를 인식하지 못하고, 기본적으로 0x00100000에서 실행을 시도하는 것으로 보임. 이는 xsdb의 로딩 및 실행 명령이 ELF 헤더에서 엔트리 포인트 주소를 올바르게 파싱하지 못하거나, 명령어 입력 시 엔트리 포인트 주소를 명시적으로 지정하지 않았기 때문일 수 있음.
+
+세 개의 주소
+
+1. 0x00000000 : ARM Cortex-A9의 리셋 벡터 주소. 시스템이 리셋될 때 CPU가 이 주소에서 실행을 시작하도록 설계되어 있음.
+2. 0x00100000 : 링커 스크립트(lscript.ld)가 정한 주소. 프로그램의 시작점
+3. 0x00100b00 (ELF Entry Point, _start): 컴파일러가 정한 실제 코드의 시작점.
+
 ---
 
 ## 최종 수정된 RTL 구조 요약 (`fir_decimator_n43_axis.v`)
 
 1. **상태 레지스터 추가**: `in_cnt`, `out_cnt`, `target_out_cnt`, `waiting_for_last_out`
 2. **Auto-Flush 다중화기(MUX)**:
+
    ```verilog
    assign s_axis_tready = core_ready & ~flush_active;
    wire core_in_valid  = (s_axis_tvalid & s_axis_tready) | (flush_active & core_ready);
    wire [15:0] core_in_sample = flush_active ? 16'sd0 : s_axis_tdata;
    ```
-
-
 3. **TLAST 파이프라인 동기화** : Depth-3 스키드 버퍼(Skid buffer)에 `tlast0, tlast1, tlast2` 레지스터를 추가하여 데이터와 TLAST 신호가 동일한 타이밍에 m_axis로 방출되도록 구현.
 
 ---
@@ -92,4 +151,3 @@ RTL 래퍼 내부에 **Auto-Flush 상태 머신** 도입.
 1. **AXI-Stream IP는 패킷의 끝(TLAST) 처리가 생명이다.** 하드코딩된 길이로 블록을 임의로 자르는 방식은 실시간 스트리밍(무한 데이터) 환경에서나 쓸 수 있으며, 범용 래퍼는 반드시 마스터의 `s_axis_tlast` 신호에 동적으로 대응(Propagation)해야 한다.
 2. **배치 처리(Batch processing) 시 파이프라인 지연(Latency)은 찌꺼기를 남긴다.** 데이터가 끊겼을 때 내부 레지스터를 스스로 비워내는(Flush) 구조가 없으면 시스템은 반드시 멈춘다.
 3. **더미 데이터 주입의 트레이드오프 수용.** Auto-Flush로 인한 0 주입은 4096개 출력의 마지막 20여 개 샘플에 과도 응답(Transient) 찌그러짐을 유발하지만, 데모 시나리오의 핵심인 FFT 스펙트럼(주파수 분석) 결과에는 수학적/시각적 영향을 미치지 않으므로 최적의 타협점이다.
-
