@@ -36,6 +36,9 @@
 #define DMA_IDLE_BIT (1u << 1)
 #define DMA_REG(off) (*(volatile uint32_t*)(DMA_BASE + (off)))
 
+/* 100MHz 기준 약 1초 */
+#define DMA_POLL_TIMEOUT 100000000u
+
 /* 전역 버퍼: 16KB + 8KB → 스택 한계 초과, BSS(DDR)에 배치
  * aligned(32): Cortex-A9 캐시 라인 크기, flush/invalidate 경계 보장 */
 static int16_t __attribute__((aligned(32))) src_buf[N_IN];
@@ -98,7 +101,8 @@ static void gen_multitone(const float* freqs, int n_tones) {
   }
 }
 
-static void dma_run(void) {
+/* 0: 성공, 1: MM2S 타임아웃, 2: S2MM 타임아웃 */
+static int dma_run(void) {
   Xil_DCacheFlushRange((UINTPTR)src_buf, N_IN * sizeof(int16_t));
 
   /* AXI DMA soft reset: bit 2 resets the entire core (PG021).
@@ -114,11 +118,19 @@ static void dma_run(void) {
   DMA_REG(MM2S_SA) = (uint32_t)(UINTPTR)src_buf;
   DMA_REG(MM2S_LENGTH) = N_IN * sizeof(int16_t);
 
-  while (!(DMA_REG(MM2S_DMASR) & DMA_IDLE_BIT));
-  while (!(DMA_REG(S2MM_DMASR) & DMA_IDLE_BIT));
+  uint32_t t;
+
+  t = DMA_POLL_TIMEOUT;
+  while (!(DMA_REG(MM2S_DMASR) & DMA_IDLE_BIT))
+    if (--t == 0) return 1;
+
+  t = DMA_POLL_TIMEOUT;
+  while (!(DMA_REG(S2MM_DMASR) & DMA_IDLE_BIT))
+    if (--t == 0) return 2;
 
   /* DMA가 DDR에 쓴 결과를 캐시에서 버려야 CPU가 최신 데이터를 읽음 */
   Xil_DCacheInvalidateRange((UINTPTR)dst_buf, N_OUT * sizeof(int16_t));
+  return 0;
 }
 
 /* PS → PC: [magic 4B][n_samples 4B][int16 × N_OUT] (binary, little-endian) */
@@ -149,7 +161,14 @@ int main(void) {
     float freqs[MAX_TONES];
     int n_tones = uart_recv_cmd(freqs);
     gen_multitone(freqs, n_tones);
-    dma_run();
+    int err = dma_run();
+    if (err) {
+      /* ERR:<n>\r\n : 1=MM2S 타임아웃, 2=S2MM 타임아웃 */
+      uart_putb('E'); uart_putb('R'); uart_putb('R');
+      uart_putb(':'); uart_putb('0' + (uint8_t)err);
+      uart_putb('\r'); uart_putb('\n');
+      continue;
+    }
     uart_send_result();
   }
 
