@@ -131,9 +131,12 @@ def main():
 
     cmd(xsdb, f"rwr pc 0x{e_entry:08X}")
 
-    # 벡터 테이블 검증
+    # 벡터 테이블 검증 (cmd() 대신 직접 sendline/expect — cmd() 내부 while 루프가
+    # mwr 후 남은 xsdb%를 소진하며 mrd 출력을 빈 문자열로 만드는 버그 회피)
     print("\n[검증] 0x100000 첫 4워드 확인...")
-    out = cmd(xsdb, "mrd -force 0x100000 4")
+    xsdb.sendline("mrd -force 0x100000 4")
+    xsdb.expect('xsdb%', timeout=10)
+    out = xsdb.before.strip()
     expected = {0x100000: 0xEA000031, 0x100004: 0xEA00000D,
                 0x100008: 0xEA000013, 0x10000C: 0xEA000023}
     ok = all(f"{v:08X}".upper() in out.upper() for v in expected.values())

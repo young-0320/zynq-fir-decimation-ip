@@ -2,7 +2,7 @@
 
 - 작성일: 2026-05-08
 - 목표: xsdb로 Zybo Z7-20에 비트스트림 + ELF 다운로드 후 펌웨어 실행
-- 상태: 🔄 진행 중 (UART 응답 확인 단계)
+- 상태: ❌ JTAG ELF 로딩 미완 — byte[3] 오염 미해결, SD카드 부팅으로 전환 (→ `27_ddr_msb_corruption_investigation.md` 최종 결론)
 
 ---
 
@@ -290,21 +290,22 @@ if out:   # 빈 문자열이 아니면 에러 메시지
 * **가설** : `rst -system` 명령어가 Zynq PS의 모든 레지스터를 초기화하여 DDR 컨트롤러가 리셋 상태에 묶임.
 * **해결 방식** : 메모리 접근 전 반드시 `ps7_init` 스크립트를 재실행하여 DDR 인터페이스를 활성화하도록 시퀀스 보정.
 
-## 현재 상태 (2026-05-08)
+## 현재 상태 (2026-05-08 ~ 2026-05-13)
 
-- mwr+mrd flush 방식으로 DDR 로딩 정상 확인 ✅
+- mwr+mrd flush 방식으로 DDR 로딩 정상 확인 ✅ (2026-05-08 시점)
 - DMA soft reset 1회 리셋 방식으로 수정 ✅
-- xsdb 다운로드 완료 ✅
-- **Python `TimeoutError` 재현 중** — UART 응답 미확인 🔄
-  - TLAST_N=512 (설계 결정: 512샘플 패킷, DMA는 8패킷 연속 수신으로 4096샘플 완성)
-  - DMA가 문제인지 UART가 문제인지 미분리
+- **JTAG ELF 로딩 최종 실패** ❌ — 이후 세션에서 pexpect REPL barrier 방식도 byte[3] 비결정적 오염 재발 확인
+- **SD카드 부팅으로 전환 결정** (2026-05-13)
+
+> 상세 트러블슈팅 경위(Phase 1~9) → `27_ddr_msb_corruption_investigation.md`
 
 ---
 
 ## 핵심 교훈
 
 1. **JTAG 부팅 시 ps7_init.tcl 필수.** 없으면 DDR 접근 불가.
-2. **xsdb `dow`/연속 `mwr`은 MSB를 오염시킨다.** 각 mwr 직후 mrd로 flush해야 한다.
+2. **xsdb `dow`/연속 `mwr`은 MSB를 오염시킨다.** pexpect REPL barrier(각 mwr 직후 xsdb% 대기)도 비결정적으로 실패함이 이후 확인됨 — sourced 모드의 모든 flush 방법(mrd, after)도 효과 없음. DDR에 신뢰성 있는 JTAG 로딩 방법을 끝내 찾지 못했다.
 3. **AXI DMA soft reset은 전체 코어 리셋이다.** 두 채널 설정 전 딱 한 번만 리셋해야 한다.
 4. **이전 펌웨어가 실행 중이면 재다운로드 불가.** 전원 재공급 필수.
 5. **DMA soft reset 없이 RUN/STOP을 세우면 DMA가 완료되지 않는다.**
+6. **JTAG 직접 부팅의 DDR byte[3] 오염은 SD카드 부팅으로 우회한다.** FSBL이 DDR을 하드웨어적으로 초기화하고 ELF를 로드하므로 JTAG 쓰기 경로를 완전히 우회한다.

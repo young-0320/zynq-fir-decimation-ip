@@ -2,7 +2,7 @@
 
 - 작성일: 2026-05-11
 - 목표: DMA S2MM(수신) 채널 타임아웃 오류(Python 응답 없음) 원인 분석 및 해결
-- 상태: 🔄 보드 동작 확인 전
+- 상태: ❌ 보드 검증 미완 — JTAG ELF 로딩 byte[3] 오염으로 보드 실행 불가, SD카드 부팅으로 전환 (→ `27_ddr_msb_corruption_investigation.md`)
 
 ---
 
