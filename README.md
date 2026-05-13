@@ -107,15 +107,22 @@ vivado -mode batch \
 rm -rf build/vitis
 vitis -s vitis/build_fir_decimator_demo.py
 
-# 7. 보드에 비트스트림 + ELF 다운로드 (USB 케이블 연결 후)
-xsdb vitis/download_and_run.tcl
+# 7. BOOT.bin 생성 (FSBL + 비트스트림 + ELF 패키징)
+bootgen -arch zynq -image build/output/fir_decimator_demo.bif \
+        -o build/output/BOOT.bin -w on
 
-# 8. UART 동작 확인
+# 8. SD카드 준비 (FAT32 포맷 후 BOOT.bin 한 파일만 루트에 복사)
+#    JP5 점퍼를 SD 위치로 이동 후 SD카드 삽입, USB 케이블 연결, 전원 인가
+#    → DONE LED 점등 확인
+
+# 9. UART 동작 확인
 minicom -D /dev/ttyUSB1 -b 115200
 # minicom에서 입력: 3 5000000 20000000 30000000
 
-# 9. PC Python FFT 시각화
+# 10. PC Python FFT 시각화
 python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1
 ```
 
-> 트러블슈팅 상세 기록 → `docs/log/23_vitis_embedded_build_troubleshooting.md`
+> JTAG `xsdb dow` 방식은 DDR byte lane 3 오염으로 폐기됨 (`docs/log/24`, `docs/log/27`).
+> 현재 워크플로우 → `docs/workflow/workflow_v12.md`
+> Vitis 빌드 트러블슈팅 상세 → `docs/log/23_vitis_embedded_build_troubleshooting.md`

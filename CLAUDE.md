@@ -2,7 +2,7 @@
 
 zynq-axi-fir-decimation-ip
 
-Updated: 2026-05-08
+Updated: 2026-05-13
 Repository root: `/home/young/dev/10_zynq-fir-decimation-ip`
 README.md root: `/home/young/dev/10_zynq-fir-decimation-ip/README.md`
 
@@ -81,13 +81,18 @@ Step 5  ✅  AXI-Stream 래퍼
 Step 5-1 ✅ transposed form 모듈의 계층 구조 재설계 및 네이밍 확립
 Step 5-2 ✅ AXI-Stream 버그 수정 및 tb robustness 강화(.sv)
 Step 6  ✅  PS-PL DMA 연동 (Block Design, 비트스트림, XSA 생성 완료, WNS=+1.239ns)
-Step 7  ✅  bare-metal C + UART (ELF 생성 완료 242KB, 보드 검증 대기) ← 현재
+Step 7  ✅  bare-metal C + UART (ELF 생성 완료 242KB)
 Step 8  🔄  PC Python FFT 실시간 시각화 (sw/fir_decimator_demo.py 완성, 보드 검증 대기)
 
-다음: 보드 연결 필요. 상세 절차 → docs/log/workflow_v11.md
-  1. rm -rf build/vitis && vitis -s vitis/build_fir_decimator_demo.py → ELF 재빌드 (필요시)
-  2. xsdb → FPGA 비트스트림 + ELF 다운로드 → DONE LED 확인
-  3. minicom -D /dev/ttyUSB1 -b 115200 → UART 응답 확인
-  4. python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 → FFT 확인
+JTAG ELF 로딩은 DDR byte[3] 비결정적 오염으로 폐기 (docs/log/24, docs/log/27).
+SD카드 부팅으로 전환 결정 (2026-05-13). SD카드 배송 대기 중.
 
-M4 완성 → Plan A(실시간 시연) 계속. 미완성 → 스코프 재조정.
+다음: SD카드 도착 시. 상세 절차 → docs/workflow/workflow_v12.md
+  A. BD 재생성 (Preset = ZYBO Z7-20 확인, Board Delay 숫자 채워짐 확인)
+  B. ps7_init.tcl이 Digilent 레퍼런스와 일치하는지 diff 검증
+  C. Vitis ELF 재빌드 (rm -rf build/vitis && vitis -s vitis/build_fir_decimator_demo.py)
+  D. bootgen으로 BOOT.bin 생성
+  E. SD카드 FAT32 포맷, BOOT.bin 복사
+  F. JP5를 SD로, 전원 인가, DONE LED → UART 응답 → Python FFT 확인
+
+M4 완성 → Plan A(실시간 시연) 계속. 미완성 → HW 결함 가능성 검토 (Plan B).
