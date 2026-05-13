@@ -11,6 +11,7 @@
 #   build/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit
 
 set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
+set BOARD_DIR [file join $REPO_ROOT "boards"]
 set BUILD_DIR $REPO_ROOT/build/vivado
 set OUT_DIR   $REPO_ROOT/build/output
 set PROJ_NAME fir_decimator_trans_n43
@@ -22,14 +23,35 @@ set BOARD     digilentinc.com:zybo-z7-20:part0:1.1
 # -----------------------------------------------------------------------
 file mkdir $OUT_DIR
 
+# 보드 경로 설정
+set_param board.repoPaths [list $BOARD_DIR]
+# -----------------------------------------------------------------------
+
+
 create_project $PROJ_NAME $BUILD_DIR -part $PART -force
+
 
 set_property target_language Verilog [current_project]
 
+# 유력한 버그 의심 지점------------------------------------------------------
+# if {[catch {set_property board_part $BOARD [current_project]}]} {
+#     puts "WARNING: board_part '$BOARD' not found — 보드 파일 미설치."
+#     puts "         BD 안의 PS 설정은 bd_fir_dma.tcl에 내장되어 있어 재현 가능."
+# } 
+# if {[catch {set_property board_part $BOARD [current_project]}]} {
+#     puts "****************************************************************"
+#     puts " FATAL ERROR: Board part '$BOARD' not found!"
+#     puts " Check path: $BOARD_REPO"
+#     puts "****************************************************************"
+#     error "Build halted due to missing board file."
+# }
+
 if {[catch {set_property board_part $BOARD [current_project]}]} {
-    puts "WARNING: board_part '$BOARD' not found — 보드 파일 미설치."
-    puts "         BD 안의 PS 설정은 bd_fir_dma.tcl에 내장되어 있어 재현 가능."
+    error "ERROR: Board part $BOARD not found in $BOARD_DIR!"
 }
+# -----------------------------------------------------------------------
+
+
 
 # -----------------------------------------------------------------------
 # RTL 소스 추가 (Module Reference — bd_fir_dma.tcl source 전에 필요)
