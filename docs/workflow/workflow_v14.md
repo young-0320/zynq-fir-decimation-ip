@@ -1,3 +1,4 @@
+
 # FIR Decimation 프로젝트 워크플로우 v14
 
 - 작성일: 2026-05-21
@@ -307,6 +308,33 @@ test build/output/BOOT.bin -nt build/output/fsbl.elf
 test build/output/BOOT.bin -nt build/output/bd_fir_dma_wrapper.bit
 test build/output/BOOT.bin -nt build/output/fir_decimator_demo.elf
 ```
+
+
+### G-1. C 파일만 바뀐 경우 fast rebuild
+
+`sw/fir_decimator_demo.c`만 수정한 경우에는 Vivado hardware와 Vitis platform을 다시 만들지 않고, 기존 `build/vitis` workspace를 재사용해 app ELF와 BOOT.bin만 다시 만든다.
+
+```bash
+vitis/rebuild_boot_image.sh
+```
+
+SD카드까지 바로 갱신하려면:
+
+```bash
+vitis/rebuild_boot_image.sh --sd-mount /mnt/223F-CE51
+```
+
+이 스크립트는 다음을 수행한다.
+
+| 단계 | 산출물 |
+|---|---|
+| C source copy | `build/vitis/fir_decimator_demo/fir_decimator_demo.c` |
+| app rebuild | `build/vitis/fir_decimator_demo/build/fir_decimator_demo.elf` |
+| output copy | `build/output/fsbl.elf`, `build/output/bd_fir_dma_wrapper.bit`, `build/output/fir_decimator_demo.elf` |
+| BIF regenerate | `build/output/fir_decimator_demo.bif` |
+| bootgen | `build/output/BOOT.bin` |
+
+주의: 이 fast rebuild는 hardware/BD 변경을 반영하지 않는다. `vivado/bd_fir_dma.tcl`, RTL, XSA, bitstream이 바뀐 경우에는 Step A부터 다시 수행해야 한다.
 
 ---
 

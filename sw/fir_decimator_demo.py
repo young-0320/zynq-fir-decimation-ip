@@ -9,6 +9,7 @@ N_IN = 8192
 N_OUT = 4096
 FS_HZ = 100e6
 MAGIC = 0xDEADBEEF
+DEFAULT_UART_TIMEOUT_SEC = 15
 DMA_ERROR_TEXT = {
     "1": "MM2S DMA timeout",
     "2": "S2MM DMA timeout",
@@ -34,8 +35,8 @@ def gen_multitone(freqs):
     return sum(amp * np.sin(2 * np.pi * f / FS_HZ * n) for f in freqs)
 
 
-def uart_open(port, baud):
-    return serial.Serial(port, baud, timeout=5)
+def uart_open(port, baud, timeout):
+    return serial.Serial(port, baud, timeout=timeout)
 
 
 def uart_send_cmd(ser, freqs):
@@ -49,13 +50,17 @@ def uart_recv_result(ser):
     line = bytearray()
     recent_text = []
 
-    def _timeout_message():
+    def _recent_context():
         partial = line.decode(errors='replace').strip()
-        context = recent_text[-8:]
+        context = recent_text[-16:]
         if partial:
             context = context + [partial]
+        return " | ".join(context)
+
+    def _timeout_message():
+        context = _recent_context()
         if context:
-            return "보드 응답 없음 (timeout). 최근 UART 텍스트: " + " | ".join(context)
+            return "보드 응답 없음 (timeout). 최근 UART 텍스트: " + context
         return "보드 응답 없음 (timeout). 연결 및 비트스트림을 확인하세요."
 
     while True:
@@ -72,6 +77,9 @@ def uart_recv_result(ser):
             if text.startswith("ERR:"):
                 code = text.split(":", 1)[1]
                 detail = DMA_ERROR_TEXT.get(code, "unknown board error")
+                context = _recent_context()
+                if context:
+                    raise RuntimeError(f"보드 DMA 오류 {text}: {detail}. 최근 UART 텍스트: {context}")
                 raise RuntimeError(f"보드 DMA 오류 {text}: {detail}")
             line.clear()
         else:
@@ -196,13 +204,15 @@ def main():
                         help="0=앨리어싱 비교, 1-1/1-2=고정 프리셋, 2=인터랙티브")
     parser.add_argument("--port", default="/dev/ttyUSB1", help="UART 포트")
     parser.add_argument("--baud", type=int, default=115200, help="Baud rate (기본값 115200)")
+    parser.add_argument("--timeout", type=float, default=DEFAULT_UART_TIMEOUT_SEC,
+                        help=f"UART read timeout seconds (기본값 {DEFAULT_UART_TIMEOUT_SEC})")
     args = parser.parse_args()
 
     if args.mode == "0":
         run_scenario0()
         return
 
-    ser = uart_open(args.port, args.baud)
+    ser = uart_open(args.port, args.baud, args.timeout)
     try:
         if args.mode == "1-1":
             run_scenario1(PRESET_1_1, ser)

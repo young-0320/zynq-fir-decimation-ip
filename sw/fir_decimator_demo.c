@@ -20,6 +20,14 @@
 #define FS_HZ 100000000.0f   /* 샘플링 주파수 100MHz */
 #define MAX_TONES 8          /* 최대 톤 개수 */
 #define MAGIC 0xDEADBEEFu    /* UART 패킷 시작 마커 */
+
+#if __has_include("boot_tag.h")
+#include "boot_tag.h"
+#endif
+
+#ifndef BOOT_TAG
+#define BOOT_TAG "FIR"
+#endif
 /* ---------------------------------------------------------------------- */
 
 /* AXI DMA 레지스터 오프셋 (PG021) */
@@ -36,9 +44,10 @@
 #define DMA_IDLE_BIT (1u << 1)
 #define DMA_REG(off) (*(volatile uint32_t*)(DMA_BASE + (off)))
 
-/* 100MHz 기준 약 1초 */
-#define DMA_POLL_TIMEOUT 100000000u
+/* Debug timeout: a 16KB DMA should finish far faster than this. */
+#define DMA_POLL_TIMEOUT 5000000u
 #define DMA_RESET_TIMEOUT 1000000u
+#define DMA_STATUS_INTERVAL 1000000u
 
 /* 전역 버퍼: 16KB + 8KB → 스택 한계 초과, BSS(DDR)에 배치
  * aligned(32): Cortex-A9 캐시 라인 크기, flush/invalidate 경계 보장 */
@@ -59,6 +68,22 @@ static inline void uart_putb(uint8_t b) { XUartPs_SendByte(uart_base, b); }
 
 static void uart_puts(const char* s) {
   while (*s) uart_putb((uint8_t)*s++);
+}
+
+static void uart_puthex32(uint32_t v) {
+  for (int shift = 28; shift >= 0; shift -= 4) {
+    uint8_t nibble = (uint8_t)((v >> shift) & 0xFu);
+    uart_putb((uint8_t)(nibble < 10 ? '0' + nibble : 'A' + nibble - 10));
+  }
+}
+
+static void dma_dump_status(const char* tag) {
+  uart_puts(tag);
+  uart_puts(" M=");
+  uart_puthex32(DMA_REG(MM2S_DMASR));
+  uart_puts(" S=");
+  uart_puthex32(DMA_REG(S2MM_DMASR));
+  uart_puts("\r\n");
 }
 
 static inline uint8_t uart_getb(void) { return XUartPs_RecvByte(uart_base); }
@@ -117,29 +142,48 @@ static int dma_run(void) {
   DMA_REG(MM2S_DMACR) = (1u << 2);
 
   uint32_t t = DMA_RESET_TIMEOUT;
-  while (DMA_REG(MM2S_DMACR) & (1u << 2))
-    if (--t == 0) return 3;
+  while (DMA_REG(MM2S_DMACR) & (1u << 2)) {
+    if (--t == 0) {
+      dma_dump_status("RSTTO");
+      return 3;
+    }
+  }
   uart_puts("D2\r\n");
+  dma_dump_status("ST2");
 
   DMA_REG(S2MM_DMACR) = DMA_RS_BIT;
   DMA_REG(S2MM_DA) = (uint32_t)(UINTPTR)dst_buf;
   DMA_REG(S2MM_LENGTH) = N_OUT * sizeof(int16_t);
   uart_puts("D3\r\n");
+  dma_dump_status("ST3");
 
   DMA_REG(MM2S_DMACR) = DMA_RS_BIT;
   DMA_REG(MM2S_SA) = (uint32_t)(UINTPTR)src_buf;
   DMA_REG(MM2S_LENGTH) = N_IN * sizeof(int16_t);
   uart_puts("D4\r\n");
+  dma_dump_status("ST4");
 
   t = DMA_POLL_TIMEOUT;
-  while (!(DMA_REG(MM2S_DMASR) & DMA_IDLE_BIT))
-    if (--t == 0) return 1;
+  while (!(DMA_REG(MM2S_DMASR) & DMA_IDLE_BIT)) {
+    if ((t % DMA_STATUS_INTERVAL) == 0) dma_dump_status("MM2S");
+    if (--t == 0) {
+      dma_dump_status("MM2STO");
+      return 1;
+    }
+  }
   uart_puts("D5\r\n");
+  dma_dump_status("ST5");
 
   t = DMA_POLL_TIMEOUT;
-  while (!(DMA_REG(S2MM_DMASR) & DMA_IDLE_BIT))
-    if (--t == 0) return 2;
+  while (!(DMA_REG(S2MM_DMASR) & DMA_IDLE_BIT)) {
+    if ((t % DMA_STATUS_INTERVAL) == 0) dma_dump_status("S2MM");
+    if (--t == 0) {
+      dma_dump_status("S2MMTO");
+      return 2;
+    }
+  }
   uart_puts("D6\r\n");
+  dma_dump_status("ST6");
 
   /* DMA가 DDR에 쓴 결과를 캐시에서 버려야 CPU가 최신 데이터를 읽음 */
   Xil_DCacheInvalidateRange((UINTPTR)dst_buf, N_OUT * sizeof(int16_t));
@@ -162,13 +206,9 @@ static void uart_send_result(void) {
 int main(void) {
   uart_init();
 
-  uart_putb('R');
-  uart_putb('E');
-  uart_putb('A');
-  uart_putb('D');
-  uart_putb('Y');
-  uart_putb('\r');
-  uart_putb('\n');
+  uart_puts("READY ");
+  uart_puts(BOOT_TAG);
+  uart_puts("\r\n");
 
   while (1) {
     float freqs[MAX_TONES];
