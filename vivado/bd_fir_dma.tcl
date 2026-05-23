@@ -299,7 +299,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_GPIO_MIO_GPIO_ENABLE {1} \
     CONFIG.PCW_GPIO_MIO_GPIO_IO {MIO} \
     CONFIG.PCW_GPIO_PERIPHERAL_ENABLE {0} \
-    CONFIG.PCW_I2C_RESET_ENABLE {1} \
+    CONFIG.PCW_I2C_RESET_ENABLE {0} \
     CONFIG.PCW_IRQ_F2P_MODE {DIRECT} \
     CONFIG.PCW_MIO_0_IOTYPE {LVCMOS 3.3V} \
     CONFIG.PCW_MIO_0_PULLUP {enabled} \
@@ -576,8 +576,8 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_USE_AXI_NONSECURE {0} \
     CONFIG.PCW_USE_CROSS_TRIGGER {0} \
     CONFIG.PCW_USE_M_AXI_GP0 {1} \
+    CONFIG.PCW_USE_S_AXI_GP0 {0} \
     CONFIG.PCW_USE_S_AXI_HP0 {1} \
-    CONFIG.preset {None} \
   ] $processing_system7_0
 
 
@@ -630,26 +630,27 @@ proc create_root_design { parentCell } {
 
   # Create port connections
   connect_bd_net -net processing_system7_0_FCLK_CLK0  [get_bd_pins processing_system7_0/FCLK_CLK0] \
-  [get_bd_pins axi_dma_0/m_axi_s2mm_aclk] \
-  [get_bd_pins axi_mem_intercon/S01_ACLK] \
+  [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] \
+  [get_bd_pins axi_smc/aclk] \
+  [get_bd_pins axi_dma_0/s_axi_lite_aclk] \
   [get_bd_pins rst_ps7_0_100M/slowest_sync_clk] \
+  [get_bd_pins axi_dma_0/m_axi_mm2s_aclk] \
+  [get_bd_pins axi_mem_intercon/S00_ACLK] \
   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
   [get_bd_pins axi_mem_intercon/M00_ACLK] \
   [get_bd_pins axi_mem_intercon/ACLK] \
-  [get_bd_pins axi_dma_0/s_axi_lite_aclk] \
-  [get_bd_pins axi_smc/aclk] \
-  [get_bd_pins axi_mem_intercon/S00_ACLK] \
-  [get_bd_pins axi_dma_0/m_axi_mm2s_aclk] \
-  [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] \
+  [get_bd_pins axi_dma_0/m_axi_s2mm_aclk] \
+  [get_bd_pins axi_mem_intercon/S01_ACLK] \
   [get_bd_pins fir_decimator_n43_ax_0/aclk]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins rst_ps7_0_100M/ext_reset_in]
   connect_bd_net -net rst_ps7_0_100M_peripheral_aresetn  [get_bd_pins rst_ps7_0_100M/peripheral_aresetn] \
-  [get_bd_pins axi_mem_intercon/S01_ARESETN] \
+  [get_bd_pins axi_dma_0/axi_resetn] \
+  [get_bd_pins axi_smc/aresetn] \
+  [get_bd_pins axi_mem_intercon/S00_ARESETN] \
   [get_bd_pins axi_mem_intercon/M00_ARESETN] \
   [get_bd_pins axi_mem_intercon/ARESETN] \
-  [get_bd_pins axi_dma_0/axi_resetn] \
-  [get_bd_pins axi_mem_intercon/S00_ARESETN] \
+  [get_bd_pins axi_mem_intercon/S01_ARESETN] \
   [get_bd_pins fir_decimator_n43_ax_0/aresetn]
 
   # Create address segments

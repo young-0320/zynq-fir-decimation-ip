@@ -3,12 +3,10 @@
 
 module tb_fir_decimator_n43_axis;
 
-  localparam integer CLK_HALF  = 5;
-  localparam integer TLAST_N   = 512;
-  localparam integer IN_LEN    = 8192;
-  localparam integer FLUSH_LEN = 42;
-  localparam integer EXP_LEN   = 4117;
-  localparam integer DRAIN_TO  = 200;
+  localparam integer CLK_HALF = 5;
+  localparam integer IN_LEN   = 8192;
+  localparam integer EXP_LEN  = 4096;   // 8192 inputs / M=2 = 4096 outputs
+  localparam integer DRAIN_TO = 10000;
 
   reg  aclk;
   reg  aresetn;
@@ -18,23 +16,23 @@ module tb_fir_decimator_n43_axis;
   reg  signed [15:0] s_axis_tdata;
   reg  s_axis_tlast_in;
 
-  wire        m_axis_tvalid;
-  reg         m_axis_tready;
+  wire               m_axis_tvalid;
+  reg                m_axis_tready;
   wire signed [15:0] m_axis_tdata;
-  wire        m_axis_tlast;
+  wire               m_axis_tlast;
 
   reg [15:0] input_mem[0:IN_LEN-1];
   reg [15:0] exp_mem[0:EXP_LEN-1];
 
-  int expected_q[$];
-  int obs_cnt;
-  int timeout_cnt;
-  int exp_val;
-  int  bp_prob = 30;
-  reg  bp_en;
+  int     expected_q[$];
+  int     obs_cnt;
+  int     timeout_cnt;
+  int     exp_val;
+  int     bp_prob = 30;
+  reg     bp_en;
   integer check_mode;
 
-  fir_decimator_n43_axis #(.TLAST_N(TLAST_N)) dut (
+  fir_decimator_n43_axis dut (
       .aclk         (aclk),
       .aresetn      (aresetn),
       .s_axis_tvalid(s_axis_tvalid),
@@ -52,31 +50,26 @@ module tb_fir_decimator_n43_axis;
     forever #(CLK_HALF) aclk = ~aclk;
   end
 
-  // 무작위 TREADY: bp_en=1이면 bp_prob% 확률로 1
   always @(posedge aclk) begin
-    if (!aresetn) begin
-      m_axis_tready <= 1'b0;
-    end else if (bp_en) begin
-      m_axis_tready <= ($urandom_range(0, 99) < bp_prob);
-    end else begin
-      m_axis_tready <= 1'b1;
-    end
+    if (!aresetn)   m_axis_tready <= 1'b0;
+    else if (bp_en) m_axis_tready <= ($urandom_range(0, 99) < bp_prob);
+    else            m_axis_tready <= 1'b1;
   end
 
-  // 워치독: 전송 성사 없이 1000 사이클 초과 시 deadlock 판정
+  // watchdog: 3000 cycles without any output handshake → deadlock
   always @(posedge aclk) begin
     if (!aresetn) begin
       timeout_cnt <= 0;
     end else begin
       timeout_cnt <= (m_axis_tvalid && m_axis_tready) ? 0 : timeout_cnt + 1;
-      if (timeout_cnt > 1000) begin
-        $display("FATAL tb_fir_decimator_n43_axis: watchdog timeout — deadlock detected.");
+      if (timeout_cnt > 3000) begin
+        $display("FATAL tb_fir_decimator_n43_axis: watchdog timeout — deadlock at obs_cnt=%0d", obs_cnt);
         $fatal(1);
       end
     end
   end
 
-  // 스코어보드: 핸드셰이크 성사 시점에만 검증
+  // scoreboard: fires on every output handshake
   always @(posedge aclk) begin
     if (aresetn && m_axis_tvalid && m_axis_tready) begin
       if (check_mode >= 1) begin
@@ -93,11 +86,12 @@ module tb_fir_decimator_n43_axis;
         end
       end
       if (check_mode >= 2) begin
-        if (((obs_cnt + 1) % TLAST_N == 0) && !m_axis_tlast) begin
+        // TLAST must be asserted on the last output sample and nowhere else
+        if (obs_cnt == EXP_LEN - 1 && !m_axis_tlast) begin
           $display("FAIL tb_fir_decimator_n43_axis: missing TLAST at obs_cnt=%0d", obs_cnt);
           $fatal(1);
         end
-        if (((obs_cnt + 1) % TLAST_N != 0) && m_axis_tlast) begin
+        if (obs_cnt < EXP_LEN - 1 && m_axis_tlast) begin
           $display("FAIL tb_fir_decimator_n43_axis: unexpected TLAST at obs_cnt=%0d", obs_cnt);
           $fatal(1);
         end
@@ -118,27 +112,31 @@ module tb_fir_decimator_n43_axis;
     @(negedge aclk);
   endtask
 
-  // negedge 앵커: deassert와 data 셋업 모두 negedge에서 수행
-  task automatic drive_one(input logic signed [15:0] sample, input int max_bubble);
+  // Drive one sample. Clears tlast during any bubble interval.
+  task automatic drive_one(input logic signed [15:0] sample, input int max_bubble,
+                           input logic tlast);
     if (max_bubble > 0) begin
       @(negedge aclk);
-      s_axis_tvalid = 1'b0;
+      s_axis_tvalid   = 1'b0;
+      s_axis_tlast_in = 1'b0;
       repeat ($urandom_range(0, max_bubble)) @(posedge aclk);
     end
     @(negedge aclk);
-    s_axis_tdata  = sample;
-    s_axis_tvalid = 1'b1;
+    s_axis_tdata    = sample;
+    s_axis_tvalid   = 1'b1;
+    s_axis_tlast_in = tlast;
     @(posedge aclk);
     while (!s_axis_tready) @(posedge aclk);
   endtask
 
-  task automatic drive_all_samples(input int max_bubble);
+  // Drive exactly IN_LEN samples; asserts tlast on the last sample only.
+  // Hardware auto-flush takes over after tlast — no manual zeros needed.
+  task automatic drive_packet(input int max_bubble);
     for (int i = 0; i < IN_LEN; i++)
-      drive_one($signed(input_mem[i]), max_bubble);
-    for (int i = 0; i < FLUSH_LEN; i++)
-      drive_one(16'sd0, max_bubble);
+      drive_one($signed(input_mem[i]), max_bubble, (i == IN_LEN - 1));
     @(negedge aclk);
-    s_axis_tvalid = 1'b0;
+    s_axis_tvalid   = 1'b0;
+    s_axis_tlast_in = 1'b0;
   endtask
 
   task automatic drain_and_check();
@@ -161,40 +159,40 @@ module tb_fir_decimator_n43_axis;
     bp_en      = 1'b0;
     check_mode = 0;
 
-    // S1: TREADY=1 고정, 데이터 + TLAST 검증
+    // S1: TREADY=1, verify data values and TLAST position
     check_mode = 2;
     bp_en      = 1'b0;
     do_reset();
     for (int i = 0; i < EXP_LEN; i++) expected_q.push_back($signed(exp_mem[i]));
-    drive_all_samples(0);
+    drive_packet(0);
     drain_and_check();
     $display("PASS [S1] TREADY=1 data+TLAST: %0d samples", obs_cnt);
 
-    // S2: 무작위 백프레셔(30% accept) + 입력 버블, 데이터+TLAST 검증
+    // S2: 30% downstream backpressure + upstream bubbles, verify data and TLAST
     check_mode = 2;
     bp_en      = 1'b1;
     do_reset();
     for (int i = 0; i < EXP_LEN; i++) expected_q.push_back($signed(exp_mem[i]));
-    drive_all_samples(3);
+    drive_packet(3);
     drain_and_check();
     bp_en = 1'b0;
     $display("PASS [S2] Random Backpressure + Bubble: %0d samples", obs_cnt);
 
-    // S3: 동작 중 aresetn 인가 후 재구동, 정상 출력 확인
+    // S3: mid-stream reset; full packet after reset must produce correct output + TLAST
     check_mode = 0;
     bp_en      = 1'b0;
     do_reset();
-    for (int i = 0; i < 200; i++) drive_one($signed(input_mem[i]), 0);
+    for (int i = 0; i < 200; i++) drive_one($signed(input_mem[i]), 0, 1'b0);
     @(negedge aclk);
     s_axis_tvalid = 1'b0;
-    aresetn = 1'b0;
+    aresetn       = 1'b0;
     repeat (4) @(negedge aclk);
     aresetn = 1'b1;
 
-    check_mode = 1;
+    check_mode = 2;
     do_reset();
     for (int i = 0; i < EXP_LEN; i++) expected_q.push_back($signed(exp_mem[i]));
-    drive_all_samples(1);
+    drive_packet(1);
     drain_and_check();
     $display("PASS [S3] Reset Recovery: %0d samples", obs_cnt);
 

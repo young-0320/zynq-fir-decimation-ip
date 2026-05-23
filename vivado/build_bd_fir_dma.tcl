@@ -7,7 +7,7 @@
 #   없으면 board_part 설정 생략 — PS DDR 설정이 BD에 이미 포함되어 있어 재현 가능
 #
 # 산출물:
-#   build/output/bd_fir_dma_wrapper.xsa  ← vitis/build_fir_decimator_demo.tcl 입력
+#   build/output/bd_fir_dma_wrapper.xsa  ← vitis/build_fir_decimator_demo.py 입력
 #   build/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit
 
 set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
@@ -116,15 +116,23 @@ puts "WNS = $wns ns"
 # -----------------------------------------------------------------------
 # XSA 내보내기 (비트스트림 포함, Vitis 입력)
 # -----------------------------------------------------------------------
-set XSA $OUT_DIR/bd_fir_dma_wrapper.xsa
+set XSA      $OUT_DIR/bd_fir_dma_wrapper.xsa
+set BIT_IMPL $BUILD_DIR/${PROJ_NAME}.runs/impl_1/bd_fir_dma_wrapper.bit
+set BIT_OUT  $OUT_DIR/bd_fir_dma_wrapper.bit
 
 write_hw_platform -fixed -include_bit -force -file $XSA
 
+if {![file exists $BIT_IMPL]} {
+    error "Bitstream not found: $BIT_IMPL"
+}
+file copy -force $BIT_IMPL $BIT_OUT
+
 puts ""
 puts "=== 빌드 완료 ==="
-puts "비트스트림: $BUILD_DIR/${PROJ_NAME}.runs/impl_1/bd_fir_dma_wrapper.bit"
+puts "비트스트림: $BIT_OUT"
+puts "구현 결과:   $BIT_IMPL"
 puts "XSA:        $XSA"
 puts ""
-puts "다음 단계: xsct vitis/build_fir_decimator_demo.tcl"
+puts "다음 단계: vitis -s vitis/build_fir_decimator_demo.py"
 
 close_project

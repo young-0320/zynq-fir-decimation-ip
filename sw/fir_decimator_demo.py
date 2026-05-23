@@ -9,6 +9,11 @@ N_IN = 8192
 N_OUT = 4096
 FS_HZ = 100e6
 MAGIC = 0xDEADBEEF
+DMA_ERROR_TEXT = {
+    "1": "MM2S DMA timeout",
+    "2": "S2MM DMA timeout",
+    "3": "AXI DMA reset timeout",
+}
 
 FIR_COEFFS = np.array([
     10, 0, -33, -32, 47, 107, 0, -197, -159, 206,
@@ -41,13 +46,38 @@ def uart_send_cmd(ser, freqs):
 def uart_recv_result(ser):
     magic_bytes = struct.pack('<I', MAGIC)
     buf = b''
+    line = bytearray()
+    recent_text = []
+
+    def _timeout_message():
+        partial = line.decode(errors='replace').strip()
+        context = recent_text[-8:]
+        if partial:
+            context = context + [partial]
+        if context:
+            return "보드 응답 없음 (timeout). 최근 UART 텍스트: " + " | ".join(context)
+        return "보드 응답 없음 (timeout). 연결 및 비트스트림을 확인하세요."
+
     while True:
         b = ser.read(1)
         if not b:
-            raise TimeoutError("보드 응답 없음 (timeout). 연결 및 비트스트림을 확인하세요.")
+            raise TimeoutError(_timeout_message())
         buf += b
         if len(buf) >= 4 and buf[-4:] == magic_bytes:
             break
+        if b in (b'\r', b'\n'):
+            text = line.decode(errors='replace').strip()
+            if text:
+                recent_text.append(text)
+            if text.startswith("ERR:"):
+                code = text.split(":", 1)[1]
+                detail = DMA_ERROR_TEXT.get(code, "unknown board error")
+                raise RuntimeError(f"보드 DMA 오류 {text}: {detail}")
+            line.clear()
+        else:
+            line += b
+            if len(line) > 64:
+                del line[:-64]
     n_data = ser.read(4)
     if len(n_data) < 4:
         raise TimeoutError("패킷 수신 중 timeout.")

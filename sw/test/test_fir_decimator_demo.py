@@ -219,6 +219,24 @@ def test_uart_recv_result_timeout():
         uart_recv_result(_TimeoutSerial())
 
 
+def test_uart_recv_result_reports_mm2s_error():
+    ser = _BytesSerial(b"ERR:1\r\n")
+    with pytest.raises(RuntimeError, match="MM2S DMA timeout"):
+        uart_recv_result(ser)
+
+
+def test_uart_recv_result_reports_s2mm_error():
+    ser = _BytesSerial(b"ERR:2\r\n")
+    with pytest.raises(RuntimeError, match="S2MM DMA timeout"):
+        uart_recv_result(ser)
+
+
+def test_uart_recv_result_reports_dma_reset_error():
+    ser = _BytesSerial(b"ERR:3\r\n")
+    with pytest.raises(RuntimeError, match="AXI DMA reset timeout"):
+        uart_recv_result(ser)
+
+
 def test_uart_recv_result_partial_data_timeout():
     # magic은 도착했지만 이후 데이터가 없음
     magic = struct.pack('<I', MAGIC)
