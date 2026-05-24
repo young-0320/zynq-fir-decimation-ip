@@ -50,16 +50,25 @@ Do not use IDE-temporary paths such as `untitled.bif`, `_ide/bitstream/...`, or 
 
 ## 3. Local Verification
 
-From repo root:
+Detailed script/artifact flow is documented in `docs/workflow/fir_n43_verification_pipeline.md`. From repo root:
 
 ```bash
 uv sync
 uv run pytest -q
+
+uv run python -m sim.python.run_check_coeff_stopband_spec --num-taps 43
+uv run python -m sim.python.run_compare_ideal_vs_fixed --num-taps 43 --form transposed
+uv run python -m sim.python.export_rtl_bringup_vectors \
+  --num-taps 43 \
+  --input-dir sim/output/ideal_vs_fixed_trans_n43 \
+  --output-dir sim/vectors/transposed_form/n43
+
 cd sim
 make run_all
+cd ..
 ```
 
-Expected: Python tests pass and all RTL testbenches print PASS without mismatch/fail/error.
+Expected: Python tests pass, the N=43 coefficient check exits 0 with a `2/2` stopband verdict, N=43 vectors are regenerated locally, and the canonical N=43 RTL testbenches print PASS without mismatch/fail/error. Historical N=5 bringup tests are outside the canonical gate and can be run with `cd sim && make run_legacy_n5` when needed.
 
 ---
 

@@ -30,6 +30,7 @@ Primary current context:
 
 - `CLAUDE.md` - compact current project state and next work.
 - `docs/workflow/workflow_v15.md` - current runbook.
+- `docs/workflow/fir_n43_verification_pipeline.md` - canonical model/vector/RTL simulation verification flow.
 - `docs/workflow/fir_n43_dependency_map.md` - source/script/artifact dependency map for the canonical target.
 - `docs/log/32_smoke_pass_after_dma_length_width_fix.md` - DMA timeout root-cause record.
 
@@ -144,7 +145,7 @@ Known limitation: running `1-1` and then `1-2` back-to-back without a board rese
 
 ## Verification Pipeline
 
-Use this path when changing DSP math, Q-format policy, RTL datapath, coefficients, or before recording a release/report result. Generated files under `sim/output/` and `sim/vectors/` are disposable artifacts and do not need to be committed.
+Use this path when changing DSP math, Q-format policy, RTL datapath, coefficients, or before recording a release/report result. Generated files under `sim/output/` and `sim/vectors/` are disposable artifacts and must not be committed. Vector files are regenerated from the Python model pipeline when needed; the repository tracks the model, generator, and testbench sources, not generated `.npy` or `.hex` vectors.
 
 ### 1. Python Float/Fixed Model And Vector Generation
 
@@ -160,7 +161,7 @@ uv run python -m sim.python.export_rtl_bringup_vectors \
   --output-dir sim/vectors/transposed_form/n43
 ```
 
-Expected result: Python tests pass, the 43-tap coefficient response meets the stopband criterion, and N=43 transposed fixed-point vectors are regenerated.
+Expected result: Python tests pass; the 43-tap ideal and quantized coefficient responses meet the 60 dB stopband criterion; and N=43 transposed fixed-point vectors are regenerated. The coefficient check exits non-zero and prints the failing tap/response when the stopband criterion is not met.
 
 ### 2. RTL Simulation
 
@@ -171,7 +172,7 @@ make run_all
 cd ..
 ```
 
-Expected result: all testbenches print PASS without fail/mismatch/error output.
+Expected result: all canonical N=43 testbenches print PASS without fail/mismatch/error output. N=5 direct-form bringup tests are legacy-only and can be run separately with `make run_legacy_n5`.
 
 ## Fast Rebuild
 
