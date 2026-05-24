@@ -1,6 +1,6 @@
 # FIR Decimation 설계 결정 요약
 
-- sync 시점: 2026-05-07
+- sync 시점: 2026-05-24
 - 목적: 프로젝트의 핵심 설계 결정을 한 번에 복기할 수 있는 단일 요약 문서
 - 사용 원칙:
   - 설계 기록은 `docs/log/*.md`
@@ -77,13 +77,13 @@
 
 | 항목            | 현재 결정                                                               | 상태 | 근거/출처 |
 | --------------- | ----------------------------------------------------------------------- | ---- | --------- |
-| 모듈 구조       | 새 파일 `axis_top`이 기존 코어 instantiate — 코어 파일 수정 없음 | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
-| 모듈명          | `fir_decimator_transposed_n43_axis_top` | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
+| 모듈 구조       | `fir_decimator_n43_axis`가 기존 `fir_decimator_n43` 코어 instantiate | 확정 | `28_axis_tb_update_for_log25_rtl_redesign.md` |
+| 모듈명          | `fir_decimator_n43_axis` | 확정 | `28_axis_tb_update_for_log25_rtl_redesign.md` |
 | 리셋            | 동기 액티브 로우 `aresetn` → 래퍼 내부에서 `rst = ~aresetn`으로 코어에 전달 | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
-| TLAST           | M_AXIS 512샘플마다 (`TLAST_N=512` parameter) — FFT IP 프레임 크기 기준 | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
-| S_AXIS_TLAST    | 포트 선언만, 내부 로직 미연결 (DRC 경고 방지용) | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
-| 백프레셔        | stall — TREADY 기반, `s_axis_tready = !valid2` | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
-| 출력 버퍼       | depth-3 (reg0/reg1/reg2) — stall 1사이클 지연 + FIR 3-cycle로 최대 2샘플 emerge 흡수 | 확정 | `18_axis_buffer_overflow_fix_and_tb_robustness.md` |
+| TLAST           | 입력 `s_axis_tlast` 기준 목표 출력 개수 계산, 마지막 출력 beat에서 `m_axis_tlast` 생성 | 확정 | `28_axis_tb_update_for_log25_rtl_redesign.md` |
+| Auto-flush      | `s_axis_tlast` 수신 후 zero sample 주입으로 FIR/decimator 잔여 출력 배출 | 확정 | `28_axis_tb_update_for_log25_rtl_redesign.md` |
+| 백프레셔        | `s_axis_tready = core_ready & ~flush_active`, 출력 3단 skid buffer로 `m_axis_tready` stall 흡수 | 확정 | `28_axis_tb_update_for_log25_rtl_redesign.md` |
+| 출력 버퍼       | depth-3 (`valid0/1/2`, `data0/1/2`, `tlast0/1/2`) | 확정 | `28_axis_tb_update_for_log25_rtl_redesign.md` |
 | TDATA 폭        | 16비트, 패딩 없음 — `np.frombuffer(dtype=np.int16)`으로 직접 파싱 가능 | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
 | 포트 명명 규칙  | AXI 관례 (`aclk`, `aresetn`, `*_axis_*`) — Vivado IP 패키저 자동 인식 | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
 | 미사용 신호     | TSTRB/TKEEP/TID/TDEST/TUSER 포함 안 함 | 확정 | `17_axi_stream_wrapper_design_decisions.md` |
@@ -96,12 +96,13 @@
 | ----------------- | ----------------------------------------------------------------------- | ---- | --------- |
 | FIR IP 삽입 방식  | Module Reference — IP Packaging 아님 (이 BD 하나에서만 사용) | 확정 | `19_ps_pl_dma_integration_design.md` |
 | DMA 모드          | Simple DMA (Scatter Gather 비활성) — 시작 주소+길이만으로 충분 | 확정 | `19_ps_pl_dma_integration_design.md` |
+| DMA length width  | `CONFIG.c_sg_length_width {23}` — 16384-byte MM2S 전송을 표현하기 위해 명시 | 확정 | `32_smoke_pass_after_dma_length_width_fix.md` |
 | Stream 폭         | 16비트 (MM2S/S2MM 모두) — 샘플 포맷 Q1.15와 직접 대응 | 확정 | `19_ps_pl_dma_integration_design.md` |
 | DMA 기본 주소     | `0x40400000` (`bd_fir_dma.tcl` assign_bd_address 기준) | 확정 | `20_baremetal_c_fir_dma.md` |
 | DDR 접근 경로     | PS HP0 (High Performance) — GP 포트는 PS→PL 방향 전용이라 불가 | 확정 | `19_ps_pl_dma_integration_design.md` |
 | 클럭              | PS `FCLK_CLK0` 100MHz → FIR/DMA 전체 공용 | 확정 | `19_ps_pl_dma_integration_design.md` |
-| Block Design 재현 | `vivado/bd_fir_dma.tcl` — `source vivado/bd_fir_dma.tcl`로 재생성 가능 | 확정 | `19_ps_pl_dma_integration_design.md` |
-| Vivado 타이밍     | WNS=+1.239ns @ 100MHz | 확정 | CLAUDE.md Step 6 |
+| Block Design 재현 | `vivado/fir_n43/bd_fir_dma.tcl` — `source vivado/fir_n43/bd_fir_dma.tcl`로 재생성 가능 | 확정 | `19_ps_pl_dma_integration_design.md` |
+| Vivado 타이밍     | main FIR WNS=+0.692ns @ 100MHz | 확정 | `32_smoke_pass_after_dma_length_width_fix.md` |
 
 ---
 
@@ -110,13 +111,14 @@
 | 항목              | 현재 결정                                                               | 상태 | 근거/출처 |
 | ----------------- | ----------------------------------------------------------------------- | ---- | --------- |
 | 샘플 수           | `N_IN=8192`, `N_OUT=4096` (M=2) | 확정 | `20_baremetal_c_fir_dma.md` |
-| UART 디바이스     | `XPAR_XUARTPS_1_DEVICE_ID` (Zybo Z7-20 USB-UART 브릿지) | 확정 | `20_baremetal_c_fir_dma.md` |
+| UART 디바이스     | `UART_DEVICE_ID = 0` (Vitis BSP 단일 UART 인스턴스 기준) | 확정 | `23_vitis_embedded_build_troubleshooting.md` |
 | UART baud rate    | 115200 — 710ms 전송 지연이 데모에서 유리 | 확정 | `22_pc_python_fft_visualization_plan.md` |
 | 패킷 동기화 마커  | `MAGIC = 0xDEADBEEF` | 확정 | `20_baremetal_c_fir_dma.md` |
 | 캐시 정책         | MM2S 전 `Xil_DCacheFlushRange(src_buf)`, S2MM 후 `Xil_DCacheInvalidateRange(dst_buf)` | 확정 | `20_baremetal_c_fir_dma.md` |
 | 최대 톤 개수      | 8개 (`MAX_TONES=8`) | 확정 | `20_baremetal_c_fir_dma.md` |
 | 주파수 범위 제한  | 1MHz~49MHz (50MHz는 `sin(πn)=0`으로 신호 없음) | 확정 | `21_vitis_build_and_uart_usage.md` |
-| 빌드 도구         | Vitis 2024.2 (`xsct vitis/build_fir_decimator_demo.tcl`) | 확정 | `21_vitis_build_and_uart_usage.md` |
+| 전체 빌드 도구    | Vitis 2024.2 (`vitis -s vitis/fir_n43/build_fir_decimator_demo.py`) | 확정 | `workflow_v15.md` |
+| 빠른 BOOT 재생성  | `vitis/fir_n43/rebuild_boot_image.sh --boot-tag FIR` | 확정 | `31_dma_smoke_test_and_length_width_fix.md` |
 
 ---
 
@@ -126,7 +128,7 @@
 | ------------- | ----------------------------------------------------------------------- | ---- | --------- |
 | 스크립트 위치 | `sw/fir_decimator_demo.py` (C 코드와 같은 `sw/` — 파일이 하나씩이라 폴더 분리 불필요) | 확정 | `22_pc_python_fft_visualization_plan.md` |
 | FFT y축       | dB scale, 입력 최대 피크 = 0dB (상대 감쇠량 직접 확인) | 확정 | `22_pc_python_fft_visualization_plan.md` |
-| FFT x축       | 0~50MHz 고정 (입출력 동일 — 30MHz 피크 소거를 같은 좌표에서 비교) | 확정 | `22_pc_python_fft_visualization_plan.md` |
+| FFT x축       | 현재 구현은 0~50MHz 고정, 출력 50MHz sample-rate 표시 정리는 다음 작업 | 개선 예정 | `todo.md` |
 | mode 0        | 보드 불필요 — 로컬 naive downsample vs FIR 비교 (앨리어싱 확인) | 확정 | `22_pc_python_fft_visualization_plan.md` |
 | mode 1-1/1-2  | 실보드 연동 — UART로 명령 전송 → binary 수신 → FFT 표시 | 확정 | `22_pc_python_fft_visualization_plan.md` |
 | UART 수신     | magic 찾을 때까지 1바이트씩 스캔 (노이즈 내성) | 확정 | `22_pc_python_fft_visualization_plan.md` |
@@ -142,10 +144,10 @@
 | Python vs RTL 비교 방식 | Python golden model과 RTL 출력 bit-exact 자동 비교 | 완료      | 계획서 |
 | alias 비교 실험         | `downsample only` vs `FIR → downsample`           | 완료      | `sim/python/downsample_only_ideal.py` |
 | RTL TB 방식             | M_AXIS 핸드셰이크(tvalid & tready) 성사 시점에만 비교 | 완료 | `18_axis_buffer_overflow_fix_and_tb_robustness.md` |
-| 실보드 검증             | UART 수신 → Python FFT → 30MHz ≥60dB 감쇠 시각 확인 | **보드 대기** | `docs/log/workflow_v11.md` |
+| 실보드 검증             | SD boot `READY FIR`, UART 수신, Python modes `1-1`/`1-2` plot 도달 | 완료 | `32_smoke_pass_after_dma_length_width_fix.md` |
 
 ---
 
 ## 미정 항목
 
-없음 — 모든 설계 결정 확정. 남은 작업은 보드 검증뿐.
+PC FFT 시각화와 정량 pass/fail 리포팅은 다음 작업. 보드 bring-up 경로는 SD boot 기준으로 통과.

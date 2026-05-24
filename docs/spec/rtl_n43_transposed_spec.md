@@ -414,13 +414,13 @@ vvp sim/build/tb_fir_decimator_n43_axis.out
 
 Vivado 빌드 재현:
 ```bash
-vivado -mode batch -source vivado/build_fir_transposed_n43.tcl
+vivado -mode batch -source vivado/fir_n43/build_fir_transposed_n43.tcl
 ```
 
 Block Design 재현:
 ```bash
 # Vivado TCL Console에서:
-source vivado/bd_fir_dma.tcl
+source vivado/fir_n43/bd_fir_dma.tcl
 ```
 
 ---

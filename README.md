@@ -1,128 +1,192 @@
 # zynq-axi-fir-decimation-ip
 
-N=43 Transposed Form FIR LPF + M=2 Decimator IP on Zybo Z7-20 (Zynq-7000).
+N=43 transposed-form FIR low-pass filter + M=2 decimator on Zybo Z7-20 (Zynq-7000).
 
-- FIR: Kaiser β=5.653, fp=15MHz, fs=25MHz, As≥60dB, Q1.15 signed 16-bit
-- AXI-Stream wrapper → AXI DMA → PS DDR (Simple DMA, HP0)
-- PS bare-metal C: UART(115200) + DMA transfer + PC-side Python FFT 확인
+## Current State
 
----
+- FIR spec: Kaiser beta=5.653, fp=15 MHz, fs=25 MHz, As >= 60 dB, Q1.15 signed 16-bit samples/coefs.
+- RTL path: transposed-form FIR + M=2 decimator + AXI-Stream wrapper.
+- System path: AXI DMA simple mode, HP0 DDR, PS bare-metal C, UART 115200, PC Python FFT viewer.
+- Board baseline: SD boot reaches `READY FIR`; Python demo modes `1-1` and `1-2` reach FFT plots.
+- Main root cause fixed: AXI DMA default 14-bit length field could not represent `MM2S_LENGTH = 8192 * 2 = 16384` bytes. All active BD Tcl variants now set `CONFIG.c_sg_length_width {23}`.
+- JTAG `dow` / XSDB direct DDR write is not a trusted final path because byte lane 3 MSB corruption was observed. Use SD boot + DMA + UART for system verification.
 
-## 재현 방법
+Primary current context:
 
-### 사전 조건
+- `CLAUDE.md` - compact current project state and next work.
+- `docs/workflow/workflow_v15.md` - current runbook.
+- `docs/workflow/fir_n43_dependency_map.md` - source/script/artifact dependency map for the canonical target.
+- `docs/log/32_smoke_pass_after_dma_length_width_fix.md` - DMA timeout root-cause record.
 
-#### 1. Vivado + Vitis Embedded Development 2024.2
+## Repository Map
 
-AMD Unified Web Installer로 설치. **반드시 `Vitis Embedded Development` 컴포넌트를 포함해야 한다.**
+| Path | Purpose |
+| --- | --- |
+| `model/` | ideal and fixed-point Python reference models |
+| `rtl/transposed_form/n43/` | main N=43 FIR/decimator RTL |
+| `rtl/debug/` | DMA smoke/debug stream endpoints |
+| `sim/` | Python and RTL tests |
+| `vivado/` | BD and bitstream/XSA regeneration Tcl scripts |
+| `vitis/` | Vitis app/BOOT image rebuild scripts |
+| `sw/` | bare-metal C app and PC Python UART/FFT demo |
+| `docs/` | design specs, workflow records, debug logs |
 
-> **주의:** `Vitis (Core Development Kit)`와 `Vitis Embedded Development`는 별개 제품이다.
-> Zynq-7000 bare-metal ELF 빌드에는 후자가 필요하다. Core만 설치하면 ARM 툴체인, Lopper, BSP 템플릿이 없어서 ELF 생성이 불가능하다.
+## Prerequisites
 
-설치 후 확인:
+AMD Vivado + Vitis Embedded Development 2024.2 is required for hardware and bare-metal builds. The Vitis Core Development Kit alone is not enough for Zynq-7000 standalone ELF generation.
+
+For each hardware build terminal, source the Vivado 2024.2 environment script from the machine's actual install path. Common Ubuntu install paths are `$HOME/Xilinx/Vivado/2024.2/settings64.sh` and `/opt/Xilinx/Vivado/2024.2/settings64.sh`.
+
 ```bash
-# 아래 두 바이너리가 모두 존재해야 한다
-ls ~/Xilinx/Vitis/2024.2/bin/vitis        # Vitis Core
-ls ~/Xilinx/Vitis/2024.2/bin/xsdb         # Vitis Embedded Development
+export VIVADO_SETTINGS=/path/to/Xilinx/Vivado/2024.2/settings64.sh
+source "$VIVADO_SETTINGS"
+
+vivado -version
+vitis -version
+bootgen -help >/dev/null
 ```
 
-#### 2. Lopper 수동 설치 확인 (AMD 설치 버그 대응)
+On this development machine, `VIVADO_SETTINGS=$HOME/Xilinx/Vivado/2024.2/settings64.sh`.
 
-AMD 설치 프로그램에 알려진 버그가 있어 Lopper pip install이 실패해도 설치 완료로 표시된다.
-Vitis가 XSA → BSP 변환 시 Lopper를 내부적으로 호출하므로, 설치되어 있지 않으면 플랫폼 빌드가 실패한다.
+Other expected tools:
+
+| Tool | Use |
+| --- | --- |
+| `uv` + Python 3.13 | Python environment/tests |
+| `iverilog` 11+ | RTL simulation |
+| `minicom` or equivalent | UART console |
+| Digilent Zybo Z7-20 board files | Vivado board part |
+
+## Main Demo Pipeline
+
+The main demo pipeline is the shortest source-to-board path for reproducing the current SD-boot demo. It focuses on hardware/software image generation and board execution. Model and RTL regression checks are documented separately in the verification pipeline.
+
+### 1. Hardware Platform Build
+
+From repo root:
 
 ```bash
-# 설치 여부 확인
-ls ~/Xilinx/Vitis/2024.2/tps/lnx64/lopper-1.1.0/env/lib/python3.8/site-packages/lopper/
+source "$VIVADO_SETTINGS"
+mkdir -p build/fir_n43/vivado build/fir_n43/vitis build/fir_n43/output
+cd build/fir_n43/vivado
 
-# 위 경로가 비어 있으면 수동 설치 필요:
-LD_LIBRARY_PATH=~/Xilinx/Vitis/2024.2/tps/lnx64/python-3.8.3/lib \
-~/Xilinx/Vitis/2024.2/tps/lnx64/lopper-1.1.0/env/bin/pip install \
-  -r ~/Xilinx/Vitis/2024.2/tps/lnx64/lopper-1.1.0-packages/py38/requirements.txt \
-  --find-links ~/Xilinx/Vitis/2024.2/tps/lnx64/lopper-1.1.0-packages/py38/wheels \
-  --no-index
+vivado -mode batch \
+  -journal vivado.jou \
+  -log vivado.log \
+  -source ../../../vivado/fir_n43/build_bd_fir_dma.tcl
+
+cd ../../..
 ```
 
-#### 3. 환경변수 설정 (터미널 세션마다)
+Expected artifacts:
 
-`vivado`, `vitis`, `xsdb` 명령어를 쓰려면 매 터미널 세션에서 한 번 소싱해야 한다.
-
-```bash
-source ~/Xilinx/Vivado/2024.2/settings64.sh
-# 설치 경로가 다르면 해당 경로로 수정
+```text
+build/fir_n43/output/bd_fir_dma_wrapper.bit
+build/fir_n43/output/bd_fir_dma_wrapper.xsa
 ```
 
-#### 4. 기타 의존성
+### 2. Application And BOOT Image
 
-| 항목 | 버전 | 용도 |
-|------|------|------|
-| iverilog | 11 이상 | RTL 시뮬레이션 |
-| Python | 3.13 | PC 측 FFT 스크립트 |
-| uv | 최신 | Python 가상환경 관리 |
-| minicom | 임의 | UART 터미널 (보드 검증 시) |
-| Zybo Z7-20 보드 파일 | — | Vivado 보드 지원 |
+Build the Vitis platform/app from the canonical XSA, then package FSBL + bitstream + app ELF:
 
 ```bash
-# Ubuntu 기준 설치
-sudo apt install iverilog minicom
-pip install uv   # 또는 공식 설치 방법: https://docs.astral.sh/uv/
+vitis -s vitis/fir_n43/build_fir_decimator_demo.py
+
+bootgen -arch zynq \
+  -image build/fir_n43/output/fir_decimator_demo.bif \
+  -o build/fir_n43/output/BOOT.bin -w on
 ```
 
----
+Expected artifacts:
 
-### 빌드 순서
+```text
+build/fir_n43/output/fsbl.elf
+build/fir_n43/output/fir_decimator_demo.elf
+build/fir_n43/output/fir_decimator_demo.bif
+build/fir_n43/output/BOOT.bin
+```
+
+### 3. Board Demo
+
+1. Copy `build/fir_n43/output/BOOT.bin` to the FAT32 SD card root as `BOOT.bin`.
+2. Set JP5 to SD boot, insert SD, connect USB, power the board.
+3. Confirm UART banner:
+
+```text
+READY FIR
+```
+
+4. Run PC-side FFT checks:
 
 ```bash
-# 1. Python 환경
+python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 30
+python sw/fir_decimator_demo.py --mode 1-2 --port /dev/ttyUSB1 --timeout 30
+```
+
+Expected result: both commands receive board output and reach FFT plots.
+
+## Verification Pipeline
+
+Use this path when changing DSP math, Q-format policy, RTL datapath, coefficients, or before recording a release/report result. Generated files under `sim/output/` and `sim/vectors/` are disposable artifacts and do not need to be committed.
+
+### 1. Python Float/Fixed Model And Vector Generation
+
+```bash
 uv sync
-
-# 2. 시뮬레이션 벡터 생성
-uv run python -m sim.python.run_compare_ideal_vs_fixed --num-taps 43 --form transposed
-uv run python -m sim.python.export_rtl_bringup_vectors \
-    --num-taps 43 \
-    --input-dir sim/output/ideal_vs_fixed_trans_n43 \
-    --output-dir sim/vectors/transposed_form/n43
-
-# 3. Python 모델 테스트
 uv run pytest -q
 
-# 4. RTL 시뮬레이션 (iverilog -g2012)
-iverilog -g2012 -o sim/build/tb_fir_decimator_n43_axis.out \
-    sim/rtl/tb/transposed_form/tb_fir_decimator_n43_axis.sv \
-    rtl/transposed_form/n43/fir_decimator_n43_axis.v \
-    rtl/transposed_form/n43/fir_decimator_n43.v \
-    rtl/transposed_form/n43/fir_n43.v \
-    rtl/transposed_form/decimator_m2_phase0.v
-vvp sim/build/tb_fir_decimator_n43_axis.out
-
-# 5. Vivado: 비트스트림 + XSA 생성 → build/output/bd_fir_dma_wrapper.xsa
-#    (실행 전: source <Xilinx 설치경로>/Vivado/2024.2/settings64.sh)
-mkdir -p build/vivado
-vivado -mode batch \
-  -journal build/vivado/vivado.jou \
-  -log build/vivado/vivado.log \
-  -source vivado/build_bd_fir_dma.tcl
-
-# 6. Vitis: BSP + ELF 빌드 → build/output/fir_decimator_demo.elf
-rm -rf build/vitis
-vitis -s vitis/build_fir_decimator_demo.py
-
-# 7. BOOT.bin 생성 (FSBL + 비트스트림 + ELF 패키징)
-bootgen -arch zynq -image build/output/fir_decimator_demo.bif \
-        -o build/output/BOOT.bin -w on
-
-# 8. SD카드 준비 (FAT32 포맷 후 BOOT.bin 한 파일만 루트에 복사)
-#    JP5 점퍼를 SD 위치로 이동 후 SD카드 삽입, USB 케이블 연결, 전원 인가
-#    → DONE LED 점등 확인
-
-# 9. UART 동작 확인
-minicom -D /dev/ttyUSB1 -b 115200
-# minicom에서 입력: 3 5000000 20000000 30000000
-
-# 10. PC Python FFT 시각화
-python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1
+uv run python -m sim.python.run_check_coeff_stopband_spec --num-taps 43
+uv run python -m sim.python.run_compare_ideal_vs_fixed --num-taps 43 --form transposed
+uv run python -m sim.python.export_rtl_bringup_vectors \
+  --num-taps 43 \
+  --input-dir sim/output/ideal_vs_fixed_trans_n43 \
+  --output-dir sim/vectors/transposed_form/n43
 ```
 
-> JTAG `xsdb dow` 방식은 DDR byte lane 3 오염으로 폐기됨 (`docs/log/24`, `docs/log/27`).
-> 현재 워크플로우 → `docs/workflow/workflow_v12.md`
-> Vitis 빌드 트러블슈팅 상세 → `docs/log/23_vitis_embedded_build_troubleshooting.md`
+Expected result: Python tests pass, the 43-tap coefficient response meets the stopband criterion, and N=43 transposed fixed-point vectors are regenerated.
+
+### 2. RTL Simulation
+
+```bash
+cd sim
+make clean
+make run_all
+cd ..
+```
+
+Expected result: all testbenches print PASS without fail/mismatch/error output.
+
+## Fast Rebuild
+
+Use this path when only `sw/fir_decimator_demo.c` changed and the existing `build/fir_n43/vitis` workspace is valid. It reuses the current hardware/platform and regenerates the app ELF, BIF, and BOOT image.
+
+```bash
+vitis/fir_n43/rebuild_boot_image.sh --boot-tag FIR
+```
+
+Expected artifact:
+
+```text
+build/fir_n43/output/BOOT.bin
+```
+
+## Debug And Historical Flows
+
+Smoke/debug paths remain in the repo as regression and root-cause tools, but they are not the main reproducible pipeline:
+
+- `rtl/debug/axis_dma_smoke_test.v`
+- `rtl/debug/axis_decimator_m2_n43_debug.v`
+- `vivado/debug/smoke/build_bd_fir_dma_smoke.tcl`
+- `vivado/debug/axis_debug/build_bd_fir_dma_axis_debug.tcl`
+- `vitis/legacy/download_and_run.py` and `vitis/legacy/bringup_demo/download_bringup.py` are historical JTAG/XSDB flows, not trusted final validation paths.
+
+Use `docs/workflow/workflow_v15.md` and `docs/log/32_smoke_pass_after_dma_length_width_fix.md` when debugging DMA/DDR/UART transport issues.
+
+## Next Work
+
+The next technical step is not more bring-up plumbing. It is to make the PC FFT output presentation and numeric pass/fail reporting clean enough for demo/report use:
+
+- print peak dB values for expected tones in modes `1-1` and `1-2`;
+- compare hardware output against Python golden/reference metrics;
+- fix the output FFT axis/layout so the 50 MHz output sample-rate Nyquist limit is visually clear;
+- save representative plots and measured numbers into `docs/`.
