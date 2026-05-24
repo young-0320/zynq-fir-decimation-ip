@@ -3,7 +3,7 @@
 download_and_run.py: pexpect로 xsdb 인터랙티브 모드 구동
 workaround: sourced 모드에서 JTAG byte3가 flush되지 않는 버그 회피.
 각 mwr마다 xsdb% 프롬프트를 기다려 REPL barrier를 재현한다.
-Usage: python vitis/download_and_run.py  (repo root에서 실행)
+Usage: python vitis/legacy/download_and_run.py  (repo root에서 실행)
 """
 import os
 import struct
@@ -11,10 +11,10 @@ import sys
 import time
 import pexpect
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BIT      = f"{REPO_ROOT}/build/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit"
-ELF      = f"{REPO_ROOT}/build/output/fir_decimator_demo.elf"
-PS7_INIT = f"{REPO_ROOT}/build/vivado/fir_decimator_trans_n43.gen/sources_1/bd/bd_fir_dma/ip/bd_fir_dma_processing_system7_0_0/ps7_init.tcl"
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BIT      = f"{REPO_ROOT}/build/fir_n43/output/bd_fir_dma_wrapper.bit"
+ELF      = f"{REPO_ROOT}/build/fir_n43/output/fir_decimator_demo.elf"
+PS7_INIT = f"{REPO_ROOT}/build/fir_n43/vivado/fir_decimator_trans_n43.gen/sources_1/bd/bd_fir_dma/ip/bd_fir_dma_processing_system7_0_0/ps7_init.tcl"
 
 
 def read_elf(path):

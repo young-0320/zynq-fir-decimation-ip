@@ -1,19 +1,21 @@
 # build_bd_fir_dma.tcl
-# Usage: vivado -mode batch -source vivado/build_bd_fir_dma.tcl
-# Run from repo root
+# Usage: vivado -mode batch -source vivado/fir_n43/build_bd_fir_dma.tcl
+# Run from repo root, or from build/fir_n43/vivado when isolating Vivado logs
 #
 # 사전 조건: Digilent Zybo Z7-20 보드 파일 설치
 #   $XILINX_VIVADO/data/boards/ 또는 ~/.Xilinx/Vivado/ 아래에 있어야 함
 #   없으면 board_part 설정 생략 — PS DDR 설정이 BD에 이미 포함되어 있어 재현 가능
 #
 # 산출물:
-#   build/output/bd_fir_dma_wrapper.xsa  ← vitis/build_fir_decimator_demo.py 입력
-#   build/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit
+#   build/fir_n43/output/bd_fir_dma_wrapper.xsa  <- Vitis platform/app input
+#   build/fir_n43/output/bd_fir_dma_wrapper.bit  <- BOOT image input
 
-set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
+set SCRIPT_DIR [file normalize [file dirname [info script]]]
+set REPO_ROOT  [file normalize [file join $SCRIPT_DIR ../..]]
 set BOARD_DIR [file join $REPO_ROOT "boards"]
-set BUILD_DIR $REPO_ROOT/build/vivado
-set OUT_DIR   $REPO_ROOT/build/output
+set BUILD_DIR $REPO_ROOT/build/fir_n43/vivado
+set VITIS_DIR $REPO_ROOT/build/fir_n43/vitis
+set OUT_DIR   $REPO_ROOT/build/fir_n43/output
 set PROJ_NAME fir_decimator_trans_n43
 set PART      xc7z020clg400-1
 set BOARD     digilentinc.com:zybo-z7-20:part0:1.1
@@ -21,6 +23,8 @@ set BOARD     digilentinc.com:zybo-z7-20:part0:1.1
 # -----------------------------------------------------------------------
 # 프로젝트 생성
 # -----------------------------------------------------------------------
+file mkdir $BUILD_DIR
+file mkdir $VITIS_DIR
 file mkdir $OUT_DIR
 
 # 보드 경로 설정
@@ -68,7 +72,7 @@ update_compile_order -fileset sources_1
 # -----------------------------------------------------------------------
 # Block Design 재생성
 # -----------------------------------------------------------------------
-source $REPO_ROOT/vivado/bd_fir_dma.tcl
+source $SCRIPT_DIR/bd_fir_dma.tcl
 
 # -----------------------------------------------------------------------
 # BD wrapper 생성 및 top 설정
@@ -133,6 +137,8 @@ puts "비트스트림: $BIT_OUT"
 puts "구현 결과:   $BIT_IMPL"
 puts "XSA:        $XSA"
 puts ""
-puts "다음 단계: vitis -s vitis/build_fir_decimator_demo.py"
+puts "다음 단계(전체 Vitis 재생성): vitis -s vitis/fir_n43/build_fir_decimator_demo.py"
+puts "그 다음: bootgen -arch zynq -image build/fir_n43/output/fir_decimator_demo.bif -o build/fir_n43/output/BOOT.bin -w on"
+puts "기존 Vitis workspace 재사용 시: vitis/fir_n43/rebuild_boot_image.sh --boot-tag FIR"
 
 close_project

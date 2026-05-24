@@ -1,9 +1,10 @@
 # build_fir_transposed_n43.tcl
-# Usage: vivado -mode batch -source vivado/build_fir_transposed_n43.tcl
+# Usage: vivado -mode batch -source vivado/fir_n43/build_fir_transposed_n43.tcl
 # Run from repo root
 
-set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
-set BUILD_DIR $REPO_ROOT/build/vivado
+set SCRIPT_DIR [file normalize [file dirname [info script]]]
+set REPO_ROOT  [file normalize [file join $SCRIPT_DIR ../..]]
+set BUILD_DIR $REPO_ROOT/build/fir_n43/vivado/rtl_only
 set PROJ_NAME fir_transposed_n43
 set PART      xc7z020clg400-1
 set TOP       fir_decimator_n43
@@ -11,6 +12,7 @@ set TOP       fir_decimator_n43
 # -----------------------------------------------------------------------
 # 프로젝트 생성
 # -----------------------------------------------------------------------
+file mkdir $BUILD_DIR
 create_project $PROJ_NAME $BUILD_DIR -part $PART -force
 
 set_property target_language Verilog [current_project]

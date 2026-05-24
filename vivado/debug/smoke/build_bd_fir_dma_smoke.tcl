@@ -1,23 +1,25 @@
-# build_bd_fir_dma_axis_debug.tcl
-# Usage: vivado -mode batch -source vivado/build_bd_fir_dma_axis_debug.tcl
-# Run from repo root
+# build_bd_fir_dma_smoke.tcl
+# Usage: vivado -mode batch -source vivado/debug/smoke/build_bd_fir_dma_smoke.tcl
+# Run from repo root, or from build/debug/smoke/vivado when isolating Vivado logs
 #
 # Purpose:
 #   Build a debug variant of the PS + AXI DMA block design where the FIR
-#   wrapper is replaced by rtl/debug/axis_decimator_m2_n43_debug.v.
+#   wrapper is replaced by rtl/debug/axis_dma_smoke_test.v.
 #
 # Outputs:
-#   build/output/bd_fir_dma_axis_debug_wrapper.xsa
-#   build/output/bd_fir_dma_axis_debug_wrapper.bit
+#   build/debug/smoke/output/bd_fir_dma_smoke_wrapper.xsa
+#   build/debug/smoke/output/bd_fir_dma_smoke_wrapper.bit
 
-set REPO_ROOT [file normalize [file dirname [file dirname [info script]]]]
+set SCRIPT_DIR [file normalize [file dirname [info script]]]
+set REPO_ROOT  [file normalize [file join $SCRIPT_DIR ../../..]]
 set BOARD_DIR [file join $REPO_ROOT "boards"]
-set BUILD_DIR $REPO_ROOT/build/vivado_axis_debug
-set OUT_DIR   $REPO_ROOT/build/output
-set PROJ_NAME fir_dma_axis_debug
+set BUILD_DIR $REPO_ROOT/build/debug/smoke/vivado
+set OUT_DIR   $REPO_ROOT/build/debug/smoke/output
+set PROJ_NAME fir_dma_smoke
 set PART      xc7z020clg400-1
 set BOARD     digilentinc.com:zybo-z7-20:part0:1.1
 
+file mkdir $BUILD_DIR
 file mkdir $OUT_DIR
 set_param board.repoPaths [list $BOARD_DIR]
 
@@ -30,15 +32,15 @@ if {[catch {set_property board_part $BOARD [current_project]}]} {
 
 # Module Reference source for the debug AXI-Stream wrapper.
 add_files [list \
-    $REPO_ROOT/rtl/debug/axis_decimator_m2_n43_debug.v \
+    $REPO_ROOT/rtl/debug/axis_dma_smoke_test.v \
 ]
 update_compile_order -fileset sources_1
 
-source $REPO_ROOT/vivado/bd_fir_dma_axis_debug.tcl
+source $SCRIPT_DIR/bd_fir_dma_smoke.tcl
 
-set wrapper [make_wrapper -files [get_files bd_fir_dma_axis_debug.bd] -top]
+set wrapper [make_wrapper -files [get_files bd_fir_dma_smoke.bd] -top]
 add_files -norecurse $wrapper
-set_property top bd_fir_dma_axis_debug_wrapper [current_fileset]
+set_property top bd_fir_dma_smoke_wrapper [current_fileset]
 update_compile_order -fileset sources_1
 
 launch_runs synth_1 -jobs 4
@@ -67,9 +69,9 @@ puts "=== WNS / TNS ==="
 set wns [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
 puts "WNS = $wns ns"
 
-set XSA      $OUT_DIR/bd_fir_dma_axis_debug_wrapper.xsa
-set BIT_IMPL $BUILD_DIR/${PROJ_NAME}.runs/impl_1/bd_fir_dma_axis_debug_wrapper.bit
-set BIT_OUT  $OUT_DIR/bd_fir_dma_axis_debug_wrapper.bit
+set XSA      $OUT_DIR/bd_fir_dma_smoke_wrapper.xsa
+set BIT_IMPL $BUILD_DIR/${PROJ_NAME}.runs/impl_1/bd_fir_dma_smoke_wrapper.bit
+set BIT_OUT  $OUT_DIR/bd_fir_dma_smoke_wrapper.bit
 
 write_hw_platform -fixed -include_bit -force -file $XSA
 
@@ -79,11 +81,11 @@ if {![file exists $BIT_IMPL]} {
 file copy -force $BIT_IMPL $BIT_OUT
 
 puts ""
-puts "=== Debug AXIS build complete ==="
+puts "=== DMA smoke-test build complete ==="
 puts "Bitstream: $BIT_OUT"
 puts "Impl bit:  $BIT_IMPL"
 puts "XSA:       $XSA"
 puts ""
-puts "Next: vitis/rebuild_boot_image.sh --bit build/output/bd_fir_dma_axis_debug_wrapper.bit --boot-out build/output/BOOT_axis_debug.bin --boot-tag AXISDBG"
+puts "Next: vitis/fir_n43/rebuild_boot_image.sh --bit build/debug/smoke/output/bd_fir_dma_smoke_wrapper.bit --boot-out build/debug/smoke/output/BOOT.bin --boot-tag SMOKE"
 
 close_project

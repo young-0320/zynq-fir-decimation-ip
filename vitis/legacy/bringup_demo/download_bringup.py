@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 download_bringup.py: bringup_demo.elf를 Zybo Z7-20에 로드 후 실행
-Usage: python vitis/bringup_demo/download_bringup.py  (repo root에서 실행)
+Usage: python vitis/legacy/bringup_demo/download_bringup.py  (repo root에서 실행)
 
 pexpect로 xsdb 인터랙티브 모드를 구동해 각 mwr마다 REPL barrier를 재현.
 (sourced 모드 + dow 모두 byte3 MSB 오염 버그가 있어 사용 불가)
@@ -12,10 +12,10 @@ import sys
 import time
 import pexpect
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BIT      = f"{REPO_ROOT}/build/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit"
-ELF      = f"{REPO_ROOT}/build/vitis_bringup/fir_dma_bringup_demo/build/fir_dma_bringup_demo.elf"
-PS7_INIT = f"{REPO_ROOT}/build/vivado/fir_decimator_trans_n43.gen/sources_1/bd/bd_fir_dma/ip/bd_fir_dma_processing_system7_0_0/ps7_init.tcl"
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+BIT      = f"{REPO_ROOT}/build/fir_n43/output/bd_fir_dma_wrapper.bit"
+ELF      = f"{REPO_ROOT}/build/legacy/bringup/fir_dma_bringup_demo/build/fir_dma_bringup_demo.elf"
+PS7_INIT = f"{REPO_ROOT}/build/fir_n43/vivado/fir_decimator_trans_n43.gen/sources_1/bd/bd_fir_dma/ip/bd_fir_dma_processing_system7_0_0/ps7_init.tcl"
 
 
 def read_elf(path):

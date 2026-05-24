@@ -4,24 +4,28 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  vitis/rebuild_boot_image.sh [--bit PATH] [--boot-out PATH] [--boot-tag TEXT] [--sd-mount PATH]
+  vitis/fir_n43/rebuild_boot_image.sh [--bit PATH] [--boot-out PATH] [--boot-tag TEXT] [--sd-mount PATH]
 
 Rebuild an SD-boot image after C-only application changes.
 
+Tool discovery:
+  - Set VITIS_ROOT=/path/to/Xilinx/Vitis/2024.2 when Vitis is not under a common install path.
+  - BOOTGEN, TOOLCHAIN_BIN, and NINJA can be set explicitly to override auto-detection.
+
 Default behavior:
-  - Reuses the existing Vitis workspace in build/vitis.
+  - Reuses the existing Vitis workspace in build/fir_n43/vitis.
   - Uses the first available FIR-DMA bitstream candidate.
-  - Generates build/output/BOOT.bin.
+  - Generates build/fir_n43/output/BOOT.bin.
 
 Useful debug flow:
-  vitis/rebuild_boot_image.sh \
-    --bit build/output/bd_fir_dma_axis_debug_wrapper.bit \
-    --boot-out build/output/BOOT_axis_debug.bin
+  vitis/fir_n43/rebuild_boot_image.sh \
+    --bit build/debug/axis_debug/output/bd_fir_dma_axis_debug_wrapper.bit \
+    --boot-out build/debug/axis_debug/output/BOOT.bin
 
 Steps:
   1. copy sw/fir_decimator_demo.c into the Vitis app workspace
   2. rebuild fir_decimator_demo.elf with the existing Ninja project
-  3. copy fsbl.elf, selected bitstream, and app ELF into build/output
+  3. copy fsbl.elf, selected bitstream, and app ELF into the output directory
   4. generate a repo-relative BIF
   5. run bootgen
   6. optionally copy the generated image to PATH/BOOT.bin
@@ -82,19 +86,50 @@ while [[ $# -gt 0 ]]; do
 done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-VITIS_ROOT="${VITIS_ROOT:-/home/young/Xilinx/Vitis/2024.2}"
-BOOTGEN="${BOOTGEN:-$VITIS_ROOT/bin/bootgen}"
-TOOLCHAIN_BIN="${TOOLCHAIN_BIN:-$VITIS_ROOT/gnu/aarch32/lin/gcc-arm-none-eabi/bin}"
+VITIS_ROOT="${VITIS_ROOT:-${XILINX_VITIS:-}}"
+if [[ -z "$VITIS_ROOT" ]]; then
+  for candidate in \
+    "$HOME/Xilinx/Vitis/2024.2" \
+    /opt/Xilinx/Vitis/2024.2
+  do
+    if [[ -d "$candidate" ]]; then
+      VITIS_ROOT="$candidate"
+      break
+    fi
+  done
+fi
+
+BOOTGEN="${BOOTGEN:-}"
+if [[ -z "$BOOTGEN" ]]; then
+  if command -v bootgen >/dev/null 2>&1; then
+    BOOTGEN="$(command -v bootgen)"
+  elif [[ -n "$VITIS_ROOT" ]]; then
+    BOOTGEN="$VITIS_ROOT/bin/bootgen"
+  fi
+fi
+
+TOOLCHAIN_BIN="${TOOLCHAIN_BIN:-}"
+if [[ -z "$TOOLCHAIN_BIN" ]]; then
+  if [[ -n "$VITIS_ROOT" ]]; then
+    TOOLCHAIN_BIN="$VITIS_ROOT/gnu/aarch32/lin/gcc-arm-none-eabi/bin"
+  elif command -v arm-none-eabi-gcc >/dev/null 2>&1; then
+    TOOLCHAIN_BIN="$(dirname "$(command -v arm-none-eabi-gcc)")"
+  fi
+fi
 
 NINJA="${NINJA:-}"
 if [[ -z "$NINJA" ]]; then
-  for candidate in \
-    "$VITIS_ROOT/tps/lnx64/lopper-1.1.0/env/lib/python3.8/site-packages/ninja/data/bin/ninja" \
-    "$VITIS_ROOT/tps/lnx64/lopper-1.1.0/env/bin/ninja" \
-    ninja
-  do
+  NINJA_CANDIDATES=(ninja)
+  if [[ -n "$VITIS_ROOT" ]]; then
+    NINJA_CANDIDATES=(
+      "$VITIS_ROOT/tps/lnx64/lopper-1.1.0/env/lib/python3.8/site-packages/ninja/data/bin/ninja"
+      "$VITIS_ROOT/tps/lnx64/lopper-1.1.0/env/bin/ninja"
+      "${NINJA_CANDIDATES[@]}"
+    )
+  fi
+  for candidate in "${NINJA_CANDIDATES[@]}"; do
     if command -v "$candidate" >/dev/null 2>&1 || [[ -x "$candidate" ]]; then
       NINJA="$candidate"
       break
@@ -103,25 +138,22 @@ if [[ -z "$NINJA" ]]; then
 fi
 
 APP_SRC="$REPO_ROOT/sw/fir_decimator_demo.c"
-VITIS_APP_SRC="$REPO_ROOT/build/vitis/fir_decimator_demo/fir_decimator_demo.c"
-APP_BUILD_DIR="$REPO_ROOT/build/vitis/fir_decimator_demo/build"
+VITIS_APP_SRC="$REPO_ROOT/build/fir_n43/vitis/fir_decimator_demo/fir_decimator_demo.c"
+APP_BUILD_DIR="$REPO_ROOT/build/fir_n43/vitis/fir_decimator_demo/build"
 APP_ELF_WS="$APP_BUILD_DIR/fir_decimator_demo.elf"
 
 FSBL_CANDIDATES=(
-  "$REPO_ROOT/build/vitis/fir_decimator_pf/export/fir_decimator_pf/sw/boot/fsbl.elf"
-  "$REPO_ROOT/build/vitis/fir_decimator_pf/zynq_fsbl/build/fsbl.elf"
+  "$REPO_ROOT/build/fir_n43/vitis/fir_decimator_pf/export/fir_decimator_pf/sw/boot/fsbl.elf"
+  "$REPO_ROOT/build/fir_n43/vitis/fir_decimator_pf/zynq_fsbl/build/fsbl.elf"
 )
 
 BIT_CANDIDATES=(
-  "$REPO_ROOT/build/output/bd_fir_dma_wrapper.bit"
-  "$REPO_ROOT/build/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit"
-  "$REPO_ROOT/build/vitis/fir_decimator_demo/_ide/bitstream/bd_fir_dma_wrapper.bit"
-  "$REPO_ROOT/build/vitis/fir_decimator_demo/_ide/bitstream/db_fir_dma_wrapper.bit"
+  "$REPO_ROOT/build/fir_n43/output/bd_fir_dma_wrapper.bit"
+  "$REPO_ROOT/build/fir_n43/vivado/fir_decimator_trans_n43.runs/impl_1/bd_fir_dma_wrapper.bit"
+  "$REPO_ROOT/build/fir_n43/vitis/fir_decimator_demo/_ide/bitstream/bd_fir_dma_wrapper.bit"
 )
 
-OUT_DIR="$REPO_ROOT/build/output"
-OUT_FSBL="$OUT_DIR/fsbl.elf"
-OUT_APP="$OUT_DIR/fir_decimator_demo.elf"
+DEFAULT_OUT_DIR="$REPO_ROOT/build/fir_n43/output"
 
 if [[ -n "$BOOT_OUT_ARG" ]]; then
   if [[ "$BOOT_OUT_ARG" = /* ]]; then
@@ -129,9 +161,14 @@ if [[ -n "$BOOT_OUT_ARG" ]]; then
   else
     OUT_BOOT="$REPO_ROOT/$BOOT_OUT_ARG"
   fi
+  OUT_DIR="$(dirname "$OUT_BOOT")"
 else
+  OUT_DIR="$DEFAULT_OUT_DIR"
   OUT_BOOT="$OUT_DIR/BOOT.bin"
 fi
+
+OUT_FSBL="$OUT_DIR/fsbl.elf"
+OUT_APP="$OUT_DIR/fir_decimator_demo.elf"
 
 require_file() {
   local path="$1"
@@ -188,6 +225,14 @@ if [[ ! -d "$APP_BUILD_DIR" ]]; then
 fi
 if [[ -z "$NINJA" ]]; then
   echo "ERROR: could not find ninja. Set NINJA=/path/to/ninja." >&2
+  exit 1
+fi
+if [[ -z "$BOOTGEN" ]]; then
+  echo "ERROR: could not find bootgen. Source the Xilinx environment or set BOOTGEN=/path/to/bootgen." >&2
+  exit 1
+fi
+if [[ -z "$TOOLCHAIN_BIN" || ! -d "$TOOLCHAIN_BIN" ]]; then
+  echo "ERROR: could not find ARM toolchain bin directory. Set TOOLCHAIN_BIN=/path/to/gcc-arm-none-eabi/bin." >&2
   exit 1
 fi
 require_file "$BOOTGEN" "bootgen"
