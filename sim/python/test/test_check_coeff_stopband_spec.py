@@ -2,6 +2,7 @@ import pytest
 
 from sim.python.run_check_coeff_stopband_spec import (
     analyze_frequency_response,
+    format_stopband_failure_message,
     run_check_coeff_stopband_spec,
 )
 
@@ -41,6 +42,20 @@ def test_run_check_coeff_stopband_spec_identifies_39_and_43() -> None:
     assert result_39["quantized"]["meets_stopband_spec"] is False
     assert result_43["ideal"]["meets_stopband_spec"] is True
     assert result_43["quantized"]["meets_stopband_spec"] is True
+
+    verdict = summary["verdict"]
+    assert verdict["pass_count"] == "2/4"
+    assert verdict["passed_checks"] == 2
+    assert verdict["total_checks"] == 4
+    assert verdict["failed_checks"] == 2
+    assert verdict["all_passed"] is False
+    assert len(verdict["failures"]) == 2
+
+    failure_message = format_stopband_failure_message(summary)
+    assert "ERROR: stopband spec failed: 2/4 checks passed, 2 failed." in failure_message
+    assert "N=39 ideal" in failure_message
+    assert "N=39 quantized" in failure_message
+
     assert (
         result_43["ideal"]["stopband_min_atten_db"]
         > result_39["ideal"]["stopband_min_atten_db"]

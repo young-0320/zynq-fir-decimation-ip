@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -53,6 +54,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "Directory to store outputs. Defaults to "
             "repo_root/sim/output/coeff_stopband_spec_n{tap_list}."
         ),
+    )
+    parser.add_argument(
+        "--allow-failures",
+        action="store_true",
+        help="Write artifacts and exit 0 even when one or more stopband checks fail.",
     )
     return parser
 
@@ -236,8 +242,72 @@ def run_check_coeff_stopband_spec(
             "stopband_criterion": "worst-case magnitude over f >= fs_hz",
         },
         "results": results,
+        "verdict": build_stopband_verdict(results, as_db=as_db),
     }
     return artifacts, summary
+
+
+def build_stopband_verdict(
+    results: Sequence[dict[str, Any]],
+    *,
+    as_db: float,
+) -> dict[str, Any]:
+    total_checks = 0
+    passed_checks = 0
+    failures: list[dict[str, Any]] = []
+
+    for result in results:
+        num_taps = int(result["num_taps"])
+        for response_name in ("ideal", "quantized"):
+            total_checks += 1
+            response = result[response_name]
+            if response["meets_stopband_spec"]:
+                passed_checks += 1
+                continue
+
+            failures.append(
+                {
+                    "num_taps": num_taps,
+                    "response": response_name,
+                    "required_min_atten_db": float(as_db),
+                    "stopband_min_atten_db": response["stopband_min_atten_db"],
+                    "stopband_margin_db": response["stopband_margin_db"],
+                    "stopband_worst_freq_hz": response["stopband_worst_freq_hz"],
+                },
+            )
+
+    failed_checks = total_checks - passed_checks
+    return {
+        "all_passed": failed_checks == 0,
+        "passed_checks": passed_checks,
+        "total_checks": total_checks,
+        "failed_checks": failed_checks,
+        "pass_count": f"{passed_checks}/{total_checks}",
+        "failures": failures,
+    }
+
+
+def format_stopband_failure_message(summary: dict[str, Any]) -> str:
+    verdict = summary["verdict"]
+    lines = [
+        (
+            "ERROR: stopband spec failed: "
+            f"{verdict['pass_count']} checks passed, "
+            f"{verdict['failed_checks']} failed."
+        ),
+        f"Required attenuation: >= {summary['config']['as_db']:.1f} dB",
+    ]
+
+    for failure in verdict["failures"]:
+        lines.append(
+            "- "
+            f"N={failure['num_taps']} {failure['response']}: "
+            f"atten={failure['stopband_min_atten_db']:.6f} dB, "
+            f"margin={failure['stopband_margin_db']:.6f} dB, "
+            f"worst_freq={failure['stopband_worst_freq_hz']:.3f} Hz"
+        )
+
+    return "\n".join(lines)
 
 
 def _save_array(path: Path, array: np.ndarray) -> None:
@@ -259,6 +329,9 @@ def _write_summary_text(path: Path, summary: dict[str, Any]) -> None:
         f"num_freq_samples             : {summary['config']['num_freq_samples']}",
         f"freq_resolution_hz           : {summary['config']['freq_resolution_hz']:.12f}",
         f"stopband_criterion           : {summary['config']['stopband_criterion']}",
+        f"stopband_pass_count          : {summary['verdict']['pass_count']}",
+        f"stopband_failed_checks       : {summary['verdict']['failed_checks']}",
+        f"stopband_all_passed          : {summary['verdict']['all_passed']}",
         "",
     ]
     for result in summary["results"]:
@@ -306,6 +379,11 @@ def main() -> None:
     _write_summary_text(save_dir / "summary.txt", summary)
 
     print(json.dumps(summary, indent=2, sort_keys=True))
+
+    if not summary["verdict"]["all_passed"]:
+        print(format_stopband_failure_message(summary), file=sys.stderr)
+        if not args.allow_failures:
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":

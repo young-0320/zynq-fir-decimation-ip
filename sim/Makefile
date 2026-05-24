@@ -33,19 +33,27 @@ RTL_DIRECT_N5_TOP := \
 # -----------------------------------------------------------------------------
 # Compiled targets (all output to sim/build/)
 # -----------------------------------------------------------------------------
-BINS := \
+BINS_N43 := \
 	$(BUILD)/tb_fir_n43.out \
 	$(BUILD)/tb_fir_decimator_n43.out \
-	$(BUILD)/tb_fir_decimator_n43_axis.out \
+	$(BUILD)/tb_fir_decimator_n43_axis.out
+
+BINS_LEGACY_N5 := \
 	$(BUILD)/tb_fir_direct_n5.out \
 	$(BUILD)/tb_fir_decimator_direct_n5_top.out
 
-.PHONY: all run_all clean
+.PHONY: all run_all run_legacy_n5 clean
 
-all: $(BINS)
+all: $(BINS_N43)
 
 run_all: all
-	@for bin in $(BINS); do \
+	@for bin in $(BINS_N43); do \
+		echo "=== $$(basename $$bin) ==="; \
+		cd $(ROOT) && $(VVP) $$bin; \
+	done
+
+run_legacy_n5: $(BINS_LEGACY_N5)
+	@for bin in $(BINS_LEGACY_N5); do \
 		echo "=== $$(basename $$bin) ==="; \
 		cd $(ROOT) && $(VVP) $$bin; \
 	done
