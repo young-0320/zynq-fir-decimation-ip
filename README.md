@@ -29,6 +29,8 @@ N=43 transposed-form FIR low-pass filter + M=2 decimator on Zybo Z7-20 (Zynq-700
 Primary current context:
 
 - `CLAUDE.md` - compact current project state and next work.
+- `docs/project_pipeline.md` - actual project pipeline, scripts, artifacts, and PASS criteria.
+- `docs/workflow/workflow_v16.md` - next demo/report polish plan.
 - `docs/workflow/workflow_v15.md` - current runbook.
 - `docs/workflow/fir_n43_verification_pipeline.md` - canonical model/vector/RTL simulation verification flow.
 - `docs/workflow/fir_n43_dependency_map.md` - source/script/artifact dependency map for the canonical target.

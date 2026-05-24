@@ -14,7 +14,7 @@ RTL_TRANS_N43_CORE := \
 	$(RTL)/transposed_form/n43/fir_n43.v
 
 RTL_TRANS_N43_TOP := \
-	$(RTL)/direct_form/decimator_m2_phase0.v \
+	$(RTL)/transposed_form/decimator_m2_phase0.v \
 	$(RTL_TRANS_N43_CORE) \
 	$(RTL)/transposed_form/n43/fir_decimator_n43.v
 

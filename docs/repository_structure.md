@@ -92,6 +92,7 @@ docs/
 | Path | Role |
 | --- | --- |
 | `docs/repository_structure.md` | This file; source tree and script-role map. |
+| `docs/project_pipeline.md` | Actual project pipeline overview: verification, main demo build, board demo, fast rebuild, debug, and legacy flows. |
 | `docs/spec/` | Stable design/spec decisions such as Q-format, model policy, and RTL contract. |
 | `docs/workflow/` | Current and historical runbooks, dependency maps, and verification pipeline documents. |
 | `docs/log/` | Chronological engineering/debug records. |
@@ -104,6 +105,7 @@ docs/
 
 | File | Role |
 | --- | --- |
+| `docs/workflow/workflow_v16.md` | Next implementation plan for PC FFT visualization, numeric reporting, and report evidence capture. |
 | `docs/workflow/workflow_v15.md` | Current runbook after SD boot and DMA length-width fix. |
 | `docs/workflow/fir_n43_dependency_map.md` | Main `fir_n43` source/script/artifact dependency map. |
 | `docs/workflow/fir_n43_verification_pipeline.md` | Canonical model -> vector -> RTL simulation verification flow. |
@@ -159,7 +161,7 @@ rtl/
 | `rtl/transposed_form/n43/fir_decimator_n43_axis.v` | AXI-Stream wrapper with dynamic TLAST and auto-flush behavior for DMA integration. |
 | `rtl/transposed_form/n43/constrs/zybo_n43.xdc` | Zybo-oriented constraints for N=43 target. |
 | `rtl/transposed_form/decimator_m2_phase0.v` | M=2 phase-0 decimator in the transposed-form path. |
-| `rtl/direct_form/decimator_m2_phase0.v` | Older direct-form decimator used by bringup and current simulation source lists. |
+| `rtl/direct_form/decimator_m2_phase0.v` | Older direct-form decimator retained for N=5 bringup/legacy paths. |
 | `rtl/direct_form/bringup_n5/*.v` | Historical N=5 direct-form board bringup RTL and LED/checker support. |
 | `rtl/debug/axis_dma_smoke_test.v` | Debug RTL target for DMA/DDR/UART smoke testing without the FIR datapath. |
 | `rtl/debug/axis_decimator_m2_n43_debug.v` | Debug RTL target for isolating AXI-Stream decimator behavior. |
