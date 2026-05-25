@@ -52,7 +52,15 @@ def test_run_report_saves_json_png_and_summary(monkeypatch, tmp_path):
     assert "Scenario 1-1" in summary
     assert "../plot/scenario1_1_fft.png" in summary
     assert "../metrics/scenario1_1_metrics.json" in summary
-    assert "Tone Regions" in summary
+    assert "Comparison | Board output vs fixed-point golden model" in summary
+    assert "Output Samples Compared" in summary
+    assert "Board vs Golden Tone Peaks" in summary
+    assert "| Tone (MHz) | Region | Expected Out (MHz) | Input (dB) | Board (dB) | Golden (dB) |" in summary
+    assert "| 5 | passband | 5 |" in summary
+    assert "| 20 | transition | 20 |" in summary
+    assert "| 30 | stopband | 20 |" in summary
+    assert "Board-Golden (dB)" in summary
+    assert "## Notes" in summary
     assert "Run one report scenario per board reset." in summary
 
 

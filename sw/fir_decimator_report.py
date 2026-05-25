@@ -244,11 +244,21 @@ def _write_metrics_json(path: Path, report: metrics.MetricsReport) -> None:
     )
 
 
+def _format_mhz_table(value_mhz: float) -> str:
+    """Format an MHz value for compact Markdown tables.
+    Markdown 표에 넣을 MHz 값을 간결하게 포맷합니다.
+    """
+    value = float(value_mhz)
+    if value.is_integer():
+        return str(int(value))
+    return f"{value:.3f}".rstrip("0").rstrip(".")
+
+
 def _tone_list_mhz(freqs_hz: Sequence[float]) -> str:
     """Format scenario tone frequencies in MHz.
     시나리오 tone 주파수 목록을 MHz 단위 문자열로 만듭니다.
     """
-    return ", ".join(_format_number(float(freq) / 1e6, digits=0) for freq in freqs_hz)
+    return ", ".join(_format_mhz_table(float(freq) / 1e6) for freq in freqs_hz)
 
 
 
@@ -266,7 +276,6 @@ def _write_scenario_summary(path: Path, result: ScenarioResult) -> Path:
     report = result.metrics_report
     sample = report["sample_metrics"]
     summary = report["summary"]
-    tone_regions = result.scenario.regions
     base_dir = path.parent
     plot_rel = _markdown_link(base_dir, result.paths.plot_path)
     metrics_rel = _markdown_link(base_dir, result.paths.metrics_path)
@@ -279,26 +288,44 @@ def _write_scenario_summary(path: Path, result: ScenarioResult) -> Path:
         "| Field | Value |",
         "|---|---:|",
         f"| Scenario | {result.scenario.title} |",
+        "| Comparison | Board output vs fixed-point golden model |",
         f"| Tones (MHz) | {_tone_list_mhz(result.scenario.freqs_hz)} |",
+        f"| Output Samples Compared | {sample['n_samples_compared']} |",
         f"| Overall | {summary['overall_verdict']} |",
         f"| Max Error (LSB) | {sample['max_abs_error_lsb']} |",
+        f"| Mean Error (LSB) | {_format_number(sample['mean_error_lsb'])} |",
         f"| RMSE (LSB) | {_format_number(sample['rmse_lsb'])} |",
         f"| SNR (dB) | {_format_number(sample['snr_db'])} |",
         f"| Correlation | {_format_number(sample['correlation'], digits=6)} |",
+        f"| Board Saturation Count | {sample['saturation_count']} |",
+        f"| Latency Aligned | {sample['latency_aligned']} |",
+        f"| Trimmed Samples | head={sample['trim_head_samples']}, tail={sample['trim_tail_samples']} |",
         f"| FFT PNG | [{plot_rel}]({plot_rel}) |",
         f"| Metrics JSON | [{metrics_rel}]({metrics_rel}) |",
         "",
-        "## Tone Regions",
+        "## Board vs Golden Tone Peaks",
         "",
-        "| Tone (MHz) | Region |",
-        "|---:|---|",
+        "| Tone (MHz) | Region | Expected Out (MHz) | Input (dB) | Board (dB) | Golden (dB) | Board-Golden (dB) | Board Atten (dB) | Golden Atten (dB) | Verdict |",
+        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
-    for tone_hz, region in sorted(tone_regions.items()):
-        lines.append(f"| {_format_number(float(tone_hz) / 1e6, digits=0)} | {region} |")
+    for row in report["tone_metrics"]:
+        lines.append(
+            "| "
+            f"{_format_mhz_table(row['tone_mhz'])} | "
+            f"{row['region']} | "
+            f"{_format_mhz_table(row['expected_output_mhz'])} | "
+            f"{_format_number(row['input_peak_db'], digits=2)} | "
+            f"{_format_number(row['board_peak_db'], digits=2)} | "
+            f"{_format_number(row['golden_peak_db'], digits=2)} | "
+            f"{_format_number(row['board_vs_golden_peak_delta_db'], digits=2)} | "
+            f"{_format_number(row['board_attenuation_db'], digits=2)} | "
+            f"{_format_number(row['golden_attenuation_db'], digits=2)} | "
+            f"{row['verdict']} |"
+        )
 
     limitations = report["known_limitations"]
     if limitations:
-        lines.extend(["", "## Known Limitations", ""])
+        lines.extend(["", "## Notes", ""])
         lines.extend(f"- {limitation}" for limitation in limitations)
     lines.append("")
 

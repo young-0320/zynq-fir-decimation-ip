@@ -239,7 +239,7 @@ docs/report/fir_n43/
 - `plot/`과 `metrics/` 폴더가 없으면 자동 생성한다.
 - raw `.npy` 저장은 이번 범위에서 제외했다.
 - CSV 저장도 이번 범위에서 제외했다. `metrics.json` 안에 tone metrics list를 포함한다.
-- `summary/` 아래에 scenario별 Markdown summary를 저장한다.
+- `summary/` 아래에 scenario별 Markdown summary를 저장한다. summary에는 sample-level metrics와 tone별 board/golden FFT peak 비교 표를 포함한다.
 
 ---
 
