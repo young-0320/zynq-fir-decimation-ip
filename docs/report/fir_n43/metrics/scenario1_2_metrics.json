@@ -1,0 +1,128 @@
+{
+  "mode": "1-2",
+  "input_tones_hz": [
+    7000000.0,
+    15000000.0,
+    25000000.0,
+    45000000.0
+  ],
+  "n_in": 8192,
+  "n_out": 4096,
+  "fs_in_hz": 100000000.0,
+  "fs_out_hz": 50000000.0,
+  "sample_metrics": {
+    "n_samples_compared": 4096,
+    "max_abs_error_lsb": 7,
+    "rmse_lsb": 1.805414491017229,
+    "snr_db": 72.21586724000619,
+    "correlation": 0.9999999701413602,
+    "mean_error_lsb": 0.001708984375,
+    "max_error_lsb": 7,
+    "min_error_lsb": -7,
+    "saturation_count": 0,
+    "clipping_count": 0,
+    "latency_aligned": true,
+    "trim_head_samples": 0,
+    "trim_tail_samples": 0
+  },
+  "tone_metrics": [
+    {
+      "tone_hz": 7000000.0,
+      "tone_mhz": 7.0,
+      "expected_output_hz": 7000000.0,
+      "expected_output_mhz": 7.0,
+      "output_bin_sources_hz": [
+        7000000.0
+      ],
+      "output_bin_sources_mhz": [
+        7.0
+      ],
+      "shared_output_bin": false,
+      "region": "passband",
+      "input_peak_db": -2.9634882670161877,
+      "board_peak_db": -8.989385595570795,
+      "golden_peak_db": -8.988508095111559,
+      "board_vs_golden_peak_delta_db": -0.0008775004592358471,
+      "board_attenuation_db": -6.025897328554607,
+      "golden_attenuation_db": -6.025019828095371,
+      "verdict": "PASS"
+    },
+    {
+      "tone_hz": 15000000.0,
+      "tone_mhz": 15.0,
+      "expected_output_hz": 15000000.0,
+      "expected_output_mhz": 15.0,
+      "output_bin_sources_hz": [
+        15000000.0
+      ],
+      "output_bin_sources_mhz": [
+        15.0
+      ],
+      "shared_output_bin": false,
+      "region": "passband",
+      "input_peak_db": -0.5801187512313741,
+      "board_peak_db": -6.614826909237637,
+      "golden_peak_db": -6.6150236439837755,
+      "board_vs_golden_peak_delta_db": 0.00019673474613846054,
+      "board_attenuation_db": -6.0347081580062625,
+      "golden_attenuation_db": -6.034904892752401,
+      "verdict": "PASS"
+    },
+    {
+      "tone_hz": 25000000.0,
+      "tone_mhz": 25.0,
+      "expected_output_hz": 25000000.0,
+      "expected_output_mhz": 25.0,
+      "output_bin_sources_hz": [
+        25000000.0
+      ],
+      "output_bin_sources_mhz": [
+        25.0
+      ],
+      "shared_output_bin": false,
+      "region": "transition",
+      "input_peak_db": 8.686661818707667e-12,
+      "board_peak_db": -60.33049646054796,
+      "golden_peak_db": -60.24814541062619,
+      "board_vs_golden_peak_delta_db": -0.082351049921769,
+      "board_attenuation_db": -60.33049646055665,
+      "golden_attenuation_db": -60.24814541063488,
+      "verdict": "INFO"
+    },
+    {
+      "tone_hz": 45000000.0,
+      "tone_mhz": 45.0,
+      "expected_output_hz": 5000000.0,
+      "expected_output_mhz": 5.0,
+      "output_bin_sources_hz": [
+        45000000.0
+      ],
+      "output_bin_sources_mhz": [
+        45.0
+      ],
+      "shared_output_bin": false,
+      "region": "stopband",
+      "input_peak_db": -2.42623547123002,
+      "board_peak_db": -66.93289862958433,
+      "golden_peak_db": -66.99712881306824,
+      "board_vs_golden_peak_delta_db": 0.06423018348391452,
+      "board_attenuation_db": -64.50666315835431,
+      "golden_attenuation_db": -64.57089334183823,
+      "verdict": "PASS"
+    }
+  ],
+  "summary": {
+    "verdict_counts": {
+      "PASS": 3,
+      "INFO": 1
+    },
+    "overall_verdict": "PASS"
+  },
+  "artifacts": {
+    "fft_plot_path": "docs/report/fir_n43/plot/scenario1_2_fft.png"
+  },
+  "known_limitations": [
+    "Run one report scenario per board reset.",
+    "Transition-band tones are reported as INFO, not hard PASS criteria."
+  ]
+}
