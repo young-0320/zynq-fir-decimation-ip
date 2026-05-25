@@ -263,10 +263,16 @@ def test_compare_tone_peaks_compares_board_against_golden_at_folded_bins():
     for row in rows:
         assert row["board_vs_golden_peak_delta_db"] == pytest.approx(0.0, abs=1e-9)
         assert row["board_peak_db"] == pytest.approx(row["golden_peak_db"])
-        assert row["verdict"] == "PASS"
+        assert row["shared_output_bin"] is True
+        assert row["output_bin_sources_hz"] == pytest.approx([1.0, 3.0])
+        assert row["output_bin_sources_mhz"] == pytest.approx([0.000001, 0.000003])
+        assert row["verdict"] == "INFO"
         assert set(row) >= {
             "tone_hz",
             "expected_output_hz",
+            "output_bin_sources_hz",
+            "output_bin_sources_mhz",
+            "shared_output_bin",
             "input_peak_db",
             "board_peak_db",
             "golden_peak_db",
@@ -276,6 +282,26 @@ def test_compare_tone_peaks_compares_board_against_golden_at_folded_bins():
             "region",
             "verdict",
         }
+
+
+def test_compare_tone_peaks_passes_unique_output_bin():
+    tones_hz, sig_in, golden_out = _small_tone_fixture()
+
+    rows = metrics.compare_tone_peaks(
+        sig_in,
+        golden_out.copy(),
+        golden_out,
+        [tones_hz[0]],
+        fs_in_hz=8.0,
+        fs_out_hz=4.0,
+        regions={1.0: "passband"},
+        search_hz=0.1,
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["shared_output_bin"] is False
+    assert rows[0]["output_bin_sources_hz"] == [1.0]
+    assert rows[0]["verdict"] == "PASS"
 
 
 def test_compare_tone_peaks_warns_when_board_peak_differs_from_golden():
@@ -323,7 +349,8 @@ def test_build_report_contains_scenario_sample_and_tone_metrics():
     assert report["sample_metrics"]["max_abs_error_lsb"] == 0
     assert report["sample_metrics"]["rmse_lsb"] == pytest.approx(0.0)
     assert len(report["tone_metrics"]) == 2
-    assert report["summary"]["verdict_counts"] == {"PASS": 2}
+    assert report["summary"]["verdict_counts"] == {"INFO": 2}
+    assert metrics.SHARED_OUTPUT_BIN_LIMITATION in report["known_limitations"]
 
 
 def test_build_report_carries_artifact_paths_and_known_limitations():
@@ -348,5 +375,6 @@ def test_build_report_carries_artifact_paths_and_known_limitations():
     assert report["input_tones_hz"] == transition_tones
     assert "Board reset is required between board scenarios." in report["known_limitations"]
     assert "Transition-band tones are reported as INFO, not hard PASS criteria." in report["known_limitations"]
-    assert report["summary"]["verdict_counts"] == {"PASS": 2, "INFO": 1}
+    assert metrics.SHARED_OUTPUT_BIN_LIMITATION in report["known_limitations"]
+    assert report["summary"]["verdict_counts"] == {"INFO": 3}
     assert report["summary"]["overall_verdict"] == "PASS"

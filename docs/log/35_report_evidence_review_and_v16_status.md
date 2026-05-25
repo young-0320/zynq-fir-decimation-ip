@@ -15,9 +15,9 @@
 
 ## 결론
 
-오늘 작업은 Python demo/report polish의 구현 측면에서는 대부분 마무리 단계까지 왔다. 다만 `docs/report/fir_n43` 산출물을 최종 evidence로 커밋하기 전에는 한 가지 해석 리스크를 더 정리해야 한다.
+오늘 작업은 Python demo/report polish의 구현 측면에서는 대부분 마무리 단계까지 왔다. shared-bin 해석 리스크는 metrics/report 코드에 반영했으며, 최종 evidence로 커밋하기 전에는 `docs/report/fir_n43` 산출물을 다시 생성해야 한다.
 
-핵심 리스크는 scenario 1-1의 출력 FFT bin overlap이다.
+핵심 리스크는 scenario 1-1의 출력 FFT bin overlap이었다. 이후 Python metrics/report는 이 overlap을 shared output bin으로 표시하도록 갱신했다.
 
 ```text
 input 20 MHz -> output fs=50 MHz 기준 20 MHz
@@ -26,7 +26,7 @@ input 30 MHz -> output fs=50 MHz 기준 20 MHz
 
 따라서 `scenario1_1`의 tone-level FFT peak table에서 20 MHz와 30 MHz가 같은 output bin을 공유한다. 현재 sample-domain board-vs-golden 비교는 PASS로 해석해도 되지만, tone-level row만 보면 30 MHz stopband 성분이 독립적으로 측정된 것처럼 오해할 수 있다.
 
-즉, report 산출물 구조와 링크는 정상이나, 최종 커밋 전에는 shared output bin을 summary/metrics에 명시하거나 해당 tone-level verdict를 보수적으로 다루는 개선이 필요하다.
+즉, report 산출물 구조와 링크는 정상이나, 최종 evidence commit 전에는 shared output bin이 반영된 새 산출물을 다시 생성해야 한다.
 
 ---
 
@@ -100,10 +100,12 @@ docs/report/fir_n43/
   - golden peak
   - board-golden delta
   - board/golden attenuation
+  - output bin sources
   - verdict
 - notes
   - board reset limitation
   - transition-band tones are INFO
+  - shared output FFT bins are INFO
 
 표와 본문은 영어 중심으로 유지한다. 프로젝트 대화와 보조 설명은 한국어로 하되, report artifact는 JSON key/metric 용어와 맞추기 위해 영어를 기본으로 한다.
 
@@ -144,7 +146,7 @@ docs/report/fir_n43/summary/scenario1_2.md
 - scenario 1-1의 20 MHz transition tone과 30 MHz stopband tone은 output 20 MHz bin을 공유한다.
 - 현재 board와 golden은 그 공유 bin에서 매우 잘 일치한다.
 - 그러나 tone-level table이 30 MHz stopband 단독 감쇠를 증명한다고 읽히면 부정확하다.
-- 최종 evidence commit 전 shared-bin/overlap 표시를 추가해야 한다.
+- 최종 evidence commit 전 새 shared-bin 정책으로 report를 다시 생성해야 한다.
 
 ---
 
@@ -157,7 +159,7 @@ docs/report/fir_n43/summary/scenario1_2.md
 | Clean FFT visualization | 거의 완료 | viewer plot은 제목, 축, marker, invalid 영역, pass/stop 경계까지 정리됨 |
 | Numeric peak/attenuation summaries | 부분 완료 | report summary/JSON에는 있음. live viewer console 출력은 별도 compact table로는 아직 없음 |
 | Board output vs Python reference | 완료 | metrics/report가 fixed-point golden과 sample/tone-domain 비교 수행 |
-| Saved evidence under docs | 진행 중 | 산출물은 생성됐지만 shared-bin 이슈 정리 전이라 아직 최종 커밋 보류 |
+| Saved evidence under docs | 진행 중 | shared-bin 정책은 코드에 반영됐지만 산출물 재생성과 최종 검토가 필요함 |
 | Final demo commands/PASS criteria 문서화 | 부분 완료 | log 34/35에는 정리됨. README 또는 최종 사용 문서 반영은 남음 |
 | Scenario 3 결정 | 완료 | 현재는 추가하지 않는 방향이 맞음 |
 
@@ -167,21 +169,7 @@ docs/report/fir_n43/summary/scenario1_2.md
 
 ## 남은 작업
 
-1. shared output bin 처리
-
-   `tone_metrics` 또는 Markdown summary에서 같은 `expected_output_mhz`를 공유하는 tone들을 표시한다.
-
-   가능한 정책:
-
-   ```text
-   output_bin_sources_mhz = "20, 30"
-   attribution = "shared-bin"
-   verdict = INFO 또는 PASS_WITH_SHARED_BIN_NOTE
-   ```
-
-   권장: sample-domain overall PASS는 유지하되, shared bin tone row는 hard PASS처럼 보이지 않도록 `INFO` 또는 별도 note를 붙인다.
-
-2. report 재생성
+1. report 재생성
 
    보드 reset을 scenario마다 수행한다.
 
@@ -191,7 +179,7 @@ docs/report/fir_n43/summary/scenario1_2.md
    .venv/bin/python sw/fir_decimator_report.py --mode 1-2 --port /dev/ttyUSB1
    ```
 
-3. 산출물 재검토
+2. 산출물 재검토
 
    - `summary/scenario1_1.md`
    - `summary/scenario1_2.md`
@@ -200,11 +188,11 @@ docs/report/fir_n43/summary/scenario1_2.md
 
    위 파일들이 shared-bin 해석까지 반영하는지 확인한다.
 
-4. 최종 evidence commit
+3. 최종 evidence commit
 
-   shared-bin 표현이 정리된 뒤 `docs/report/fir_n43` 산출물을 의도적으로 커밋한다.
+   shared-bin 표현이 산출물에 반영된 뒤 `docs/report/fir_n43` 산출물을 의도적으로 커밋한다.
 
-5. 최종 command/PASS criteria 문서화
+4. 최종 command/PASS criteria 문서화
 
    README 또는 최종 workflow/usage 문서에 다음을 반영한다.
 
@@ -216,9 +204,23 @@ docs/report/fir_n43/summary/scenario1_2.md
 
 ---
 
+## Shared-bin 처리 반영
+
+후속 구현에서 `sw/fir_decimator_metrics.py`와 `sw/fir_decimator_report.py`에 다음 정책을 반영했다.
+
+- `tone_metrics`에 `output_bin_sources_hz`, `output_bin_sources_mhz`, `shared_output_bin`을 추가한다.
+- 같은 output FFT bin을 공유하는 tone은 board-vs-golden이 일치해도 hard `PASS`가 아니라 `INFO`로 표시한다.
+- 단, board-vs-golden peak delta가 threshold를 넘으면 shared bin이어도 `WARN`을 유지한다.
+- Markdown summary tone table에 `Output Bin Sources (MHz)` 컬럼을 추가한다.
+- Notes에 shared output FFT bin의 per-tone attribution ambiguity를 명시한다.
+
+따라서 shared-bin 로직 자체는 완료됐고, 남은 일은 보드에서 report를 다시 생성해 새 산출물에 이 정책이 반영되었는지 확인하는 것이다.
+
+---
+
 ## 현재 판단
 
 - RTL/BOOT/baremetal 쪽을 더 건드릴 필요는 없다.
 - Python viewer/report 쪽 구조는 대체로 안정됐다.
-- 최종 마무리 전 가장 중요한 것은 새로운 기능 추가가 아니라 report 해석을 더 정직하게 만드는 것이다.
-- 특히 overlapping output bin은 교수/리뷰어가 질문할 가능성이 높은 지점이므로, 이것을 먼저 명시하고 산출물을 다시 생성해야 한다.
+- 최종 마무리 전 가장 중요한 것은 새로운 기능 추가가 아니라 새 shared-bin 정책으로 report 산출물을 다시 생성하고 검토하는 것이다.
+- 특히 overlapping output bin은 교수/리뷰어가 질문할 가능성이 높은 지점이므로, 산출물 summary와 JSON에서 이 내용이 보이는지 확인해야 한다.

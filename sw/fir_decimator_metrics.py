@@ -29,6 +29,9 @@ AnyArray = npt.NDArray[Any]
 DEFAULT_TONE_AMPLITUDE = 0.9
 DEFAULT_PEAK_DELTA_PASS_DB = 1.0
 TRANSITION_LIMITATION = "Transition-band tones are reported as INFO, not hard PASS criteria."
+SHARED_OUTPUT_BIN_LIMITATION = (
+    "Shared output FFT bins are reported as INFO because per-tone attribution is ambiguous."
+)
 
 
 class PeakNearResult(TypedDict):
@@ -80,6 +83,9 @@ class TonePeakMetric(TypedDict):
     tone_mhz: float
     expected_output_hz: float
     expected_output_mhz: float
+    output_bin_sources_hz: list[float]
+    output_bin_sources_mhz: list[float]
+    shared_output_bin: bool
     region: str
     input_peak_db: float
     board_peak_db: float
@@ -116,6 +122,7 @@ class MetricsReport(TypedDict):
 __all__ = [
     "DEFAULT_PEAK_DELTA_PASS_DB",
     "DEFAULT_TONE_AMPLITUDE",
+    "SHARED_OUTPUT_BIN_LIMITATION",
     "TRANSITION_LIMITATION",
     "FftPeakRow",
     "FixedReferenceResult",
@@ -450,15 +457,50 @@ def _region_for_tone(tone_hz: float, regions: Mapping[float, str] | None) -> str
     return "unknown"
 
 
-def _tone_verdict(region: str, peak_delta_db: float) -> str:
+def _tone_verdict(region: str, peak_delta_db: float, *, shared_output_bin: bool = False) -> str:
     """Classify a tone metric as PASS, WARN, or INFO.
     tone metric을 PASS, WARN, INFO로 분류합니다.
     """
-    if region == "transition":
-        return "INFO"
     if abs(peak_delta_db) <= DEFAULT_PEAK_DELTA_PASS_DB:
+        if region == "transition" or shared_output_bin:
+            return "INFO"
         return "PASS"
     return "WARN"
+
+
+def _output_bin_source_groups(
+    tones_hz: Sequence[float],
+    fs_out_hz: float,
+    *,
+    abs_tol_hz: float = 1.0,
+) -> list[tuple[float, list[float]]]:
+    """Group input tones that fold to the same output FFT bin target."""
+
+    groups: list[tuple[float, list[float]]] = []
+    for tone_hz_raw in tones_hz:
+        tone_hz = float(tone_hz_raw)
+        output_target_hz = fold_frequency_hz(tone_hz, fs_out_hz)
+        for group_index, (group_target_hz, sources_hz) in enumerate(groups):
+            if math.isclose(output_target_hz, group_target_hz, rel_tol=0.0, abs_tol=abs_tol_hz):
+                groups[group_index] = (group_target_hz, [*sources_hz, tone_hz])
+                break
+        else:
+            groups.append((output_target_hz, [tone_hz]))
+    return groups
+
+
+def _output_bin_sources_for_target(
+    groups: Sequence[tuple[float, list[float]]],
+    target_hz: float,
+    *,
+    abs_tol_hz: float = 1.0,
+) -> list[float]:
+    """Return original input tones that share an output FFT bin target."""
+
+    for group_target_hz, sources_hz in groups:
+        if math.isclose(target_hz, group_target_hz, rel_tol=0.0, abs_tol=abs_tol_hz):
+            return list(sources_hz)
+    return []
 
 
 def compare_tone_peaks(
@@ -490,11 +532,16 @@ def compare_tone_peaks(
     if input_ref <= 0.0:
         input_ref = 1.0
 
+    output_groups = _output_bin_source_groups(tones_hz, fs_out_hz)
+
     rows: list[TonePeakMetric] = []
     for tone_hz_raw in tones_hz:
         tone_hz = float(tone_hz_raw)
         input_target_hz = fold_frequency_hz(tone_hz, fs_in_hz)
         output_target_hz = fold_frequency_hz(tone_hz, fs_out_hz)
+        output_bin_sources_hz = _output_bin_sources_for_target(output_groups, output_target_hz)
+        output_bin_sources_mhz = [source_hz / 1e6 for source_hz in output_bin_sources_hz]
+        shared_output_bin = len(output_bin_sources_hz) > 1
 
         input_peak = compute_fft_peaks(
             input_sig,
@@ -530,6 +577,9 @@ def compare_tone_peaks(
                 "tone_mhz": tone_hz / 1e6,
                 "expected_output_hz": output_target_hz,
                 "expected_output_mhz": output_target_hz / 1e6,
+                "output_bin_sources_hz": output_bin_sources_hz,
+                "output_bin_sources_mhz": output_bin_sources_mhz,
+                "shared_output_bin": shared_output_bin,
                 "region": region,
                 "input_peak_db": input_peak_db,
                 "board_peak_db": board_peak_db,
@@ -537,7 +587,7 @@ def compare_tone_peaks(
                 "board_vs_golden_peak_delta_db": peak_delta_db,
                 "board_attenuation_db": board_peak_db - input_peak_db,
                 "golden_attenuation_db": golden_peak_db - input_peak_db,
-                "verdict": _tone_verdict(region, peak_delta_db),
+                "verdict": _tone_verdict(region, peak_delta_db, shared_output_bin=shared_output_bin),
             }
         )
     return rows
@@ -590,6 +640,9 @@ def build_report(
     has_transition_tone = any(row["region"] == "transition" for row in tone_metrics)
     if has_transition_tone and TRANSITION_LIMITATION not in limitations:
         limitations.append(TRANSITION_LIMITATION)
+    has_shared_output_bin = any(row["shared_output_bin"] for row in tone_metrics)
+    if has_shared_output_bin and SHARED_OUTPUT_BIN_LIMITATION not in limitations:
+        limitations.append(SHARED_OUTPUT_BIN_LIMITATION)
 
     return {
         "mode": mode,

@@ -261,6 +261,11 @@ def _tone_list_mhz(freqs_hz: Sequence[float]) -> str:
     return ", ".join(_format_mhz_table(float(freq) / 1e6) for freq in freqs_hz)
 
 
+def _mhz_values(values_mhz: Sequence[float]) -> str:
+    """Format already-MHz values for a compact table cell."""
+
+    return ", ".join(_format_mhz_table(value) for value in values_mhz)
+
 
 def _markdown_link(from_dir: Path, target: Path) -> str:
     """Return a POSIX relative link from one output directory to a target.
@@ -305,8 +310,8 @@ def _write_scenario_summary(path: Path, result: ScenarioResult) -> Path:
         "",
         "## Board vs Golden Tone Peaks",
         "",
-        "| Tone (MHz) | Region | Expected Out (MHz) | Input (dB) | Board (dB) | Golden (dB) | Board-Golden (dB) | Board Atten (dB) | Golden Atten (dB) | Verdict |",
-        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---|",
+        "| Tone (MHz) | Region | Expected Out (MHz) | Output Bin Sources (MHz) | Input (dB) | Board (dB) | Golden (dB) | Board-Golden (dB) | Board Atten (dB) | Golden Atten (dB) | Verdict |",
+        "|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     for row in report["tone_metrics"]:
         lines.append(
@@ -314,6 +319,7 @@ def _write_scenario_summary(path: Path, result: ScenarioResult) -> Path:
             f"{_format_mhz_table(row['tone_mhz'])} | "
             f"{row['region']} | "
             f"{_format_mhz_table(row['expected_output_mhz'])} | "
+            f"{_mhz_values(row['output_bin_sources_mhz'])} | "
             f"{_format_number(row['input_peak_db'], digits=2)} | "
             f"{_format_number(row['board_peak_db'], digits=2)} | "
             f"{_format_number(row['golden_peak_db'], digits=2)} | "

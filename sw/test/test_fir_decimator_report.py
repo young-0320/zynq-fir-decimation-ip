@@ -47,6 +47,15 @@ def test_run_report_saves_json_png_and_summary(monkeypatch, tmp_path):
     assert data["sample_metrics"]["snr_db"] == "inf"
     assert data["summary"]["overall_verdict"] == "PASS"
     assert data["artifacts"]["fft_plot_path"].endswith("scenario1_1_fft.png")
+    tone_by_mhz = {row["tone_mhz"]: row for row in data["tone_metrics"]}
+    assert tone_by_mhz[5.0]["shared_output_bin"] is False
+    assert tone_by_mhz[5.0]["output_bin_sources_mhz"] == [5.0]
+    assert tone_by_mhz[20.0]["shared_output_bin"] is True
+    assert tone_by_mhz[20.0]["output_bin_sources_mhz"] == [20.0, 30.0]
+    assert tone_by_mhz[20.0]["verdict"] == "INFO"
+    assert tone_by_mhz[30.0]["shared_output_bin"] is True
+    assert tone_by_mhz[30.0]["output_bin_sources_mhz"] == [20.0, 30.0]
+    assert tone_by_mhz[30.0]["verdict"] == "INFO"
 
     summary = summary_path.read_text(encoding="utf-8")
     assert "Scenario 1-1" in summary
@@ -55,13 +64,14 @@ def test_run_report_saves_json_png_and_summary(monkeypatch, tmp_path):
     assert "Comparison | Board output vs fixed-point golden model" in summary
     assert "Output Samples Compared" in summary
     assert "Board vs Golden Tone Peaks" in summary
-    assert "| Tone (MHz) | Region | Expected Out (MHz) | Input (dB) | Board (dB) | Golden (dB) |" in summary
-    assert "| 5 | passband | 5 |" in summary
-    assert "| 20 | transition | 20 |" in summary
-    assert "| 30 | stopband | 20 |" in summary
+    assert "| Tone (MHz) | Region | Expected Out (MHz) | Output Bin Sources (MHz) | Input (dB) | Board (dB) | Golden (dB) |" in summary
+    assert "| 5 | passband | 5 | 5 |" in summary
+    assert "| 20 | transition | 20 | 20, 30 |" in summary
+    assert "| 30 | stopband | 20 | 20, 30 |" in summary
     assert "Board-Golden (dB)" in summary
     assert "## Notes" in summary
     assert "Run one report scenario per board reset." in summary
+    assert "Shared output FFT bins are reported as INFO because per-tone attribution is ambiguous." in summary
 
 
 def test_run_report_captures_only_the_requested_scenario(monkeypatch, tmp_path):
