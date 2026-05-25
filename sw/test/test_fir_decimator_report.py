@@ -35,7 +35,7 @@ def test_run_report_saves_json_png_and_summary(monkeypatch, tmp_path):
     assert len(results) == 1
     plot_path = tmp_path / "plot" / "scenario1_1_fft.png"
     metrics_path = tmp_path / "metrics" / "scenario1_1_metrics.json"
-    summary_path = tmp_path / "summary.md"
+    summary_path = tmp_path / "summary" / "scenario1_1_summary.md"
     assert plot_path.is_file()
     assert metrics_path.is_file()
     assert summary_path.is_file()
@@ -50,8 +50,10 @@ def test_run_report_saves_json_png_and_summary(monkeypatch, tmp_path):
 
     summary = summary_path.read_text(encoding="utf-8")
     assert "Scenario 1-1" in summary
-    assert "plot/scenario1_1_fft.png" in summary
-    assert "metrics/scenario1_1_metrics.json" in summary
+    assert "../plot/scenario1_1_fft.png" in summary
+    assert "../metrics/scenario1_1_metrics.json" in summary
+    assert "Tone Regions" in summary
+    assert "Run one report scenario per board reset." in summary
 
 
 def test_run_report_captures_only_the_requested_scenario(monkeypatch, tmp_path):
@@ -70,6 +72,8 @@ def test_run_report_captures_only_the_requested_scenario(monkeypatch, tmp_path):
     assert (tmp_path / "plot" / "scenario1_2_fft.png").is_file()
     assert not (tmp_path / "metrics" / "scenario1_1_metrics.json").exists()
     assert (tmp_path / "metrics" / "scenario1_2_metrics.json").is_file()
+    assert not (tmp_path / "summary" / "scenario1_1_summary.md").exists()
+    assert (tmp_path / "summary" / "scenario1_2_summary.md").is_file()
 
 
 def test_json_safe_converts_numpy_and_non_finite_values():

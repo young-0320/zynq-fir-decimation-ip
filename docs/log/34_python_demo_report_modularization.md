@@ -216,19 +216,21 @@ frequency-domain:
 - metrics report dict 생성
 - FFT PNG 저장
 - metrics JSON 저장
-- root summary Markdown 재생성
+- scenario별 summary Markdown 저장
 
 저장 구조:
 
 ```text
 docs/report/fir_n43/
-  summary.md
   plot/
     scenario1_1_fft.png
     scenario1_2_fft.png
   metrics/
     scenario1_1_metrics.json
     scenario1_2_metrics.json
+  summary/
+    scenario1_1_summary.md
+    scenario1_2_summary.md
 ```
 
 중요한 결정:
@@ -237,7 +239,7 @@ docs/report/fir_n43/
 - `plot/`과 `metrics/` 폴더가 없으면 자동 생성한다.
 - raw `.npy` 저장은 이번 범위에서 제외했다.
 - CSV 저장도 이번 범위에서 제외했다. `metrics.json` 안에 tone metrics list를 포함한다.
-- `summary.md`는 append가 아니라 현재 실행 결과 기준으로 재생성한다.
+- `summary/` 아래에 scenario별 Markdown summary를 저장한다.
 
 ---
 
@@ -288,7 +290,7 @@ python sw/fir_decimator_report.py --mode 1-1 --port /dev/ttyUSB1 --timeout 30
 3. metrics 계산
 4. PNG 저장
 5. JSON 저장
-6. summary.md 재생성
+6. scenario별 summary Markdown 저장
 ```
 
 ---
@@ -332,6 +334,6 @@ python -m py_compile sw/fir_decimator_capture.py   sw/fir_decimator_fft_viewer.p
    python sw/fir_decimator_report.py --mode 1-2 --port /dev/ttyUSB1 --timeout 30
    ```
 
-2. 생성된 `docs/report/fir_n43/summary.md`, PNG, JSON을 문서화에 반영한다.
+2. 생성된 `docs/report/fir_n43/summary/*_summary.md`, PNG, JSON을 문서화에 반영한다.
 3. 필요하면 나중에 raw Q15 `.npy` 저장 또는 CSV export를 추가한다.
 4. plot helper가 더 커질 경우에만 `fir_decimator_plot.py` 분리를 재검토한다. 현재는 과한 분리로 판단했다.

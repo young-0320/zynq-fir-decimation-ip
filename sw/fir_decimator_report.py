@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -59,6 +60,7 @@ from sw.fir_decimator_fft_viewer import (
 DEFAULT_SAVE_DIR = Path("docs/report/fir_n43")
 PLOT_DIR_NAME = "plot"
 METRICS_DIR_NAME = "metrics"
+SUMMARY_DIR_NAME = "summary"
 BOARD_RESET_LIMITATION = "Run one report scenario per board reset."
 
 
@@ -83,6 +85,7 @@ class OutputPaths:
 
     plot_path: Path
     metrics_path: Path
+    summary_path: Path
 
 
 @dataclass(frozen=True)
@@ -165,25 +168,28 @@ def _format_number(value: Any, digits: int = 3) -> str:
     return str(value)
 
 
-def _ensure_output_dirs(save_dir: Path) -> tuple[Path, Path]:
-    """Create report root, plot, and metrics directories when missing.
-    report root, plot, metrics 디렉터리가 없으면 생성합니다.
+def _ensure_output_dirs(save_dir: Path) -> tuple[Path, Path, Path]:
+    """Create report root, plot, metrics, and summary directories when missing.
+    report root, plot, metrics, summary 디렉터리가 없으면 생성합니다.
     """
     plot_dir = save_dir / PLOT_DIR_NAME
     metrics_dir = save_dir / METRICS_DIR_NAME
+    summary_dir = save_dir / SUMMARY_DIR_NAME
     plot_dir.mkdir(parents=True, exist_ok=True)
     metrics_dir.mkdir(parents=True, exist_ok=True)
-    return plot_dir, metrics_dir
+    summary_dir.mkdir(parents=True, exist_ok=True)
+    return plot_dir, metrics_dir, summary_dir
 
 
 def _output_paths(save_dir: Path, scenario: ScenarioConfig) -> OutputPaths:
     """Return the PNG and JSON paths for one scenario.
     시나리오 하나의 PNG 및 JSON 저장 경로를 반환합니다.
     """
-    plot_dir, metrics_dir = _ensure_output_dirs(save_dir)
+    plot_dir, metrics_dir, summary_dir = _ensure_output_dirs(save_dir)
     return OutputPaths(
         plot_path=plot_dir / f"{scenario.slug}_fft.png",
         metrics_path=metrics_dir / f"{scenario.slug}_metrics.json",
+        summary_path=summary_dir / f"{scenario.slug}_summary.md",
     )
 
 
@@ -245,48 +251,59 @@ def _tone_list_mhz(freqs_hz: Sequence[float]) -> str:
     return ", ".join(_format_number(float(freq) / 1e6, digits=0) for freq in freqs_hz)
 
 
-def _write_summary(save_dir: Path, results: Sequence[ScenarioResult]) -> Path:
-    """Regenerate the root Markdown summary for the current run.
-    현재 실행 결과 기준으로 root Markdown summary를 재생성합니다.
-    """
-    summary_path = save_dir / "summary.md"
-    lines = [
-        "# FIR N43 Board Evidence Summary",
-        "",
-        "| Scenario | Tones (MHz) | Overall | Max Error (LSB) | RMSE (LSB) | SNR (dB) | Corr | FFT PNG | Metrics JSON |",
-        "|---|---:|---:|---:|---:|---:|---:|---|---|",
-    ]
-    for result in results:
-        report = result.metrics_report
-        sample = report["sample_metrics"]
-        plot_rel = result.paths.plot_path.relative_to(save_dir)
-        metrics_rel = result.paths.metrics_path.relative_to(save_dir)
-        lines.append(
-            "| "
-            f"{result.scenario.title} | "
-            f"{_tone_list_mhz(result.scenario.freqs_hz)} | "
-            f"{report['summary']['overall_verdict']} | "
-            f"{sample['max_abs_error_lsb']} | "
-            f"{_format_number(sample['rmse_lsb'])} | "
-            f"{_format_number(sample['snr_db'])} | "
-            f"{_format_number(sample['correlation'], digits=6)} | "
-            f"[{plot_rel.as_posix()}]({plot_rel.as_posix()}) | "
-            f"[{metrics_rel.as_posix()}]({metrics_rel.as_posix()}) |"
-        )
 
-    limitations = sorted(
-        {
-            limitation
-            for result in results
-            for limitation in result.metrics_report["known_limitations"]
-        }
-    )
+def _markdown_link(from_dir: Path, target: Path) -> str:
+    """Return a POSIX relative link from one output directory to a target.
+    출력 디렉터리 하나를 기준으로 target까지의 POSIX 상대 링크를 반환합니다.
+    """
+    return Path(os.path.relpath(target, from_dir)).as_posix()
+
+
+def _write_scenario_summary(path: Path, result: ScenarioResult) -> Path:
+    """Write one scenario Markdown summary next to the report artifacts.
+    report 산출물과 함께 시나리오별 Markdown summary를 저장합니다.
+    """
+    report = result.metrics_report
+    sample = report["sample_metrics"]
+    summary = report["summary"]
+    tone_regions = result.scenario.regions
+    base_dir = path.parent
+    plot_rel = _markdown_link(base_dir, result.paths.plot_path)
+    metrics_rel = _markdown_link(base_dir, result.paths.metrics_path)
+
+    lines = [
+        f"# FIR N43 Board Evidence - {result.scenario.title}",
+        "",
+        "## Summary",
+        "",
+        "| Field | Value |",
+        "|---|---:|",
+        f"| Scenario | {result.scenario.title} |",
+        f"| Tones (MHz) | {_tone_list_mhz(result.scenario.freqs_hz)} |",
+        f"| Overall | {summary['overall_verdict']} |",
+        f"| Max Error (LSB) | {sample['max_abs_error_lsb']} |",
+        f"| RMSE (LSB) | {_format_number(sample['rmse_lsb'])} |",
+        f"| SNR (dB) | {_format_number(sample['snr_db'])} |",
+        f"| Correlation | {_format_number(sample['correlation'], digits=6)} |",
+        f"| FFT PNG | [{plot_rel}]({plot_rel}) |",
+        f"| Metrics JSON | [{metrics_rel}]({metrics_rel}) |",
+        "",
+        "## Tone Regions",
+        "",
+        "| Tone (MHz) | Region |",
+        "|---:|---|",
+    ]
+    for tone_hz, region in sorted(tone_regions.items()):
+        lines.append(f"| {_format_number(float(tone_hz) / 1e6, digits=0)} | {region} |")
+
+    limitations = report["known_limitations"]
     if limitations:
         lines.extend(["", "## Known Limitations", ""])
         lines.extend(f"- {limitation}" for limitation in limitations)
     lines.append("")
-    summary_path.write_text("\n".join(lines), encoding="utf-8")
-    return summary_path
+
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
 
 
 def _capture_and_report_scenario(
@@ -331,9 +348,11 @@ def _capture_and_report_scenario(
         known_limitations=[BOARD_RESET_LIMITATION],
     )
 
+    result = ScenarioResult(scenario=scenario, metrics_report=report, paths=paths)
     _save_fft_png(paths.plot_path, scenario, reference["input_q15"], board_output_q15)
     _write_metrics_json(paths.metrics_path, report)
-    return ScenarioResult(scenario=scenario, metrics_report=report, paths=paths)
+    _write_scenario_summary(paths.summary_path, result)
+    return result
 
 
 def run_report(
@@ -344,8 +363,8 @@ def run_report(
     timeout: float,
     save_dir: Path,
 ) -> list[ScenarioResult]:
-    """Run one report scenario and regenerate summary.md.
-    report 시나리오 하나를 실행하고 summary.md를 재생성합니다.
+    """Run one report scenario and save its scenario summary.
+    report 시나리오 하나를 실행하고 해당 시나리오 summary를 저장합니다.
     """
     save_dir.mkdir(parents=True, exist_ok=True)
     result = _capture_and_report_scenario(
@@ -355,9 +374,7 @@ def run_report(
         timeout=timeout,
         save_dir=save_dir,
     )
-    results = [result]
-    _write_summary(save_dir, results)
-    return results
+    return [result]
 
 
 def main() -> None:
@@ -398,7 +415,7 @@ def main() -> None:
         print(f"{result.scenario.title}: {result.metrics_report['summary']['overall_verdict']}")
         print(f"  plot: {result.paths.plot_path}")
         print(f"  metrics: {result.paths.metrics_path}")
-    print(f"  summary: {args.save_dir / 'summary.md'}")
+        print(f"  summary: {result.paths.summary_path}")
 
 
 if __name__ == "__main__":
