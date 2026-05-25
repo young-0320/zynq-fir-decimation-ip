@@ -189,7 +189,7 @@ def _output_paths(save_dir: Path, scenario: ScenarioConfig) -> OutputPaths:
     return OutputPaths(
         plot_path=plot_dir / f"{scenario.slug}_fft.png",
         metrics_path=metrics_dir / f"{scenario.slug}_metrics.json",
-        summary_path=summary_dir / f"{scenario.slug}_summary.md",
+        summary_path=summary_dir / f"{scenario.slug}.md",
     )
 
 

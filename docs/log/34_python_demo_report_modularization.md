@@ -229,8 +229,8 @@ docs/report/fir_n43/
     scenario1_1_metrics.json
     scenario1_2_metrics.json
   summary/
-    scenario1_1_summary.md
-    scenario1_2_summary.md
+    scenario1_1.md
+    scenario1_2.md
 ```
 
 중요한 결정:
@@ -334,6 +334,6 @@ python -m py_compile sw/fir_decimator_capture.py   sw/fir_decimator_fft_viewer.p
    python sw/fir_decimator_report.py --mode 1-2 --port /dev/ttyUSB1 --timeout 30
    ```
 
-2. 생성된 `docs/report/fir_n43/summary/*_summary.md`, PNG, JSON을 문서화에 반영한다.
+2. 생성된 `docs/report/fir_n43/summary/*.md`, PNG, JSON을 문서화에 반영한다.
 3. 필요하면 나중에 raw Q15 `.npy` 저장 또는 CSV export를 추가한다.
 4. plot helper가 더 커질 경우에만 `fir_decimator_plot.py` 분리를 재검토한다. 현재는 과한 분리로 판단했다.
