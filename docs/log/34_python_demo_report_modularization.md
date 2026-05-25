@@ -33,7 +33,7 @@ sw/
    python sw/fir_decimator_demo.py --mode 0|1-1|1-2|2
 
 2. evidence 저장:
-   python sw/fir_decimator_report.py --mode 1-1|1-2|all
+   python sw/fir_decimator_report.py --mode 1-1|1-2
 ```
 
 `demo.py`는 공식 live demo 명령으로 남긴다. 단, 내부 구현을 다시 비대하게 만들지 않고 `fir_decimator_fft_viewer.py`에 위임한다.
@@ -210,7 +210,7 @@ frequency-domain:
 
 역할:
 
-- `--mode 1-1`, `--mode 1-2`, `--mode all` 지원
+- `--mode 1-1`, `--mode 1-2` 지원
 - board output Q15 capture
 - fixed Q15 reference/golden 생성
 - metrics report dict 생성
@@ -249,7 +249,6 @@ report 대상은 board-measured fixed scenario만 둔다.
 지원:
   1-1
   1-2
-  all
 
 제외:
   0  # PC-only aliasing demo
@@ -262,7 +261,7 @@ report 대상은 board-measured fixed scenario만 둔다.
 - mode 2는 사용자가 임의 tone을 넣는 interactive path라 자동 report 대상이 아니다.
 - portfolio/report evidence는 재현 가능한 fixed scenario 1-1, 1-2를 기준으로 한다.
 
-`all`은 1-1 후 1-2를 연속 실행한다. 다만 보드 reset이 scenario 사이에 필요할 수 있으므로, 필요하면 1-1과 1-2를 따로 실행한다.
+보드 reset이 scenario 사이에 필요하므로 `all` 연속 실행 옵션은 제거했다. 1-1 실행 후 보드 reset, 1-2 실행 순서로 따로 report를 생성한다.
 
 ---
 

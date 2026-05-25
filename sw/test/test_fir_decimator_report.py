@@ -54,21 +54,21 @@ def test_run_report_saves_json_png_and_summary(monkeypatch, tmp_path):
     assert "metrics/scenario1_1_metrics.json" in summary
 
 
-def test_run_report_all_saves_both_supported_scenarios(monkeypatch, tmp_path):
+def test_run_report_captures_only_the_requested_scenario(monkeypatch, tmp_path):
     monkeypatch.setattr(report, "capture_output_q15", _fake_board_capture_for_golden)
 
     results = report.run_report(
-        mode="all",
+        mode="1-2",
         port="dummy",
         baud=115200,
         timeout=1.0,
         save_dir=tmp_path,
     )
 
-    assert [result.scenario.mode for result in results] == ["1-1", "1-2"]
-    assert (tmp_path / "plot" / "scenario1_1_fft.png").is_file()
+    assert [result.scenario.mode for result in results] == ["1-2"]
+    assert not (tmp_path / "plot" / "scenario1_1_fft.png").exists()
     assert (tmp_path / "plot" / "scenario1_2_fft.png").is_file()
-    assert (tmp_path / "metrics" / "scenario1_1_metrics.json").is_file()
+    assert not (tmp_path / "metrics" / "scenario1_1_metrics.json").exists()
     assert (tmp_path / "metrics" / "scenario1_2_metrics.json").is_file()
 
 

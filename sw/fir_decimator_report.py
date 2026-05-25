@@ -59,7 +59,7 @@ from sw.fir_decimator_fft_viewer import (
 DEFAULT_SAVE_DIR = Path("docs/report/fir_n43")
 PLOT_DIR_NAME = "plot"
 METRICS_DIR_NAME = "metrics"
-BOARD_RESET_LIMITATION = "Board reset may be required between board scenarios."
+BOARD_RESET_LIMITATION = "Run one report scenario per board reset."
 
 
 @dataclass(frozen=True)
@@ -163,15 +163,6 @@ def _format_number(value: Any, digits: int = 3) -> str:
             return "nan"
         return f"{value:.{digits}f}"
     return str(value)
-
-
-def _scenario_modes(mode: str) -> list[str]:
-    """Expand CLI mode into concrete scenario modes.
-    CLI mode를 실제 실행할 시나리오 mode 목록으로 확장합니다.
-    """
-    if mode == "all":
-        return ["1-1", "1-2"]
-    return [mode]
 
 
 def _ensure_output_dirs(save_dir: Path) -> tuple[Path, Path]:
@@ -353,21 +344,18 @@ def run_report(
     timeout: float,
     save_dir: Path,
 ) -> list[ScenarioResult]:
-    """Run selected report scenario(s) and regenerate summary.md.
-    선택한 report 시나리오를 실행하고 summary.md를 재생성합니다.
+    """Run one report scenario and regenerate summary.md.
+    report 시나리오 하나를 실행하고 summary.md를 재생성합니다.
     """
     save_dir.mkdir(parents=True, exist_ok=True)
-    results: list[ScenarioResult] = []
-    for scenario_mode in _scenario_modes(mode):
-        results.append(
-            _capture_and_report_scenario(
-                SCENARIOS[scenario_mode],
-                port=port,
-                baud=baud,
-                timeout=timeout,
-                save_dir=save_dir,
-            )
-        )
+    result = _capture_and_report_scenario(
+        SCENARIOS[mode],
+        port=port,
+        baud=baud,
+        timeout=timeout,
+        save_dir=save_dir,
+    )
+    results = [result]
     _write_summary(save_dir, results)
     return results
 
@@ -377,7 +365,12 @@ def main() -> None:
     CLI 인자를 해석하고 저장 전용 report pipeline을 실행합니다.
     """
     parser = argparse.ArgumentParser(description="FIR N43 board evidence report generator")
-    parser.add_argument("--mode", required=True, choices=["1-1", "1-2", "all"], help="Report scenario to capture")
+    parser.add_argument(
+        "--mode",
+        required=True,
+        choices=["1-1", "1-2"],
+        help="Single report scenario to capture. Reset the board before each scenario.",
+    )
     parser.add_argument("--port", default="/dev/ttyUSB1", help="UART port")
     parser.add_argument("--baud", type=int, default=115200, help="UART baud rate")
     parser.add_argument(
