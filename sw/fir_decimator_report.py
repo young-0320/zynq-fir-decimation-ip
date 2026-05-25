@@ -1,0 +1,407 @@
+"""Save-only report pipeline for FIR N43 board evidence.
+
+English: Captures fixed board scenarios, computes metrics, and saves PNG/JSON/
+Markdown artifacts under ``docs/report/fir_n43``.
+Korean: 고정 보드 시나리오를 캡처하고 metric을 계산한 뒤
+``docs/report/fir_n43`` 아래에 PNG/JSON/Markdown 산출물을 저장합니다.
+
+This script never calls ``plt.show()``. Use ``fir_decimator_fft_viewer.py`` for
+interactive FFT windows.
+이 스크립트는 ``plt.show()``를 호출하지 않습니다. PC 화면 FFT 확인은
+``fir_decimator_fft_viewer.py``를 사용합니다.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from sw import fir_decimator_metrics as metrics
+from sw.fir_decimator_capture import DEFAULT_UART_TIMEOUT_SEC, capture_output_q15, q15_to_float
+from sw.fir_decimator_fft_viewer import (
+    FIR_COEFFS_Q15,
+    FS_HZ,
+    INPUT_FFT_XLIM_MHZ,
+    INPUT_MARKER_COLOR,
+    N_IN,
+    N_OUT,
+    OUTPUT_FFT_XLIM_MHZ,
+    OUTPUT_FS_HZ,
+    OUTPUT_MARKER_COLOR,
+    PLOT_LAYOUT_RECT,
+    PRESET_1_1,
+    PRESET_1_2,
+    _format_mhz,
+    _metadata_title,
+    _tone_marker_specs,
+    plot_fft_pair,
+)
+
+DEFAULT_SAVE_DIR = Path("docs/report/fir_n43")
+PLOT_DIR_NAME = "plot"
+METRICS_DIR_NAME = "metrics"
+BOARD_RESET_LIMITATION = "Board reset may be required between board scenarios."
+
+
+@dataclass(frozen=True)
+class ScenarioConfig:
+    """Describe one fixed board-report scenario.
+    고정 보드 리포트 시나리오 하나를 설명합니다.
+    """
+
+    mode: str
+    title: str
+    slug: str
+    freqs_hz: tuple[float, ...]
+    regions: Mapping[float, str]
+
+
+@dataclass(frozen=True)
+class OutputPaths:
+    """Hold output paths for one scenario artifact set.
+    시나리오 하나의 산출물 경로 묶음을 보관합니다.
+    """
+
+    plot_path: Path
+    metrics_path: Path
+
+
+@dataclass(frozen=True)
+class ScenarioResult:
+    """Hold saved paths and metrics for one completed scenario.
+    완료된 시나리오 하나의 저장 경로와 metric을 보관합니다.
+    """
+
+    scenario: ScenarioConfig
+    metrics_report: metrics.MetricsReport
+    paths: OutputPaths
+
+
+SCENARIOS: dict[str, ScenarioConfig] = {
+    "1-1": ScenarioConfig(
+        mode="1-1",
+        title="Scenario 1-1",
+        slug="scenario1_1",
+        freqs_hz=tuple(float(freq) for freq in PRESET_1_1),
+        regions={
+            5e6: "passband",
+            20e6: "transition",
+            30e6: "stopband",
+        },
+    ),
+    "1-2": ScenarioConfig(
+        mode="1-2",
+        title="Scenario 1-2",
+        slug="scenario1_2",
+        freqs_hz=tuple(float(freq) for freq in PRESET_1_2),
+        regions={
+            7e6: "passband",
+            15e6: "passband",
+            25e6: "transition",
+            45e6: "stopband",
+        },
+    ),
+}
+
+
+def _json_safe(value: Any) -> Any:
+    """Convert numpy and non-finite values into strict JSON-safe values.
+    numpy 값과 non-finite 값을 strict JSON으로 저장 가능한 값으로 변환합니다.
+    """
+    if isinstance(value, Mapping):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, np.ndarray):
+        return _json_safe(value.tolist())
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        value = float(value)
+    if isinstance(value, float):
+        if math.isinf(value):
+            return "inf" if value > 0.0 else "-inf"
+        if math.isnan(value):
+            return "nan"
+        return value
+    return value
+
+
+def _format_number(value: Any, digits: int = 3) -> str:
+    """Format report table values compactly.
+    리포트 표에 넣을 숫자를 간결하게 포맷합니다.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (np.integer, int)):
+        return str(int(value))
+    if isinstance(value, np.floating):
+        value = float(value)
+    if isinstance(value, float):
+        if math.isinf(value):
+            return "inf" if value > 0.0 else "-inf"
+        if math.isnan(value):
+            return "nan"
+        return f"{value:.{digits}f}"
+    return str(value)
+
+
+def _scenario_modes(mode: str) -> list[str]:
+    """Expand CLI mode into concrete scenario modes.
+    CLI mode를 실제 실행할 시나리오 mode 목록으로 확장합니다.
+    """
+    if mode == "all":
+        return ["1-1", "1-2"]
+    return [mode]
+
+
+def _ensure_output_dirs(save_dir: Path) -> tuple[Path, Path]:
+    """Create report root, plot, and metrics directories when missing.
+    report root, plot, metrics 디렉터리가 없으면 생성합니다.
+    """
+    plot_dir = save_dir / PLOT_DIR_NAME
+    metrics_dir = save_dir / METRICS_DIR_NAME
+    plot_dir.mkdir(parents=True, exist_ok=True)
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+    return plot_dir, metrics_dir
+
+
+def _output_paths(save_dir: Path, scenario: ScenarioConfig) -> OutputPaths:
+    """Return the PNG and JSON paths for one scenario.
+    시나리오 하나의 PNG 및 JSON 저장 경로를 반환합니다.
+    """
+    plot_dir, metrics_dir = _ensure_output_dirs(save_dir)
+    return OutputPaths(
+        plot_path=plot_dir / f"{scenario.slug}_fft.png",
+        metrics_path=metrics_dir / f"{scenario.slug}_metrics.json",
+    )
+
+
+def _save_fft_png(
+    path: Path,
+    scenario: ScenarioConfig,
+    input_q15: npt.ArrayLike,
+    board_output_q15: npt.ArrayLike,
+) -> None:
+    """Save input/output FFT PNG without opening a GUI window.
+    GUI 창을 열지 않고 입력/출력 FFT PNG를 저장합니다.
+    """
+    sig_in = q15_to_float(input_q15)
+    sig_out = q15_to_float(board_output_q15)
+    input_markers = _tone_marker_specs(scenario.freqs_hz, FS_HZ)
+    output_markers = _tone_marker_specs(scenario.freqs_hz, OUTPUT_FS_HZ)
+
+    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(14, 5))
+    fig.suptitle(_metadata_title(scenario.title, scenario.freqs_hz, "board-measured"))
+    plot_fft_pair(
+        ax_l,
+        ax_r,
+        sig_in,
+        FS_HZ,
+        sig_out,
+        OUTPUT_FS_HZ,
+        f"Input FFT (fs={_format_mhz(FS_HZ)})",
+        f"Output FFT (after FIR, fs={_format_mhz(OUTPUT_FS_HZ)})",
+        xlim_l=INPUT_FFT_XLIM_MHZ,
+        xlim_r=OUTPUT_FFT_XLIM_MHZ,
+        markers_l=input_markers,
+        markers_r=output_markers,
+        marker_label_l="input tone target",
+        marker_label_r="output alias target",
+        marker_color_l=INPUT_MARKER_COLOR,
+        marker_color_r=OUTPUT_MARKER_COLOR,
+    )
+    fig.tight_layout(rect=PLOT_LAYOUT_RECT)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _write_metrics_json(path: Path, report: metrics.MetricsReport) -> None:
+    """Write one metrics report as strict JSON.
+    metric report 하나를 strict JSON 파일로 저장합니다.
+    """
+    path.write_text(
+        json.dumps(_json_safe(report), indent=2, ensure_ascii=False, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _tone_list_mhz(freqs_hz: Sequence[float]) -> str:
+    """Format scenario tone frequencies in MHz.
+    시나리오 tone 주파수 목록을 MHz 단위 문자열로 만듭니다.
+    """
+    return ", ".join(_format_number(float(freq) / 1e6, digits=0) for freq in freqs_hz)
+
+
+def _write_summary(save_dir: Path, results: Sequence[ScenarioResult]) -> Path:
+    """Regenerate the root Markdown summary for the current run.
+    현재 실행 결과 기준으로 root Markdown summary를 재생성합니다.
+    """
+    summary_path = save_dir / "summary.md"
+    lines = [
+        "# FIR N43 Board Evidence Summary",
+        "",
+        "| Scenario | Tones (MHz) | Overall | Max Error (LSB) | RMSE (LSB) | SNR (dB) | Corr | FFT PNG | Metrics JSON |",
+        "|---|---:|---:|---:|---:|---:|---:|---|---|",
+    ]
+    for result in results:
+        report = result.metrics_report
+        sample = report["sample_metrics"]
+        plot_rel = result.paths.plot_path.relative_to(save_dir)
+        metrics_rel = result.paths.metrics_path.relative_to(save_dir)
+        lines.append(
+            "| "
+            f"{result.scenario.title} | "
+            f"{_tone_list_mhz(result.scenario.freqs_hz)} | "
+            f"{report['summary']['overall_verdict']} | "
+            f"{sample['max_abs_error_lsb']} | "
+            f"{_format_number(sample['rmse_lsb'])} | "
+            f"{_format_number(sample['snr_db'])} | "
+            f"{_format_number(sample['correlation'], digits=6)} | "
+            f"[{plot_rel.as_posix()}]({plot_rel.as_posix()}) | "
+            f"[{metrics_rel.as_posix()}]({metrics_rel.as_posix()}) |"
+        )
+
+    limitations = sorted(
+        {
+            limitation
+            for result in results
+            for limitation in result.metrics_report["known_limitations"]
+        }
+    )
+    if limitations:
+        lines.extend(["", "## Known Limitations", ""])
+        lines.extend(f"- {limitation}" for limitation in limitations)
+    lines.append("")
+    summary_path.write_text("\n".join(lines), encoding="utf-8")
+    return summary_path
+
+
+def _capture_and_report_scenario(
+    scenario: ScenarioConfig,
+    *,
+    port: str,
+    baud: int,
+    timeout: float,
+    save_dir: Path,
+) -> ScenarioResult:
+    """Capture one board scenario, compute metrics, and save artifacts.
+    보드 시나리오 하나를 캡처하고 metric 계산 및 산출물 저장을 수행합니다.
+    """
+    paths = _output_paths(save_dir, scenario)
+    board_output_q15 = capture_output_q15(
+        port,
+        baud,
+        timeout,
+        scenario.freqs_hz,
+        expected_samples=N_OUT,
+    )
+    if board_output_q15.size != N_OUT:
+        raise ValueError(f"expected {N_OUT} output samples, got {board_output_q15.size}")
+
+    reference = metrics.generate_fixed_reference(
+        scenario.freqs_hz,
+        n_in=N_IN,
+        fs_hz=FS_HZ,
+        coeffs_q15=FIR_COEFFS_Q15,
+        n_out=N_OUT,
+    )
+    report = metrics.build_report(
+        scenario.mode,
+        scenario.freqs_hz,
+        reference["input_q15"],
+        board_output_q15,
+        reference["fixed_q15_reference"],
+        fs_in_hz=FS_HZ,
+        fs_out_hz=OUTPUT_FS_HZ,
+        regions=scenario.regions,
+        fft_plot_path=str(paths.plot_path),
+        known_limitations=[BOARD_RESET_LIMITATION],
+    )
+
+    _save_fft_png(paths.plot_path, scenario, reference["input_q15"], board_output_q15)
+    _write_metrics_json(paths.metrics_path, report)
+    return ScenarioResult(scenario=scenario, metrics_report=report, paths=paths)
+
+
+def run_report(
+    *,
+    mode: str,
+    port: str,
+    baud: int,
+    timeout: float,
+    save_dir: Path,
+) -> list[ScenarioResult]:
+    """Run selected report scenario(s) and regenerate summary.md.
+    선택한 report 시나리오를 실행하고 summary.md를 재생성합니다.
+    """
+    save_dir.mkdir(parents=True, exist_ok=True)
+    results: list[ScenarioResult] = []
+    for scenario_mode in _scenario_modes(mode):
+        results.append(
+            _capture_and_report_scenario(
+                SCENARIOS[scenario_mode],
+                port=port,
+                baud=baud,
+                timeout=timeout,
+                save_dir=save_dir,
+            )
+        )
+    _write_summary(save_dir, results)
+    return results
+
+
+def main() -> None:
+    """Parse CLI arguments and run the save-only report pipeline.
+    CLI 인자를 해석하고 저장 전용 report pipeline을 실행합니다.
+    """
+    parser = argparse.ArgumentParser(description="FIR N43 board evidence report generator")
+    parser.add_argument("--mode", required=True, choices=["1-1", "1-2", "all"], help="Report scenario to capture")
+    parser.add_argument("--port", default="/dev/ttyUSB1", help="UART port")
+    parser.add_argument("--baud", type=int, default=115200, help="UART baud rate")
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_UART_TIMEOUT_SEC,
+        help=f"UART read timeout seconds (default: {DEFAULT_UART_TIMEOUT_SEC})",
+    )
+    parser.add_argument(
+        "--save-dir",
+        type=Path,
+        default=DEFAULT_SAVE_DIR,
+        help=f"Report output root (default: {DEFAULT_SAVE_DIR})",
+    )
+    args = parser.parse_args()
+
+    results = run_report(
+        mode=args.mode,
+        port=args.port,
+        baud=args.baud,
+        timeout=args.timeout,
+        save_dir=args.save_dir,
+    )
+    for result in results:
+        print(f"{result.scenario.title}: {result.metrics_report['summary']['overall_verdict']}")
+        print(f"  plot: {result.paths.plot_path}")
+        print(f"  metrics: {result.paths.metrics_path}")
+    print(f"  summary: {args.save_dir / 'summary.md'}")
+
+
+if __name__ == "__main__":
+    main()
