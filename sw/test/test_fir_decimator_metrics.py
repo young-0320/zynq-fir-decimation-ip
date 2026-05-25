@@ -278,6 +278,27 @@ def test_compare_tone_peaks_compares_board_against_golden_at_folded_bins():
         }
 
 
+def test_compare_tone_peaks_warns_when_board_peak_differs_from_golden():
+    tones_hz, sig_in, golden_out = _small_tone_fixture()
+    board_out = (golden_out.astype(np.int32) // 2).astype(np.int16)
+
+    rows = metrics.compare_tone_peaks(
+        sig_in,
+        board_out,
+        golden_out,
+        [1.0],
+        fs_in_hz=8.0,
+        fs_out_hz=4.0,
+        regions={1.0: "passband"},
+        search_hz=0.1,
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["region"] == "passband"
+    assert rows[0]["board_vs_golden_peak_delta_db"] < -metrics.DEFAULT_PEAK_DELTA_PASS_DB
+    assert rows[0]["verdict"] == "WARN"
+
+
 def test_build_report_contains_scenario_sample_and_tone_metrics():
     tones_hz, sig_in, golden_out = _small_tone_fixture()
 

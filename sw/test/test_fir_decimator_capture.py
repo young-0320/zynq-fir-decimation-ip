@@ -251,6 +251,51 @@ def test_capture_output_q15_sends_command_receives_samples_and_closes(monkeypatc
     assert created["ser"].closed is True
 
 
+def test_capture_output_q15_forwards_sample_count_guards(monkeypatch):
+    expected = np.array([1, -2, 3, -4], dtype=np.int16)
+    calls = []
+
+    class _GuardSerial:
+        def __init__(self):
+            self.sent = b""
+            self.closed = False
+
+        def write(self, data):
+            self.sent += data
+
+        def close(self):
+            self.closed = True
+
+    ser = _GuardSerial()
+
+    def fake_uart_open(port, baud, timeout):
+        assert (port, baud, timeout) == ("/dev/ttyTEST", 115200, 2.5)
+        calls.append(("open",))
+        return ser
+
+    def fake_recv_result_q15(actual_ser, *, expected_samples=None, max_samples=None):
+        assert actual_ser is ser
+        calls.append(("recv", expected_samples, max_samples))
+        return expected
+
+    monkeypatch.setattr(capture, "uart_open", fake_uart_open)
+    monkeypatch.setattr(capture, "uart_recv_result_q15", fake_recv_result_q15)
+
+    result = capture.capture_output_q15(
+        "/dev/ttyTEST",
+        115200,
+        2.5,
+        [5e6],
+        expected_samples=4,
+        max_samples=8,
+    )
+
+    np.testing.assert_array_equal(result, expected)
+    assert calls == [("open",), ("recv", 4, 8)]
+    assert ser.sent == b"1 5000000\n"
+    assert ser.closed is True
+
+
 def test_capture_output_q15_closes_uart_when_receive_fails(monkeypatch):
     created = {}
 
