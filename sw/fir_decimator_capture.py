@@ -29,8 +29,8 @@ DMA_ERROR_TEXT = {
 
 Q15_SCALE = 32768.0
 MAX_TONES = 8
-MIN_TONE_FREQ_HZ = 1.0
-MAX_TONE_FREQ_HZ = 100_000_000.0
+MIN_TONE_FREQ_HZ = 1_000_000.0
+MAX_TONE_FREQ_HZ = 50_000_000.0
 
 
 def uart_open(port: str, baud: int, timeout: float):
@@ -58,13 +58,13 @@ def validate_tone_frequencies(freqs_hz: Sequence[float]) -> list[int]:
             raise ValueError("freqs_hz must contain positive frequencies")
         if freq < MIN_TONE_FREQ_HZ:
             raise ValueError(
-                f"freqs_hz must be at least {MIN_TONE_FREQ_HZ:.0f} Hz "
-                "because the UART command uses integer Hz"
+                f"freqs_hz must be >= {MIN_TONE_FREQ_HZ:.0f} Hz "
+                f"({MIN_TONE_FREQ_HZ / 1e6:g} MHz)"
             )
-        if freq > MAX_TONE_FREQ_HZ:
+        if freq >= MAX_TONE_FREQ_HZ:
             raise ValueError(
-                f"freqs_hz must be <= {MAX_TONE_FREQ_HZ:.0f} Hz "
-                f"({MAX_TONE_FREQ_HZ / 1e6:g} MHz input sample rate)"
+                f"freqs_hz must be < {MAX_TONE_FREQ_HZ:.0f} Hz "
+                f"({MAX_TONE_FREQ_HZ / 1e6:g} MHz input Nyquist)"
             )
         freqs_int.append(int(freq))
 

@@ -65,11 +65,62 @@ PRESET_1_1 = [5e6, 20e6, 30e6]
 PRESET_1_2 = [7e6, 15e6, 25e6, 45e6]
 INPUT_FFT_XLIM_MHZ = (0, FS_HZ / 2 / 1e6)
 OUTPUT_FS_HZ = FS_HZ / 2
-OUTPUT_FFT_XLIM_MHZ = (0, OUTPUT_FS_HZ / 2 / 1e6)
+OUTPUT_FFT_VALID_XLIM_MHZ = (0, OUTPUT_FS_HZ / 2 / 1e6)
+OUTPUT_FFT_DISPLAY_XLIM_MHZ = INPUT_FFT_XLIM_MHZ
+OUTPUT_FFT_XLIM_MHZ = OUTPUT_FFT_DISPLAY_XLIM_MHZ
+OUTPUT_INVALID_REGION_MHZ = (OUTPUT_FFT_VALID_XLIM_MHZ[1], OUTPUT_FFT_DISPLAY_XLIM_MHZ[1])
+FIR_PASSBAND_MAX_MHZ = 15
+FIR_STOPBAND_MIN_MHZ = 25
+FIR_TRANSITION_BAND_MHZ = (FIR_PASSBAND_MAX_MHZ, FIR_STOPBAND_MIN_MHZ)
+INPUT_BAND_BOUNDARIES_MHZ = (
+    {"frequency_mhz": FIR_PASSBAND_MAX_MHZ, "label": "pass edge 15 MHz"},
+    {"frequency_mhz": FIR_STOPBAND_MIN_MHZ, "label": "stop edge 25 MHz"},
+)
+
+# Plot tuning knobs. Edit these constants to adjust the viewer/report figures.
+PAIR_FIGSIZE = (18, 7)
+SCENARIO0_FIGSIZE = (21, 7)
+FIG_SUPTITLE_FONTSIZE = 17
+FIG_SUPTITLE_Y = 0.985
+FIG_SUBTITLE_FONTSIZE = 11
+FIG_SUBTITLE_Y = 0.94
+FIG_SUBTITLE_COLOR = "#374151"
 PLOT_LAYOUT_RECT = (0, 0, 1, 0.88)
+PLOT_YLIM_DB = (-100, 5)
+PLOT_LINEWIDTH = 1.5
+GRID_ENABLED = True
+
 INPUT_MARKER_COLOR = "#2563eb"
 OUTPUT_MARKER_COLOR = "#c2410c"
 NYQUIST_MARKER_COLOR = "#7c3aed"
+TONE_MARKER_LINEWIDTH = 1.0
+TONE_MARKER_ALPHA = 0.85
+TONE_MARKER_LABEL_FONTSIZE = 8
+TONE_MARKER_LABEL_OFFSET = (3, -4)
+TONE_MARKER_EDGE_LABEL_OFFSET = (-3, -4)
+TONE_MARKER_EDGE_ATOL_MHZ = 0.05
+TONE_MARKER_LINESTYLE = "--"
+NYQUIST_MARKER_LINESTYLE = ":"
+LEGEND_LOCATION = "lower right"
+LEGEND_FONTSIZE = 8
+
+BAND_BOUNDARY_COLOR = "#111827"
+BAND_BOUNDARY_LINESTYLE = "-."
+BAND_BOUNDARY_LINEWIDTH = 1.0
+BAND_BOUNDARY_ALPHA = 0.7
+BAND_BOUNDARY_LABEL_FONTSIZE = 8
+BAND_BOUNDARY_LABEL_Y = 0.02
+BAND_BOUNDARY_LABEL_OFFSET = (3, 4)
+
+INVALID_REGION_COLOR = "#e5e7eb"
+INVALID_REGION_EDGE_COLOR = "#6b7280"
+INVALID_REGION_ALPHA = 0.45
+INVALID_REGION_EDGE_ALPHA = 0.9
+INVALID_REGION_EDGE_LINEWIDTH = 1.0
+INVALID_REGION_EDGE_LINESTYLE = "-"
+INVALID_REGION_LABEL = "invalid after {start_mhz:g} MHz"
+INVALID_REGION_LABEL_FONTSIZE = 8
+INVALID_REGION_LABEL_OFFSET = (4, -4)
 
 
 def gen_multitone(freqs: Sequence[float]) -> npt.NDArray[np.float64]:
@@ -127,14 +178,56 @@ def _format_mhz_range_value(value_hz):
     return f"{mhz:.6f}".rstrip("0").rstrip(".")
 
 
-def _metadata_title(mode_name, freqs, source):
-    """Build the shared plot title metadata.
-    공통 plot 제목 metadata 문자열을 만듭니다.
+def _format_mhz_span(span_mhz):
+    """Format a frequency span already expressed in MHz.
+    MHz 단위 구간을 간결한 문자열로 포맷합니다.
     """
+    start_mhz, end_mhz = span_mhz
+    return f"{_format_mhz_compact(start_mhz * 1e6)}-{_format_mhz_compact(end_mhz * 1e6)} MHz"
+
+
+def _metadata_title(mode_name, freqs, source=None):
+    """Build the main figure title.
+    figure 상단의 핵심 제목 문자열을 만듭니다.
+    """
+    return f"{mode_name} - tones: {_format_tones(freqs)}"
+
+
+def _metadata_subtitle():
+    """Build the shared figure subtitle for output FFT interpretation.
+    출력 FFT 해석에 필요한 공통 subtitle 문자열을 만듭니다.
+    """
+    transition_band = _format_mhz_span(FIR_TRANSITION_BAND_MHZ)
+    valid_band = _format_mhz_span(OUTPUT_FFT_VALID_XLIM_MHZ)
+    shaded_band = _format_mhz_span(OUTPUT_INVALID_REGION_MHZ)
     return (
-        f"{mode_name} | {source} | tones: {_format_tones(freqs)}\n"
-        f"input fs: {_format_mhz(FS_HZ)} | output fs: {_format_mhz(OUTPUT_FS_HZ)}"
+        f"Input bands: pass <= {FIR_PASSBAND_MAX_MHZ:g} MHz, "
+        f"transition {transition_band}, stop >= {FIR_STOPBAND_MIN_MHZ:g} MHz | "
+        f"Output valid: {valid_band}; shaded {shaded_band} is comparison-only"
     )
+
+
+def _set_figure_header(fig, mode_name, freqs):
+    """Apply the shared title/subtitle figure header.
+    공통 title/subtitle figure header를 적용합니다.
+    """
+    fig.suptitle(_metadata_title(mode_name, freqs), fontsize=FIG_SUPTITLE_FONTSIZE, y=FIG_SUPTITLE_Y)
+    fig.text(
+        0.5,
+        FIG_SUBTITLE_Y,
+        _metadata_subtitle(),
+        ha="center",
+        va="top",
+        fontsize=FIG_SUBTITLE_FONTSIZE,
+        color=FIG_SUBTITLE_COLOR,
+    )
+
+
+def _fft_axis_title(label, fs_hz):
+    """Build an FFT subplot title with sample rate and Nyquist frequency.
+    sample rate와 Nyquist 주파수를 포함한 FFT subplot 제목을 만듭니다.
+    """
+    return f"{label} - fs={_format_mhz(fs_hz)}, Nyq={_format_mhz(fs_hz / 2)}"
 
 
 def _fold_frequency_hz(frequency_hz, sample_rate_hz):
@@ -199,26 +292,105 @@ def _add_tone_markers(ax, markers, *, color, legend_label):
         ax.axvline(
             marker["frequency_mhz"],
             color=marker_color,
-            linestyle=":" if marker["nyquist_edge"] else "--",
-            linewidth=1.0,
-            alpha=0.85,
+            linestyle=NYQUIST_MARKER_LINESTYLE if marker["nyquist_edge"] else TONE_MARKER_LINESTYLE,
+            linewidth=TONE_MARKER_LINEWIDTH,
+            alpha=TONE_MARKER_ALPHA,
             label=legend_label if index == 0 else None,
         )
         _, x_max = ax.get_xlim()
-        at_right_edge = np.isclose(marker["frequency_mhz"], x_max, rtol=0.0, atol=0.05)
+        at_right_edge = np.isclose(
+            marker["frequency_mhz"], x_max, rtol=0.0, atol=TONE_MARKER_EDGE_ATOL_MHZ
+        )
         ax.annotate(
             marker["label"],
             xy=(marker["frequency_mhz"], 1.0),
             xycoords=("data", "axes fraction"),
-            xytext=(-3, -4) if at_right_edge else (3, -4),
+            xytext=TONE_MARKER_EDGE_LABEL_OFFSET if at_right_edge else TONE_MARKER_LABEL_OFFSET,
             textcoords="offset points",
             rotation=90,
             va="top",
             ha="right" if at_right_edge else "left",
-            fontsize=8,
+            fontsize=TONE_MARKER_LABEL_FONTSIZE,
             color=marker_color,
         )
-    ax.legend(loc="lower right", fontsize=8)
+    ax.legend(loc=LEGEND_LOCATION, fontsize=LEGEND_FONTSIZE)
+
+
+def _add_band_boundaries(ax, boundaries):
+    """Draw FIR pass/transition/stop design boundaries.
+    FIR pass/transition/stop 설계 경계선을 그립니다.
+    """
+    if not boundaries:
+        return
+
+    x_min, x_max = ax.get_xlim()
+    for boundary in boundaries:
+        frequency_mhz = float(boundary["frequency_mhz"])
+        if frequency_mhz < x_min or frequency_mhz > x_max:
+            continue
+        ax.axvline(
+            frequency_mhz,
+            color=BAND_BOUNDARY_COLOR,
+            linestyle=BAND_BOUNDARY_LINESTYLE,
+            linewidth=BAND_BOUNDARY_LINEWIDTH,
+            alpha=BAND_BOUNDARY_ALPHA,
+            zorder=1,
+        )
+        ax.annotate(
+            boundary["label"],
+            xy=(frequency_mhz, BAND_BOUNDARY_LABEL_Y),
+            xycoords=("data", "axes fraction"),
+            xytext=BAND_BOUNDARY_LABEL_OFFSET,
+            textcoords="offset points",
+            rotation=90,
+            va="bottom",
+            ha="left",
+            fontsize=BAND_BOUNDARY_LABEL_FONTSIZE,
+            color=BAND_BOUNDARY_COLOR,
+        )
+
+
+def _add_invalid_region(ax, invalid_region_mhz, *, label=INVALID_REGION_LABEL):
+    """Shade a frequency range that is outside the valid FFT band.
+    유효 FFT 대역 밖의 주파수 구간을 음영으로 표시합니다.
+    """
+    if invalid_region_mhz is None:
+        return
+
+    start_mhz, end_mhz = invalid_region_mhz
+    x_min, x_max = ax.get_xlim()
+    shade_start = max(float(start_mhz), float(x_min))
+    shade_end = min(float(end_mhz), float(x_max))
+    if shade_end <= shade_start:
+        return
+
+    ax.axvspan(
+        shade_start,
+        shade_end,
+        color=INVALID_REGION_COLOR,
+        alpha=INVALID_REGION_ALPHA,
+        linewidth=0,
+        zorder=0,
+    )
+    ax.axvline(
+        shade_start,
+        color=INVALID_REGION_EDGE_COLOR,
+        linestyle=INVALID_REGION_EDGE_LINESTYLE,
+        linewidth=INVALID_REGION_EDGE_LINEWIDTH,
+        alpha=INVALID_REGION_EDGE_ALPHA,
+        zorder=1,
+    )
+    ax.annotate(
+        label.format(start_mhz=shade_start, end_mhz=shade_end),
+        xy=(shade_start, 1.0),
+        xycoords=("data", "axes fraction"),
+        xytext=INVALID_REGION_LABEL_OFFSET,
+        textcoords="offset points",
+        va="top",
+        ha="left",
+        fontsize=INVALID_REGION_LABEL_FONTSIZE,
+        color=INVALID_REGION_EDGE_COLOR,
+    )
 
 
 def build_scenario0_signals():
@@ -242,19 +414,23 @@ def _plot_fft_axis(
     markers=None,
     marker_color=INPUT_MARKER_COLOR,
     marker_label="tone target",
+    invalid_region_mhz=None,
+    band_boundaries_mhz=None,
 ):
     """Render one FFT axis with optional tone markers.
     톤 marker를 포함할 수 있는 FFT 축 하나를 그립니다.
     """
     f, db = _fft_db(sig, fs, ref)
     ax.cla()
-    ax.plot(f, db)
+    ax.plot(f, db, linewidth=PLOT_LINEWIDTH)
     ax.set_title(title)
     ax.set_xlabel("Frequency (MHz)")
     ax.set_ylabel("Magnitude (dB)")
     ax.set_xlim(*xlim)
-    ax.set_ylim(-100, 5)
-    ax.grid(True)
+    ax.set_ylim(*PLOT_YLIM_DB)
+    _add_band_boundaries(ax, band_boundaries_mhz)
+    _add_invalid_region(ax, invalid_region_mhz)
+    ax.grid(GRID_ENABLED)
     _add_tone_markers(ax, markers, color=marker_color, legend_label=marker_label)
 
 
@@ -276,6 +452,10 @@ def plot_fft_pair(
     marker_label_r="tone target",
     marker_color_l=INPUT_MARKER_COLOR,
     marker_color_r=OUTPUT_MARKER_COLOR,
+    invalid_region_l=None,
+    invalid_region_r=None,
+    band_boundaries_l=None,
+    band_boundaries_r=None,
 ):
     """Render paired input/output FFT axes.
     입력/출력 FFT 축 쌍을 그립니다.
@@ -289,9 +469,15 @@ def plot_fft_pair(
     if xlim_r is None:
         xlim_r = (0, fs_r / 2 / 1e6)
 
-    for ax, sig, fs, title, xlim, markers, marker_color, marker_label in [
-        (ax_l, sig_l, fs_l, title_l, xlim_l, markers_l, marker_color_l, marker_label_l),
-        (ax_r, sig_r, fs_r, title_r, xlim_r, markers_r, marker_color_r, marker_label_r),
+    for ax, sig, fs, title, xlim, markers, marker_color, marker_label, invalid_region, band_boundaries in [
+        (
+            ax_l, sig_l, fs_l, title_l, xlim_l, markers_l, marker_color_l, marker_label_l,
+            invalid_region_l, band_boundaries_l,
+        ),
+        (
+            ax_r, sig_r, fs_r, title_r, xlim_r, markers_r, marker_color_r, marker_label_r,
+            invalid_region_r, band_boundaries_r,
+        ),
     ]:
         _plot_fft_axis(
             ax,
@@ -303,6 +489,8 @@ def plot_fft_pair(
             markers=markers,
             marker_color=marker_color,
             marker_label=marker_label,
+            invalid_region_mhz=invalid_region,
+            band_boundaries_mhz=band_boundaries,
         )
 
 
@@ -315,40 +503,43 @@ def run_scenario0():
     input_markers = _tone_marker_specs(SCENARIO0_FREQS, FS_HZ)
     output_markers = _tone_marker_specs(SCENARIO0_FREQS, OUTPUT_FS_HZ)
 
-    fig, (ax_in, ax_naive, ax_fir) = plt.subplots(1, 3, figsize=(18, 5))
-    fig.suptitle(_metadata_title("Scenario 0", SCENARIO0_FREQS, "PC-only"))
+    fig, (ax_in, ax_naive, ax_fir) = plt.subplots(1, 3, figsize=SCENARIO0_FIGSIZE)
+    _set_figure_header(fig, "Scenario 0", SCENARIO0_FREQS)
     _plot_fft_axis(
         ax_in,
         sig_in,
         FS_HZ,
-        f"Input FFT (fs={_format_mhz(FS_HZ)})",
+        _fft_axis_title("Input FFT", FS_HZ),
         ref=ref,
         xlim=INPUT_FFT_XLIM_MHZ,
         markers=input_markers,
         marker_color=INPUT_MARKER_COLOR,
         marker_label="input tone target",
+        band_boundaries_mhz=INPUT_BAND_BOUNDARIES_MHZ,
     )
     _plot_fft_axis(
         ax_naive,
         naive,
         OUTPUT_FS_HZ,
-        f"Downsample only (aliasing, fs={_format_mhz(OUTPUT_FS_HZ)})",
+        _fft_axis_title("Downsample only", OUTPUT_FS_HZ),
         ref=ref,
-        xlim=OUTPUT_FFT_XLIM_MHZ,
+        xlim=OUTPUT_FFT_DISPLAY_XLIM_MHZ,
         markers=output_markers,
         marker_color=OUTPUT_MARKER_COLOR,
         marker_label="output alias target",
+        invalid_region_mhz=OUTPUT_INVALID_REGION_MHZ,
     )
     _plot_fft_axis(
         ax_fir,
         filtered,
         OUTPUT_FS_HZ,
-        f"FIR + decimation (fs={_format_mhz(OUTPUT_FS_HZ)})",
+        _fft_axis_title("FIR + decimation", OUTPUT_FS_HZ),
         ref=ref,
-        xlim=OUTPUT_FFT_XLIM_MHZ,
+        xlim=OUTPUT_FFT_DISPLAY_XLIM_MHZ,
         markers=output_markers,
         marker_color=OUTPUT_MARKER_COLOR,
         marker_label="output alias target",
+        invalid_region_mhz=OUTPUT_INVALID_REGION_MHZ,
     )
     fig.tight_layout(rect=PLOT_LAYOUT_RECT)
     plt.show()
@@ -364,42 +555,37 @@ def run_scenario1(mode_name, freqs, ser):
     input_markers = _tone_marker_specs(freqs, FS_HZ)
     output_markers = _tone_marker_specs(freqs, OUTPUT_FS_HZ)
 
-    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(14, 5))
-    fig.suptitle(_metadata_title(mode_name, freqs, "board-measured"))
+    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=PAIR_FIGSIZE)
+    _set_figure_header(fig, mode_name, freqs)
     plot_fft_pair(
         ax_l, ax_r,
         sig_in, FS_HZ,
         sig_out, OUTPUT_FS_HZ,
-        f"Input FFT (fs={_format_mhz(FS_HZ)})",
-        f"Output FFT (after FIR, fs={_format_mhz(OUTPUT_FS_HZ)})",
+        _fft_axis_title("Input FFT", FS_HZ),
+        _fft_axis_title("Output FFT after FIR", OUTPUT_FS_HZ),
         xlim_l=INPUT_FFT_XLIM_MHZ,
-        xlim_r=OUTPUT_FFT_XLIM_MHZ,
+        xlim_r=OUTPUT_FFT_DISPLAY_XLIM_MHZ,
         markers_l=input_markers,
         markers_r=output_markers,
         marker_label_l="input tone target",
         marker_label_r="output alias target",
+        invalid_region_r=OUTPUT_INVALID_REGION_MHZ,
+        band_boundaries_l=INPUT_BAND_BOUNDARIES_MHZ,
     )
     fig.tight_layout(rect=PLOT_LAYOUT_RECT)
     plt.show()
 
 
 def run_interactive(ser):
-    """Run the interactive board FFT viewer loop.
-    인터랙티브 보드 FFT viewer 루프를 실행합니다.
+    """Run one user-selected board FFT capture.
+    사용자가 선택한 주파수 조합을 보드에서 1회 캡처해 FFT를 표시합니다.
     """
-    plt.ion()
-    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(14, 5))
-    fig.suptitle(
-        f"Scenario 2 | board-measured | tones: waiting for input\n"
-        f"input fs: {_format_mhz(FS_HZ)} | output fs: {_format_mhz(OUTPUT_FS_HZ)}"
-    )
-    fig.tight_layout(rect=PLOT_LAYOUT_RECT)
-
     print(
         "주파수 입력 형식: 'f1 f2 ...' "
-        f"(MHz, 공백 구분, 범위 {_format_mhz_range_value(MIN_TONE_FREQ_HZ)}.."
-        f"{_format_mhz_range_value(MAX_TONE_FREQ_HZ)} MHz, 최대 {MAX_TONES}개) "
-        "| 종료: Ctrl+C"
+        f"(MHz, 공백으로 구분, 범위 "
+        f"[{_format_mhz_range_value(MIN_TONE_FREQ_HZ)}, "
+        f"{_format_mhz_range_value(MAX_TONE_FREQ_HZ)}) MHz, 최대 {MAX_TONES}개) "
+        "| 보드 실행 1회 | 종료: Ctrl+C"
     )
 
     while True:
@@ -409,36 +595,43 @@ def run_interactive(ser):
                 continue
             freqs = [float(x) * 1e6 for x in line.split()]
             validate_tone_frequencies(freqs)
-
-            sig_in = gen_multitone(freqs)
-            uart_send_cmd(ser, freqs)
-            sig_out = uart_recv_result(ser)
-            input_markers = _tone_marker_specs(freqs, FS_HZ)
-            output_markers = _tone_marker_specs(freqs, OUTPUT_FS_HZ)
-
-            fig.suptitle(_metadata_title("Scenario 2", freqs, "board-measured"))
-            plot_fft_pair(
-                ax_l, ax_r,
-                sig_in, FS_HZ,
-                sig_out, OUTPUT_FS_HZ,
-                f"Input FFT (fs={_format_mhz(FS_HZ)})",
-                f"Output FFT (after FIR, fs={_format_mhz(OUTPUT_FS_HZ)})",
-                xlim_l=INPUT_FFT_XLIM_MHZ,
-                xlim_r=OUTPUT_FFT_XLIM_MHZ,
-                markers_l=input_markers,
-                markers_r=output_markers,
-                marker_label_l="input tone target",
-                marker_label_r="output alias target",
-            )
-            fig.tight_layout(rect=PLOT_LAYOUT_RECT)
-            fig.canvas.draw()
-            fig.canvas.flush_events()
-
+            break
         except (KeyboardInterrupt, EOFError):
             print("\n종료")
-            break
-        except (TimeoutError, ValueError, RuntimeError, OSError) as e:
+            return
+        except ValueError as e:
             print(f"예외 발생: {e}")
+
+    try:
+        sig_in = gen_multitone(freqs)
+        uart_send_cmd(ser, freqs)
+        sig_out = uart_recv_result(ser)
+    except (TimeoutError, RuntimeError, OSError) as e:
+        print(f"예외 발생: {e}")
+        return
+
+    input_markers = _tone_marker_specs(freqs, FS_HZ)
+    output_markers = _tone_marker_specs(freqs, OUTPUT_FS_HZ)
+
+    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=PAIR_FIGSIZE)
+    _set_figure_header(fig, "Scenario 2", freqs)
+    plot_fft_pair(
+        ax_l, ax_r,
+        sig_in, FS_HZ,
+        sig_out, OUTPUT_FS_HZ,
+        _fft_axis_title("Input FFT", FS_HZ),
+        _fft_axis_title("Output FFT after FIR", OUTPUT_FS_HZ),
+        xlim_l=INPUT_FFT_XLIM_MHZ,
+        xlim_r=OUTPUT_FFT_DISPLAY_XLIM_MHZ,
+        markers_l=input_markers,
+        markers_r=output_markers,
+        marker_label_l="input tone target",
+        marker_label_r="output alias target",
+        invalid_region_r=OUTPUT_INVALID_REGION_MHZ,
+        band_boundaries_l=INPUT_BAND_BOUNDARIES_MHZ,
+    )
+    fig.tight_layout(rect=PLOT_LAYOUT_RECT)
+    plt.show()
 
 
 def main():
@@ -447,7 +640,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description="FIR 데시메이터 FFT viewer")
     parser.add_argument("--mode", required=True, choices=["0", "1-1", "1-2", "2"],
-                        help="0=앨리어싱 비교, 1-1/1-2=고정 프리셋, 2=인터랙티브")
+                        help="0=앨리어싱 비교, 1-1/1-2=고정 프리셋, 2=사용자 입력 1회")
     parser.add_argument("--port", default="/dev/ttyUSB1", help="UART 포트")
     parser.add_argument("--baud", type=int, default=115200, help="Baud rate (기본값 115200)")
     parser.add_argument("--timeout", type=float, default=DEFAULT_UART_TIMEOUT_SEC,

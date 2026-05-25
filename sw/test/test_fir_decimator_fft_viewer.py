@@ -8,12 +8,19 @@ from sw import fir_decimator_fft_viewer as viewer
 from sw.fir_decimator_fft_viewer import (
     FIR_COEFFS,
     FIR_COEFFS_Q15,
+    FIG_SUPTITLE_FONTSIZE,
     FS_HZ,
+    INPUT_BAND_BOUNDARIES_MHZ,
     INPUT_FFT_XLIM_MHZ,
     N_IN,
     N_OUT,
+    OUTPUT_FFT_DISPLAY_XLIM_MHZ,
+    OUTPUT_FFT_VALID_XLIM_MHZ,
     OUTPUT_FFT_XLIM_MHZ,
     OUTPUT_FS_HZ,
+    OUTPUT_INVALID_REGION_MHZ,
+    PAIR_FIGSIZE,
+    SCENARIO0_FIGSIZE,
     SCENARIO0_FREQS,
     _fft_db,
     _tone_marker_specs,
@@ -202,6 +209,13 @@ def test_fft_db_zero_signal_no_crash():
     assert np.all(db < -200)
 
 
+def test_output_fft_display_range_keeps_valid_band_explicit():
+    assert OUTPUT_FFT_VALID_XLIM_MHZ == (0, OUTPUT_FS_HZ / 2 / 1e6)
+    assert OUTPUT_FFT_DISPLAY_XLIM_MHZ == INPUT_FFT_XLIM_MHZ
+    assert OUTPUT_FFT_XLIM_MHZ == OUTPUT_FFT_DISPLAY_XLIM_MHZ
+    assert OUTPUT_INVALID_REGION_MHZ == (OUTPUT_FFT_VALID_XLIM_MHZ[1], OUTPUT_FFT_DISPLAY_XLIM_MHZ[1])
+
+
 def test_tone_marker_specs_show_output_alias_locations():
     markers = _tone_marker_specs([30e6, 45e6, 25e6], OUTPUT_FS_HZ)
 
@@ -212,17 +226,6 @@ def test_tone_marker_specs_show_output_alias_locations():
     assert by_freq[25.0]["nyquist_edge"] is True
 
 
-def test_tone_marker_specs_show_input_alias_above_nyquist():
-    markers = _tone_marker_specs([97e6], FS_HZ)
-
-    assert markers == [
-        {
-            "frequency_mhz": pytest.approx(3.0),
-            "label": "97->3 MHz",
-            "nyquist_edge": False,
-        }
-    ]
-
 
 def test_tone_marker_specs_group_overlapping_alias_targets():
     markers = _tone_marker_specs([20e6, 30e6], OUTPUT_FS_HZ)
@@ -230,6 +233,43 @@ def test_tone_marker_specs_group_overlapping_alias_targets():
     assert len(markers) == 1
     assert markers[0]["frequency_mhz"] == pytest.approx(20.0)
     assert markers[0]["label"] == "20 MHz / 30->20 MHz"
+
+
+def test_plot_fft_pair_passes_visual_metadata_to_each_axis(monkeypatch):
+    calls = []
+
+    def fake_plot_axis(ax, sig, fs, title, **kwargs):
+        calls.append(
+            (
+                ax,
+                fs,
+                kwargs["xlim"],
+                kwargs.get("invalid_region_mhz"),
+                kwargs.get("band_boundaries_mhz"),
+            )
+        )
+
+    monkeypatch.setattr(viewer, "_plot_fft_axis", fake_plot_axis)
+
+    viewer.plot_fft_pair(
+        "left",
+        "right",
+        np.zeros(8),
+        FS_HZ,
+        np.zeros(4),
+        OUTPUT_FS_HZ,
+        "in",
+        "out",
+        xlim_l=INPUT_FFT_XLIM_MHZ,
+        xlim_r=OUTPUT_FFT_DISPLAY_XLIM_MHZ,
+        invalid_region_r=OUTPUT_INVALID_REGION_MHZ,
+        band_boundaries_l=INPUT_BAND_BOUNDARIES_MHZ,
+    )
+
+    assert calls == [
+        ("left", FS_HZ, INPUT_FFT_XLIM_MHZ, None, INPUT_BAND_BOUNDARIES_MHZ),
+        ("right", OUTPUT_FS_HZ, OUTPUT_FFT_DISPLAY_XLIM_MHZ, OUTPUT_INVALID_REGION_MHZ, None),
+    ]
 
 
 def test_scenario0_uses_non_edge_stopband_tones_for_alias_demo():
@@ -275,9 +315,15 @@ def test_scenario0_signals_match_viewer_float_reference():
 def test_run_scenario0_uses_input_naive_and_filtered_axes(monkeypatch):
     calls = []
 
+    fig = None
+
     class _DummyFig:
-        def suptitle(self, title):
+        def suptitle(self, title, **kwargs):
             self.title = title
+            self.title_kwargs = kwargs
+
+        def text(self, x, y, text, **kwargs):
+            self.subtitle = (x, y, text, kwargs)
 
         def tight_layout(self, rect=None):
             self.rect = rect
@@ -288,7 +334,10 @@ def test_run_scenario0_uses_input_naive_and_filtered_axes(monkeypatch):
     axes = (_DummyAxis(), _DummyAxis(), _DummyAxis())
 
     def fake_subplots(*args, **kwargs):
-        return _DummyFig(), axes
+        nonlocal fig
+        assert kwargs["figsize"] == SCENARIO0_FIGSIZE
+        fig = _DummyFig()
+        return fig, axes
 
     def fake_plot_axis(ax, sig, fs, title, **kwargs):
         calls.append(
@@ -299,6 +348,8 @@ def test_run_scenario0_uses_input_naive_and_filtered_axes(monkeypatch):
                 "title": title,
                 "xlim": kwargs["xlim"],
                 "marker_label": kwargs["marker_label"],
+                "invalid_region_mhz": kwargs.get("invalid_region_mhz"),
+                "band_boundaries_mhz": kwargs.get("band_boundaries_mhz"),
             }
         )
 
@@ -308,17 +359,33 @@ def test_run_scenario0_uses_input_naive_and_filtered_axes(monkeypatch):
 
     viewer.run_scenario0()
 
+    assert fig.title == viewer._metadata_title("Scenario 0", SCENARIO0_FREQS)
+    assert fig.title_kwargs == {"fontsize": FIG_SUPTITLE_FONTSIZE, "y": viewer.FIG_SUPTITLE_Y}
+    assert fig.subtitle == (
+        0.5,
+        viewer.FIG_SUBTITLE_Y,
+        viewer._metadata_subtitle(),
+        {"ha": "center", "va": "top", "fontsize": viewer.FIG_SUBTITLE_FONTSIZE, "color": viewer.FIG_SUBTITLE_COLOR},
+    )
+    assert "Input bands: pass <= 15 MHz, transition 15-25 MHz, stop >= 25 MHz" in fig.subtitle[2]
+    assert "Output valid: 0-25 MHz" in fig.subtitle[2]
     assert [call["ax"] for call in calls] == list(axes)
     assert [call["fs"] for call in calls] == [FS_HZ, OUTPUT_FS_HZ, OUTPUT_FS_HZ]
     assert [call["len"] for call in calls] == [N_IN, N_OUT, N_OUT]
     assert [call["xlim"] for call in calls] == [
         INPUT_FFT_XLIM_MHZ,
-        OUTPUT_FFT_XLIM_MHZ,
-        OUTPUT_FFT_XLIM_MHZ,
+        OUTPUT_FFT_DISPLAY_XLIM_MHZ,
+        OUTPUT_FFT_DISPLAY_XLIM_MHZ,
     ]
     assert calls[0]["title"].startswith("Input FFT")
     assert calls[1]["title"].startswith("Downsample only")
     assert calls[2]["title"].startswith("FIR + decimation")
+    assert calls[0]["invalid_region_mhz"] is None
+    assert calls[1]["invalid_region_mhz"] == OUTPUT_INVALID_REGION_MHZ
+    assert calls[2]["invalid_region_mhz"] == OUTPUT_INVALID_REGION_MHZ
+    assert calls[0]["band_boundaries_mhz"] == INPUT_BAND_BOUNDARIES_MHZ
+    assert calls[1]["band_boundaries_mhz"] is None
+    assert calls[2]["band_boundaries_mhz"] is None
     assert calls[1]["marker_label"] == "output alias target"
     assert calls[2]["marker_label"] == "output alias target"
 
@@ -326,10 +393,15 @@ def test_run_scenario0_uses_input_naive_and_filtered_axes(monkeypatch):
 def test_run_scenario1_sends_tones_and_plots_board_output(monkeypatch):
     calls = []
     board_out = np.array([0.0, 0.25, -0.25, 0.5], dtype=np.float64)
+    fig = None
 
     class _DummyFig:
-        def suptitle(self, title):
+        def suptitle(self, title, **kwargs):
             self.title = title
+            self.title_kwargs = kwargs
+
+        def text(self, x, y, text, **kwargs):
+            self.subtitle = (x, y, text, kwargs)
 
         def tight_layout(self, rect=None):
             self.rect = rect
@@ -344,7 +416,10 @@ def test_run_scenario1_sends_tones_and_plots_board_output(monkeypatch):
     ser = _DummySerial()
 
     def fake_subplots(*args, **kwargs):
-        return _DummyFig(), axes
+        nonlocal fig
+        assert kwargs["figsize"] == PAIR_FIGSIZE
+        fig = _DummyFig()
+        return fig, axes
 
     def fake_send_cmd(actual_ser, freqs):
         assert actual_ser is ser
@@ -369,6 +444,8 @@ def test_run_scenario1_sends_tones_and_plots_board_output(monkeypatch):
                 title_r,
                 kwargs["xlim_l"],
                 kwargs["xlim_r"],
+                kwargs.get("invalid_region_r"),
+                kwargs.get("band_boundaries_l"),
             )
         )
 
@@ -380,30 +457,31 @@ def test_run_scenario1_sends_tones_and_plots_board_output(monkeypatch):
 
     viewer.run_scenario1("Scenario 1-1", [5e6, 20e6, 30e6], ser)
 
+    assert fig.title == viewer._metadata_title("Scenario 1-1", [5e6, 20e6, 30e6])
+    assert fig.title_kwargs == {"fontsize": FIG_SUPTITLE_FONTSIZE, "y": viewer.FIG_SUPTITLE_Y}
+    assert fig.subtitle[2] == viewer._metadata_subtitle()
     assert calls[0] == ("send", [5e6, 20e6, 30e6])
     assert calls[1] == ("recv", None)
     assert calls[2][0] == "plot"
     assert calls[2][1:7] == (axes[0], axes[1], N_IN, FS_HZ, True, OUTPUT_FS_HZ)
-    assert calls[2][9:] == (INPUT_FFT_XLIM_MHZ, OUTPUT_FFT_XLIM_MHZ)
+    assert calls[2][9:] == (
+        INPUT_FFT_XLIM_MHZ,
+        OUTPUT_FFT_DISPLAY_XLIM_MHZ,
+        OUTPUT_INVALID_REGION_MHZ,
+        INPUT_BAND_BOUNDARIES_MHZ,
+    )
 
 
-def test_run_interactive_mentions_max_tones_and_recovers_from_bad_inputs(monkeypatch, capsys):
+def test_run_interactive_mentions_max_tones_and_runs_valid_input_once(monkeypatch, capsys):
     calls = []
     board_out = np.array([0.0, 0.25, -0.25, 0.5], dtype=np.float64)
 
-    class _DummyCanvas:
-        def draw(self):
-            calls.append(("draw",))
-
-        def flush_events(self):
-            calls.append(("flush",))
-
     class _DummyFig:
-        def __init__(self):
-            self.canvas = _DummyCanvas()
+        def suptitle(self, title, **kwargs):
+            calls.append(("title", title, kwargs))
 
-        def suptitle(self, title):
-            calls.append(("title", title))
+        def text(self, x, y, text, **kwargs):
+            calls.append(("subtitle", x, y, text, kwargs))
 
         def tight_layout(self, rect=None):
             calls.append(("layout", rect))
@@ -416,16 +494,19 @@ def test_run_interactive_mentions_max_tones_and_recovers_from_bad_inputs(monkeyp
 
     axes = (_DummyAxis(), _DummyAxis())
     ser = _DummySerial()
-    user_lines = iter(["abc", "1 2 3 4 5 6 7 8 9", "101", "97"])
+    user_lines = iter(["abc", "1 2 3 4 5 6 7 8 9", "50", "34"])
 
     def fake_input(prompt):
         calls.append(("input", prompt))
         try:
             return next(user_lines)
-        except StopIteration:
-            raise KeyboardInterrupt
+        except StopIteration as exc:
+            raise AssertionError("run_interactive requested input after the one-shot capture") from exc
 
     def fake_subplots(*args, **kwargs):
+        assert args == (1, 2)
+        assert kwargs["figsize"] == PAIR_FIGSIZE
+        calls.append(("subplots", args, kwargs))
         return _DummyFig(), axes
 
     def fake_send_cmd(actual_ser, freqs):
@@ -439,10 +520,27 @@ def test_run_interactive_mentions_max_tones_and_recovers_from_bad_inputs(monkeyp
         return board_out
 
     def fake_plot_pair(*args, **kwargs):
-        calls.append(("plot", kwargs["xlim_l"], kwargs["xlim_r"]))
+        assert args[0:2] == axes
+        calls.append(
+            (
+                "plot",
+                len(args[2]),
+                args[3],
+                np.array_equal(args[4], board_out),
+                args[5],
+                kwargs["xlim_l"],
+                kwargs["xlim_r"],
+                kwargs.get("invalid_region_r"),
+                kwargs.get("band_boundaries_l"),
+            )
+        )
 
-    monkeypatch.setattr(viewer.plt, "ion", lambda: calls.append(("ion",)))
+    def fail_ion():
+        raise AssertionError("one-shot mode must not enable interactive plot reuse")
+
+    monkeypatch.setattr(viewer.plt, "ion", fail_ion)
     monkeypatch.setattr(viewer.plt, "subplots", fake_subplots)
+    monkeypatch.setattr(viewer.plt, "show", lambda: calls.append(("show",)))
     monkeypatch.setattr("builtins.input", fake_input)
     monkeypatch.setattr(viewer, "uart_send_cmd", fake_send_cmd)
     monkeypatch.setattr(viewer, "uart_recv_result", fake_recv_result)
@@ -451,14 +549,84 @@ def test_run_interactive_mentions_max_tones_and_recovers_from_bad_inputs(monkeyp
     viewer.run_interactive(ser)
 
     out = capsys.readouterr().out
+    title_calls = [call for call in calls if call[0] == "title"]
+    assert title_calls == [
+        (
+            "title",
+            viewer._metadata_title("Scenario 2", [34e6]),
+            {"fontsize": FIG_SUPTITLE_FONTSIZE, "y": viewer.FIG_SUPTITLE_Y},
+        )
+    ]
+    assert ("subtitle", 0.5, viewer.FIG_SUBTITLE_Y, viewer._metadata_subtitle(), {
+        "ha": "center",
+        "va": "top",
+        "fontsize": viewer.FIG_SUBTITLE_FONTSIZE,
+        "color": viewer.FIG_SUBTITLE_COLOR,
+    }) in calls
     assert f"최대 {viewer.MAX_TONES}개" in out
-    assert "범위 0.000001..100 MHz" in out
+    assert "범위 [1, 50) MHz" in out
+    assert "보드 실행 1회" in out
     assert out.count("예외 발생:") == 3
-    assert "<= 100000000 Hz" in out
-    assert "종료" in out
-    assert ("send", [97e6]) in calls
-    assert ("recv",) in calls
-    assert ("plot", INPUT_FFT_XLIM_MHZ, OUTPUT_FFT_XLIM_MHZ) in calls
+    assert "< 50000000 Hz" in out
+    assert "\n종료\n" not in out
+    assert [call for call in calls if call[0] == "input"] == [("input", "주파수 (MHz): ")] * 4
+    assert [call for call in calls if call[0] == "send"] == [("send", [34e6])]
+    assert [call for call in calls if call[0] == "recv"] == [("recv",)]
+    assert [call for call in calls if call[0] == "plot"] == [
+        (
+            "plot",
+            N_IN,
+            FS_HZ,
+            True,
+            OUTPUT_FS_HZ,
+            INPUT_FFT_XLIM_MHZ,
+            OUTPUT_FFT_DISPLAY_XLIM_MHZ,
+            OUTPUT_INVALID_REGION_MHZ,
+            INPUT_BAND_BOUNDARIES_MHZ,
+        )
+    ]
+    assert calls[-1] == ("show",)
+
+
+def test_run_interactive_stops_after_board_error_without_retry(monkeypatch, capsys):
+    calls = []
+
+    class _DummySerial:
+        pass
+
+    ser = _DummySerial()
+
+    def fake_input(prompt):
+        calls.append(("input", prompt))
+        if len([call for call in calls if call[0] == "input"]) > 1:
+            raise AssertionError("board errors must not trigger another frequency prompt")
+        return "34"
+
+    def fake_send_cmd(actual_ser, freqs):
+        assert actual_ser is ser
+        viewer.validate_tone_frequencies(freqs)
+        calls.append(("send", list(freqs)))
+
+    def fake_recv_result(actual_ser):
+        assert actual_ser is ser
+        calls.append(("recv",))
+        raise RuntimeError("DMA fail")
+
+    def fail_plot(*args, **kwargs):
+        raise AssertionError("board errors must return before plotting")
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    monkeypatch.setattr(viewer, "uart_send_cmd", fake_send_cmd)
+    monkeypatch.setattr(viewer, "uart_recv_result", fake_recv_result)
+    monkeypatch.setattr(viewer.plt, "subplots", fail_plot)
+    monkeypatch.setattr(viewer.plt, "show", fail_plot)
+    monkeypatch.setattr(viewer, "plot_fft_pair", fail_plot)
+
+    viewer.run_interactive(ser)
+
+    out = capsys.readouterr().out
+    assert "예외 발생: DMA fail" in out
+    assert calls == [("input", "주파수 (MHz): "), ("send", [34e6]), ("recv",)]
 
 
 def test_main_mode0_dispatches_without_opening_uart(monkeypatch):

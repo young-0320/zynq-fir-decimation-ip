@@ -91,10 +91,10 @@ def test_uart_send_cmd_float_freq_truncated():
     assert ser.sent == b"1 9900000\n"
 
 
-def test_uart_send_cmd_accepts_input_sample_rate_frequency():
+def test_uart_send_cmd_accepts_frequency_below_input_nyquist():
     ser = _MockSerial()
-    uart_send_cmd(ser, [capture.MAX_TONE_FREQ_HZ])
-    assert ser.sent == b"1 100000000\n"
+    uart_send_cmd(ser, [49e6])
+    assert ser.sent == b"1 49000000\n"
 
 
 @pytest.mark.parametrize(
@@ -104,8 +104,10 @@ def test_uart_send_cmd_accepts_input_sample_rate_frequency():
         ([1e6] * 9, "at most 8"),
         ([-1e6], "positive"),
         ([0.0], "positive"),
-        ([0.5], "at least 1 Hz"),
-        ([capture.MAX_TONE_FREQ_HZ + 1.0], "<= 100000000 Hz"),
+        ([0.5], ">= 1000000 Hz"),
+        ([999_999.0], ">= 1000000 Hz"),
+        ([capture.MAX_TONE_FREQ_HZ], "< 50000000 Hz"),
+        ([capture.MAX_TONE_FREQ_HZ + 1.0], "< 50000000 Hz"),
         ([float("nan")], "finite"),
         ([float("inf")], "finite"),
     ],

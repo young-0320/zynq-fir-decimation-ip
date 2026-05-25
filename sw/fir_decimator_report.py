@@ -38,17 +38,20 @@ from sw.fir_decimator_fft_viewer import (
     FIR_COEFFS_Q15,
     FS_HZ,
     INPUT_FFT_XLIM_MHZ,
+    INPUT_BAND_BOUNDARIES_MHZ,
     INPUT_MARKER_COLOR,
     N_IN,
     N_OUT,
-    OUTPUT_FFT_XLIM_MHZ,
+    OUTPUT_FFT_DISPLAY_XLIM_MHZ,
     OUTPUT_FS_HZ,
+    OUTPUT_INVALID_REGION_MHZ,
     OUTPUT_MARKER_COLOR,
+    PAIR_FIGSIZE,
     PLOT_LAYOUT_RECT,
     PRESET_1_1,
     PRESET_1_2,
-    _format_mhz,
-    _metadata_title,
+    _fft_axis_title,
+    _set_figure_header,
     _tone_marker_specs,
     plot_fft_pair,
 )
@@ -207,8 +210,8 @@ def _save_fft_png(
     input_markers = _tone_marker_specs(scenario.freqs_hz, FS_HZ)
     output_markers = _tone_marker_specs(scenario.freqs_hz, OUTPUT_FS_HZ)
 
-    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(14, 5))
-    fig.suptitle(_metadata_title(scenario.title, scenario.freqs_hz, "board-measured"))
+    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=PAIR_FIGSIZE)
+    _set_figure_header(fig, scenario.title, scenario.freqs_hz)
     plot_fft_pair(
         ax_l,
         ax_r,
@@ -216,16 +219,18 @@ def _save_fft_png(
         FS_HZ,
         sig_out,
         OUTPUT_FS_HZ,
-        f"Input FFT (fs={_format_mhz(FS_HZ)})",
-        f"Output FFT (after FIR, fs={_format_mhz(OUTPUT_FS_HZ)})",
+        _fft_axis_title("Input FFT", FS_HZ),
+        _fft_axis_title("Output FFT after FIR", OUTPUT_FS_HZ),
         xlim_l=INPUT_FFT_XLIM_MHZ,
-        xlim_r=OUTPUT_FFT_XLIM_MHZ,
+        xlim_r=OUTPUT_FFT_DISPLAY_XLIM_MHZ,
         markers_l=input_markers,
         markers_r=output_markers,
         marker_label_l="input tone target",
         marker_label_r="output alias target",
         marker_color_l=INPUT_MARKER_COLOR,
         marker_color_r=OUTPUT_MARKER_COLOR,
+        invalid_region_r=OUTPUT_INVALID_REGION_MHZ,
+        band_boundaries_l=INPUT_BAND_BOUNDARIES_MHZ,
     )
     fig.tight_layout(rect=PLOT_LAYOUT_RECT)
     fig.savefig(path, dpi=150, bbox_inches="tight")
