@@ -6,6 +6,7 @@
 4. **[분석 및 분석]** 동작 한계($F_{max}$) 파악, 온도-에러 상관관계 분석, Fault Injection을 통한 시스템 영향도 평가.
 5. **[v2.0 발전]** 분석 데이터를 바탕으로 파이프라이닝(Timing) 및 가용성(Reliability)이 개선된 차세대 IP 설계.
 6. **[리포트 작성]** v1.0 vs v2.0 PPA(Power, Performance, Area) 비교 및 엔지니어링 결론 도출.
+7. **[최종 릴리즈]** 프로젝트 종료 시 GitHub Release에 prebuilt `BOOT.bin`, manifest, SHA256 checksum을 첨부하여 Vivado/Vitis 없이도 Zybo Z7-20 데모를 재현할 수 있게 배포.
 
 ---
 
@@ -32,7 +33,7 @@
 * **3~5주차:** 주파수 스윕 + XADC + BIST 통합 테스트 (데이터 시트 작성에 집중).
 * **6~8주차:** v2.0 설계 (주파수 향상을 위한 크리티컬 패스 최적화 위주).
 * **9~10주차:** 전력 분석(Power Analysis) 리포트 보강 및 '에너지 효율' 관점의 결론 도출.
-* **11주차:** 최종 성과 정리 및 장학 활동 보고서 제출.
+* **11주차:** 최종 성과 정리, 장학 활동 보고서 제출, GitHub Release용 prebuilt `BOOT.bin`/manifest/checksum 업로드.
 
 ---
 

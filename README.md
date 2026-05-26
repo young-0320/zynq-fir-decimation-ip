@@ -17,6 +17,26 @@
 
 N=43 transposed-form FIR low-pass filter + M=2 decimator on Zybo Z7-20 (Zynq-7000).
 
+## Quick Setup / Dependencies
+
+For PC-side demo, report, and Python verification, use the project `uv` environment instead of a bare `python` command. The Python dependencies are declared in `pyproject.toml` and include `pyserial`, `numpy`, `scipy`, `matplotlib`, `pytest`, and `pexpect`.
+
+```bash
+uv sync
+uv run python -c "import serial, numpy, scipy, matplotlib; print('Python deps OK')"
+```
+
+Run PC-side scripts with `uv run python ...` unless you already activated an equivalent virtual environment. This avoids `ModuleNotFoundError: No module named 'serial'` and similar missing-package issues.
+
+Serial port names are machine-specific:
+
+| Host OS | Typical UART port |
+| --- | --- |
+| Linux/Ubuntu | `/dev/ttyUSB0`, `/dev/ttyUSB1` |
+| Windows | `COM3`, `COM4`, etc. |
+
+For RTL and hardware builds, the project also needs `iverilog`/`make` for simulation and AMD Vivado + Vitis Embedded Development 2024.2 + `bootgen` for bitstream, XSA, ELF, and BOOT image generation. See the detailed `Prerequisites` section below.
+
 ## Current State
 
 - FIR spec: Kaiser beta=5.653, fp=15 MHz, fs=25 MHz, As >= 60 dB, Q1.15 signed 16-bit samples/coefs.
@@ -134,11 +154,21 @@ build/fir_n43/output/BOOT.bin
 READY FIR
 ```
 
-4. Run one PC-side FFT check after each board reset:
+4. Run one PC-side FFT check after each board reset.
+
+Use the serial port name for the machine running the PC script. On Linux/Ubuntu this is usually `/dev/ttyUSB0` or `/dev/ttyUSB1`; on Windows it is usually `COM3`, `COM4`, etc. Prefer `uv run` so the Python dependencies from `pyproject.toml` are available.
+
+Ubuntu example:
 
 ```bash
-python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 30
-python sw/fir_decimator_demo.py --mode 1-2 --port /dev/ttyUSB1 --timeout 30
+uv run python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 30
+uv run python sw/fir_decimator_demo.py --mode 1-2 --port /dev/ttyUSB1 --timeout 30
+```
+
+Windows laptop example:
+
+```powershell
+uv run python sw/fir_decimator_demo.py --mode 2 --port COM3 --timeout 30
 ```
 
 Expected result: each command receives board output and reaches an FFT plot when the board has been reset before that scenario.
