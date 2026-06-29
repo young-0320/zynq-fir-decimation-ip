@@ -13,11 +13,18 @@ from __future__ import annotations
 
 import math
 import struct
-from typing import Sequence
+from typing import NamedTuple, Sequence
 
 import numpy as np
 import numpy.typing as npt
 import serial
+
+class Q15CaptureResult(NamedTuple):
+    """Raw int16 Q1.15 samples and optional board processing time."""
+
+    samples: npt.NDArray[np.int16]
+    board_time_us: int | None
+
 
 MAGIC = 0xDEADBEEF
 DEFAULT_UART_TIMEOUT_SEC = 15
@@ -127,14 +134,18 @@ def uart_recv_result_q15(
     *,
     expected_samples: int | None = None,
     max_samples: int | None = None,
-) -> npt.NDArray[np.int16]:
+) -> Q15CaptureResult:
     """Receive one board result packet as raw int16 Q1.15 samples.
     보드 결과 패킷 하나를 원시 int16 Q1.15 샘플로 수신합니다.
+
+    Returns Q15CaptureResult(samples, board_time_us).
+    board_time_us is None when the firmware did not emit FIR_TIME_US.
     """
     magic_bytes = struct.pack("<I", MAGIC)
     buf = b""
     line = bytearray()
     recent_text: list[str] = []
+    board_time_us: int | None = None
 
     while True:
         b = ser.read(1)
@@ -147,7 +158,12 @@ def uart_recv_result_q15(
             text = line.decode(errors="replace").strip()
             if text:
                 recent_text.append(text)
-            if text.startswith("ERR:"):
+            if text.startswith("FIR_TIME_US:"):
+                try:
+                    board_time_us = int(text.split(":", 1)[1])
+                except ValueError:
+                    pass
+            elif text.startswith("ERR:"):
                 code = text.split(":", 1)[1]
                 detail = DMA_ERROR_TEXT.get(code, "unknown board error")
                 context = _recent_context(line, recent_text)
@@ -168,7 +184,10 @@ def uart_recv_result_q15(
     raw = ser.read(n * 2)
     if len(raw) < n * 2:
         raise TimeoutError("샘플 수신 중 timeout.")
-    return np.frombuffer(raw, dtype=np.int16).copy()
+    return Q15CaptureResult(
+        samples=np.frombuffer(raw, dtype=np.int16).copy(),
+        board_time_us=board_time_us,
+    )
 
 
 def q15_to_float(samples_q15: npt.ArrayLike) -> npt.NDArray[np.float64]:
@@ -187,13 +206,12 @@ def uart_recv_result(
     """Receive board output and return normalized float samples.
     보드 출력을 수신해 정규화된 float 샘플로 반환합니다.
     """
-
     return q15_to_float(
         uart_recv_result_q15(
             ser,
             expected_samples=expected_samples,
             max_samples=max_samples,
-        )
+        ).samples
     )
 
 
@@ -205,7 +223,7 @@ def capture_output_q15(
     *,
     expected_samples: int | None = None,
     max_samples: int | None = None,
-) -> npt.NDArray[np.int16]:
+) -> Q15CaptureResult:
     """Open UART, send tones, and capture raw Q1.15 output.
     UART를 열고 톤 명령을 보낸 뒤 원시 Q1.15 출력을 캡처합니다.
     """
@@ -241,5 +259,5 @@ def capture_output_float(
             freqs_hz,
             expected_samples=expected_samples,
             max_samples=max_samples,
-        )
+        ).samples
     )

@@ -4,6 +4,7 @@
 
 #include "xil_cache.h"
 #include "xparameters.h"
+#include "xtime_l.h"
 #include "xuartps.h"
 
 #ifndef M_PI
@@ -77,6 +78,15 @@ static void uart_puthex32(uint32_t v) {
   }
 }
 
+static void uart_putu32(uint32_t v) {
+  char buf[11];
+  int i = 10;
+  buf[10] = '\0';
+  if (v == 0) { buf[--i] = '0'; }
+  else { while (v > 0) { buf[--i] = (char)('0' + v % 10); v /= 10; } }
+  uart_puts(buf + i);
+}
+
 static void dma_dump_status(const char* tag) {
   uart_puts(tag);
   uart_puts(" M=");
@@ -131,16 +141,13 @@ static void gen_multitone(const float* freqs, int n_tones) {
   }
 }
 
-/* 0: 성공, 1: MM2S 타임아웃, 2: S2MM 타임아웃, 3: DMA reset 타임아웃 */
-static int dma_run(void) {
-  uart_puts("D0\r\n");
+/* 0: 성공, 1: MM2S 타임아웃, 2: S2MM 타임아웃, 3: DMA reset 타임아웃
+ * out_elapsed_us: 성공 시 MM2S kick~S2MM IDLE 구간의 µs 값을 저장 */
+static int dma_run(u32 *out_elapsed_us) {
   Xil_DCacheFlushRange((UINTPTR)src_buf, N_IN * sizeof(int16_t));
 
-  /* AXI DMA soft reset: bit 2 resets the entire core (PG021).
-   * Must complete before configuring either channel. */
-  uart_puts("D1\r\n");
+  /* AXI DMA soft reset (PG021 bit 2). */
   DMA_REG(MM2S_DMACR) = (1u << 2);
-
   uint32_t t = DMA_RESET_TIMEOUT;
   while (DMA_REG(MM2S_DMACR) & (1u << 2)) {
     if (--t == 0) {
@@ -148,42 +155,38 @@ static int dma_run(void) {
       return 3;
     }
   }
-  uart_puts("D2\r\n");
-  dma_dump_status("ST2");
 
   DMA_REG(S2MM_DMACR) = DMA_RS_BIT;
-  DMA_REG(S2MM_DA) = (uint32_t)(UINTPTR)dst_buf;
+  DMA_REG(S2MM_DA)     = (uint32_t)(UINTPTR)dst_buf;
   DMA_REG(S2MM_LENGTH) = N_OUT * sizeof(int16_t);
-  uart_puts("D3\r\n");
-  dma_dump_status("ST3");
 
   DMA_REG(MM2S_DMACR) = DMA_RS_BIT;
-  DMA_REG(MM2S_SA) = (uint32_t)(UINTPTR)src_buf;
-  DMA_REG(MM2S_LENGTH) = N_IN * sizeof(int16_t);
-  uart_puts("D4\r\n");
-  dma_dump_status("ST4");
+  DMA_REG(MM2S_SA)    = (uint32_t)(UINTPTR)src_buf;
+
+  /* 타이밍 시작: MM2S kick 직전 */
+  XTime tStart, tEnd;
+  XTime_GetTime(&tStart);
+  DMA_REG(MM2S_LENGTH) = N_IN * sizeof(int16_t);  /* kick */
 
   t = DMA_POLL_TIMEOUT;
   while (!(DMA_REG(MM2S_DMASR) & DMA_IDLE_BIT)) {
-    if ((t % DMA_STATUS_INTERVAL) == 0) dma_dump_status("MM2S");
     if (--t == 0) {
       dma_dump_status("MM2STO");
       return 1;
     }
   }
-  uart_puts("D5\r\n");
-  dma_dump_status("ST5");
 
   t = DMA_POLL_TIMEOUT;
   while (!(DMA_REG(S2MM_DMASR) & DMA_IDLE_BIT)) {
-    if ((t % DMA_STATUS_INTERVAL) == 0) dma_dump_status("S2MM");
     if (--t == 0) {
       dma_dump_status("S2MMTO");
       return 2;
     }
   }
-  uart_puts("D6\r\n");
-  dma_dump_status("ST6");
+  /* 타이밍 종료: S2MM IDLE 직후 */
+  XTime_GetTime(&tEnd);
+
+  *out_elapsed_us = (u32)((tEnd - tStart) * 1000000ULL / COUNTS_PER_SECOND);
 
   /* DMA가 DDR에 쓴 결과를 캐시에서 버려야 CPU가 최신 데이터를 읽음 */
   Xil_DCacheInvalidateRange((UINTPTR)dst_buf, N_OUT * sizeof(int16_t));
@@ -216,14 +219,18 @@ int main(void) {
     uart_puts("CMD\r\n");
     gen_multitone(freqs, n_tones);
     uart_puts("GEN\r\n");
-    int err = dma_run();
+    u32 elapsed_us = 0;
+    int err = dma_run(&elapsed_us);
     if (err) {
-      /* ERR:<n>\r\n : 1=MM2S 타임아웃, 2=S2MM 타임아웃 */
+      /* ERR:<n>\r\n : 1=MM2S 타임아웃, 2=S2MM 타임아웃, 3=reset 타임아웃 */
       uart_putb('E'); uart_putb('R'); uart_putb('R');
       uart_putb(':'); uart_putb('0' + (uint8_t)err);
       uart_putb('\r'); uart_putb('\n');
       continue;
     }
+    uart_puts("FIR_TIME_US:");
+    uart_putu32(elapsed_us);
+    uart_puts("\r\n");
     uart_send_result();
   }
 

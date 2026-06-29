@@ -6,6 +6,7 @@ import pytest
 from sw import fir_decimator_capture as capture
 from sw.fir_decimator_capture import (
     MAGIC,
+    Q15CaptureResult,
     q15_to_float,
     uart_open,
     uart_recv_result,
@@ -125,8 +126,28 @@ def test_uart_recv_result_q15_valid_packet():
     expected = np.array([100, -200, 300, -400], dtype=np.int16)
     ser = _BytesSerial(_make_packet(expected))
     result = uart_recv_result_q15(ser)
-    assert result.dtype == np.int16
-    np.testing.assert_array_equal(result, expected)
+    assert isinstance(result, Q15CaptureResult)
+    assert result.samples.dtype == np.int16
+    np.testing.assert_array_equal(result.samples, expected)
+    assert result.board_time_us is None
+
+
+def test_uart_recv_result_q15_parses_fir_time_us():
+    expected = np.array([10, -20], dtype=np.int16)
+    timing_line = b"FIR_TIME_US:82\r\n"
+    ser = _BytesSerial(timing_line + _make_packet(expected))
+    result = uart_recv_result_q15(ser)
+    np.testing.assert_array_equal(result.samples, expected)
+    assert result.board_time_us == 82
+
+
+def test_uart_recv_result_q15_ignores_malformed_fir_time_us():
+    expected = np.array([1, 2], dtype=np.int16)
+    timing_line = b"FIR_TIME_US:notanumber\r\n"
+    ser = _BytesSerial(timing_line + _make_packet(expected))
+    result = uart_recv_result_q15(ser)
+    np.testing.assert_array_equal(result.samples, expected)
+    assert result.board_time_us is None
 
 
 def test_uart_recv_result_q15_rejects_unexpected_sample_count():
@@ -248,7 +269,8 @@ def test_capture_output_q15_sends_command_receives_samples_and_closes(monkeypatc
 
     result = capture.capture_output_q15("/dev/ttyTEST", 115200, 2.5, [5e6, 20e6])
 
-    np.testing.assert_array_equal(result, expected)
+    assert isinstance(result, Q15CaptureResult)
+    np.testing.assert_array_equal(result.samples, expected)
     assert created["ser"].sent == b"2 5000000 20000000\n"
     assert created["ser"].closed is True
 
@@ -278,7 +300,7 @@ def test_capture_output_q15_forwards_sample_count_guards(monkeypatch):
     def fake_recv_result_q15(actual_ser, *, expected_samples=None, max_samples=None):
         assert actual_ser is ser
         calls.append(("recv", expected_samples, max_samples))
-        return expected
+        return Q15CaptureResult(samples=expected, board_time_us=None)
 
     monkeypatch.setattr(capture, "uart_open", fake_uart_open)
     monkeypatch.setattr(capture, "uart_recv_result_q15", fake_recv_result_q15)
@@ -292,7 +314,8 @@ def test_capture_output_q15_forwards_sample_count_guards(monkeypatch):
         max_samples=8,
     )
 
-    np.testing.assert_array_equal(result, expected)
+    assert isinstance(result, Q15CaptureResult)
+    np.testing.assert_array_equal(result.samples, expected)
     assert calls == [("open",), ("recv", 4, 8)]
     assert ser.sent == b"1 5000000\n"
     assert ser.closed is True
@@ -344,7 +367,7 @@ def test_capture_output_float_converts_q15_capture(monkeypatch):
         assert (port, baud, timeout, freqs_hz) == ("/dev/ttyTEST", 115200, 1.0, [10e6])
         assert expected_samples is None
         assert max_samples is None
-        return samples
+        return Q15CaptureResult(samples=samples, board_time_us=None)
 
     monkeypatch.setattr(capture, "capture_output_q15", fake_capture_output_q15)
 
