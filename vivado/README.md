@@ -36,7 +36,7 @@
 
 - [x] `vivado/reports/sweep_summary.md` 생성
 - [x] `vivado/fir_n43/bd_fir_dma.tcl` 100 MHz 원복
-- [ ] git commit(작업 단위별로 나누어서 커밋, 작성자명은 Young)
+- [x] git commit(작업 단위별로 나누어서 커밋, 작성자명은 Young)
 
 ---
 
