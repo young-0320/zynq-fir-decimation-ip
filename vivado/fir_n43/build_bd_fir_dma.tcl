@@ -112,6 +112,9 @@ report_timing_summary \
 report_utilization \
     -file $BUILD_DIR/${PROJ_NAME}_utilization.rpt
 
+report_power \
+    -file $BUILD_DIR/${PROJ_NAME}_power.rpt
+
 puts ""
 puts "=== WNS / TNS ==="
 set wns [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
