@@ -275,6 +275,13 @@ echo "output:     $OUT_BOOT"
 echo "boot tag:   $BOOT_TAG"
 echo ""
 
+EXPORT_INC="$REPO_ROOT/build/fir_n43/vitis/fir_decimator_pf/export/fir_decimator_pf/sw/standalone_ps7_cortexa9_0/include"
+XTIME_SRC="$REPO_ROOT/build/fir_n43/vitis/fir_decimator_pf/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp/libsrc/standalone/src/arm/cortexa9/xtime_l.h"
+if [[ -d "$EXPORT_INC" && -f "$XTIME_SRC" && ! -f "$EXPORT_INC/xtime_l.h" ]]; then
+  cp "$XTIME_SRC" "$EXPORT_INC/xtime_l.h"
+  echo "patched: copied xtime_l.h to export include"
+fi
+
 cp "$APP_SRC" "$VITIS_APP_SRC"
 BOOT_TAG_HEADER="$(dirname "$VITIS_APP_SRC")/boot_tag.h"
 cat > "$BOOT_TAG_HEADER" <<EOF
