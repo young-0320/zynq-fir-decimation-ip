@@ -106,6 +106,6 @@ uv run python sw/cpu_benchmark.py
 
 ---
 
-## 미완료
+## 완료 확인
 
-`fir_decimator_demo.c` 변경은 Vitis 재빌드 및 BOOT.bin 재생성이 필요하다. SD카드 교체 후 보드에서 `FIR_TIME_US:XXX` UART 수신 확인이 완료 기준이다.
+Vitis 재빌드 및 BOOT.bin 재생성 완료. SD카드 교체 후 보드에서 `FIR_TIME_US:XXX` UART 수신 확인 완료. `cpu_benchmark.py` 실행으로 CPU vs FPGA 비교 표 및 바 차트(`docs/report/fir_n43/plot/cpu_vs_fpga_timing.png`) 산출 완료.
