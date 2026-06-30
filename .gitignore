@@ -77,7 +77,7 @@ venv/
 *.mmi
 *.ltx
 *.rpt
-!vivado/reports/*.rpt
+!vivado/reports/sweep_summary.md
 *.dcp
 *.pb
 

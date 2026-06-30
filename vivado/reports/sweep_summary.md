@@ -20,6 +20,25 @@
 
 pass → fail 전환: 115 MHz (PASS) → 120 MHz (FAIL), 경계 해상도 5 MHz
 
+## 크리티컬 패스 분석 (120 MHz, WNS = -0.783 ns)
+
+```
+Source:      u_fir_n43/z_reg[1][2]        (FIR 딜레이 레지스터, z⁻¹)
+Destination: u_fir_n43/round_reg_reg[45]  (라운딩 레지스터)
+
+Data Path Delay: 8.664 ns  (요구: 8.000 ns)
+  Logic  : 6.057 ns (69.9%) — CARRY4×19, LUT×4, 총 23 로직 레벨
+  Routing: 2.607 ns (30.1%)
+```
+
+**병목 원인:** transposed form 누산기의 carry ripple 체인.
+`z_reg → LUT2 → CARRY4×19 → round_reg_reg` 경로가
+한 클럭 안에 CARRY4 19개를 연속 통과해야 한다.
+로직 딜레이의 대부분(~90%)이 이 carry chain에 집중되어 있다.
+
+**v2.0 개선 방향:** 누산기 중간에 파이프라인 레지스터 삽입 →
+CARRY4 체인을 2 클럭으로 분할 → 예상 Fmax 150+ MHz.
+
 ## 비고
 
 - LUT/DSP48은 클럭 변경에 무관하게 일정 (combinational logic)
