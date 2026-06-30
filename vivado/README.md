@@ -12,30 +12,30 @@
 
 ### Phase 1 — 고정 기준점
 
-- [ ] 090 MHz 빌드 → `vivado/reports/090mhz_*.rpt` 복사
+- [x] 090 MHz 빌드 → `vivado/reports/090mhz_*.rpt` 복사 (WNS=+1.883ns, LUT=4583, DSP48=16, Power=1.564W)
 - [x] 100 MHz 빌드 → `vivado/reports/100mhz_*.rpt` 복사 (WNS=+0.692ns, LUT=4584, DSP48=16, Power=1.567W)
 
 ### Phase 2 — 상한 탐색 (코스, 10 MHz 단계, 110 MHz부터 시작)
 
-- [ ] ___ MHz 빌드 → WNS: ___
-- [ ] ___ MHz 빌드 → WNS: ___
-- [ ] ___ MHz 빌드 → WNS: ___
-- [ ] ___ MHz 빌드 → WNS: ___
-- [ ] ___ MHz 빌드 → WNS: ___
+- [x] 110 MHz 빌드 → WNS: +0.178ns (PASS)
+- [x] 120 MHz 빌드 → WNS: -0.783ns (FAIL)
+- [ ] ~~___ MHz 빌드 → WNS: ___~~
+- [ ] ~~___ MHz 빌드 → WNS: ___~~
+- [ ] ~~___ MHz 빌드 → WNS: ___~~
 
-→ **last_pass:** ___ MHz / **first_fail:** ___ MHz
+→ **last_pass:** 110 MHz / **first_fail:** 120 MHz
 
 ### Phase 3 — 경계 세분화 (파인, 5 MHz 단계)
 
-- [ ] ___ MHz 빌드 → WNS: ___
-- [ ] ___ MHz 빌드 → WNS: ___
+- [x] 115 MHz 빌드 → WNS: +0.178ns (PASS)
+- [ ] ~~___ MHz 빌드 → WNS: ___~~
 
-→ **확정 Fmax:** ___ MHz (WNS ≥ 0인 최대 주파수)
+→ **확정 Fmax:** 115 MHz (WNS ≥ 0인 최대 주파수)
 
 ### Phase 4 — 마무리
 
-- [ ] `vivado/reports/sweep_summary.md` 생성
-- [ ] `vivado/fir_n43/bd_fir_dma.tcl` 100 MHz 원복
+- [x] `vivado/reports/sweep_summary.md` 생성
+- [x] `vivado/fir_n43/bd_fir_dma.tcl` 100 MHz 원복
 - [ ] git commit(작업 단위별로 나누어서 커밋, 작성자명은 Young)
 
 ---
