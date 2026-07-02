@@ -35,6 +35,14 @@
 > 재현 수치, 실보드가 왜 통과했는지의 해석, 버퍼 깊이 실측 등 **모든 결론은
 > `docs/log/41_axis_skid_buffer_bug_sim.md`**. 이 문서는 그 결론을 바탕으로 한 **계획**만 담는다.
 
+> **[2026-07-03 갱신] 버그 2 note (a)/(b)가 예견한 레이스가 log 42 구현 이후 코드 리뷰에서
+> 실제로 재확인됨(마스터 tvalid 버블 → TLAST 영구 유실 + 데드락). 재현·수정 설계는
+> `docs/log/43_axis_tlast_bubble_deadlock_and_holdback_design.md` 참고. 이 문서의
+> "수정 설계" 절 중 버그 2 관련 부분은 그 문서의 hold-back 설계로 대체된다(아래 §2 "확정
+> 결정"의 `s_axis_tready = core_ready & ~flush_active` **유지** 문구는 이미 log 42에서
+> `| s_axis_tlast`로 이탈했고, log 43에서 추가로 hold-back + 종료판정 레벨화가 필요함이
+> 확정됨 — 이 문서를 단독으로 따라가지 말 것).
+
 ---
 
 ## 배경

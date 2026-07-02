@@ -51,16 +51,18 @@ RTL_DIRECT_N5_TOP := \
 BINS_N43 := \
 	$(BUILD)/tb_fir_n43.out \
 	$(BUILD)/tb_fir_decimator_n43.out \
-	$(BUILD)/tb_fir_decimator_n43_axis.out
+	$(BUILD)/tb_fir_decimator_n43_axis.out \
+	$(BUILD)/tb_fir_decimator_n43_axis_v2.out
 
 BINS_LEGACY_N5 := \
 	$(BUILD)/tb_fir_direct_n5.out \
 	$(BUILD)/tb_fir_decimator_direct_n5_top.out
 
-# AXIS 래퍼 skid buffer 버그 재현/회귀 (log 41 참고)
+# AXIS 래퍼 skid buffer 버그 재현/회귀 (log 41/43 참고)
 BINS_N43_BUG := \
 	$(BUILD)/tb_buf_depth.out \
-	$(BUILD)/tb_skid_stress.out
+	$(BUILD)/tb_skid_stress.out \
+	$(BUILD)/tb_tlast_bubble.out
 
 .PHONY: all run_all run_legacy_n5 run_bug clean
 
@@ -109,6 +111,12 @@ $(BUILD)/tb_fir_decimator_n43_axis.out: \
 	$(RTL_TRANS_N43_AXIS) | $(BUILD)
 	$(IVERILOG) -g2012 -o $@ $^
 
+$(BUILD)/tb_fir_decimator_n43_axis_v2.out: \
+	$(TB)/transposed_form/tb_fir_decimator_n43_axis_v2.sv \
+	$(RTL_TRANS_N43_V2_TOP) \
+	$(RTL)/transposed_form/n43/fir_decimator_n43_axis_v2.v | $(BUILD)
+	$(IVERILOG) -g2012 -o $@ $^
+
 # 버그 1 격리: 버퍼 깊이 스윕 (v2 core)
 $(BUILD)/tb_buf_depth.out: \
 	$(TB)/transposed_form/tb_buf_depth.sv \
@@ -118,6 +126,13 @@ $(BUILD)/tb_buf_depth.out: \
 # 버그 1~4 end-to-end: v1/v2 래퍼 동시, 연속 입력 + 지속 backpressure
 $(BUILD)/tb_skid_stress.out: \
 	$(TB)/transposed_form/tb_skid_stress.sv \
+	$(RTL_TRANS_N43_AXIS) \
+	$(RTL_TRANS_N43_V2_AXIS_NODEC) | $(BUILD)
+	$(IVERILOG) -g2012 -o $@ $^
+
+# log 43: tlast 직전 tvalid 버블 스윕 (TLAST 유실/데드락 회귀), v1/v2 동시
+$(BUILD)/tb_tlast_bubble.out: \
+	$(TB)/transposed_form/tb_tlast_bubble.sv \
 	$(RTL_TRANS_N43_AXIS) \
 	$(RTL_TRANS_N43_V2_AXIS_NODEC) | $(BUILD)
 	$(IVERILOG) -g2012 -o $@ $^
