@@ -1,46 +1,45 @@
-# FIR N43 Clock Sweep Summary
+# FIR N43 (v1) Clock Sweep — clk_wiz 정밀 스윕
 
-- 생성일: 2026-07-01
+- 생성일: 2026-07-02
 - 보드: Zybo Z7-20 (xc7z020clg400-1)
-- 설계: N=43 taps, M=2, transposed form
+- 설계: N=43 taps, M=2, transposed form — **v1 (`fir_n43.v`, 3-stage 파이프라인)**
+- 방법: Clocking Wizard(MMCM)로 PL 전체를 목표 주파수로 **정확히 분주** (요청 = 실제, 오차 0).
+  PS7 하드 PLL은 정수 분주만 가능해 요청 주파수가 스냅되므로, 정확한 Fmax 측정을 위해 clk_wiz 사용.
+  빌드: `vivado/fir_n43/build_bd_fir_dma_clkwiz.tcl -tclargs <MHz>`
 
-## 결과
+## 결과 (target = actual)
 
-| target_mhz | wns_ns  | timing_pass | lut  | dsp48 | total_power_w |
-|-----------|---------|-------------|------|-------|---------------|
-| 90        | +1.883  | true        | 4583 | 16    | 1.564         |
-| 100       | +0.692  | true        | 4584 | 16    | 1.567         |
-| 110       | +0.178  | true        | 4583 | 16    | 1.570         |
-| 115       | +0.178  | true        | 4583 | 16    | 1.570         |
-| 120       | -0.783  | false       | 4584 | 16    | 1.576         |
+| actual_mhz | wns_ns | timing_pass | lut  | dsp48 | total_power_w |
+| ---------- | ------ | ----------- | ---- | ----- | ------------- |
+| 110.000    | +0.381 | true        | 4582 | 16    | 1.695         |
+| 115.000    | +0.231 | true        | 4582 | 16    | 1.699         |
+| 116.000    | +0.016 | true        | 4581 | 16    | 1.699         |
+| 117.000    | -0.071 | false       | 4586 | 16    | 1.705         |
+| 118.000    | -0.044 | false       | 4582 | 16    | 1.701         |
+| 119.000    | -0.205 | false       | 4586 | 16    | 1.691         |
+| 120.000    | -0.098 | false       | 4589 | 16    | 1.699         |
 
 ## Fmax
 
-확정 Fmax: **115 MHz** (WNS ≥ 0인 최대 주파수)
+**확정 Fmax: 116 MHz** (WNS ≥ 0인 최대 실제 주파수)
 
-pass → fail 전환: 115 MHz (PASS) → 120 MHz (FAIL), 경계 해상도 5 MHz
+- last PASS: **116.000 MHz** (WNS +0.016) / first FAIL: 117.000 MHz (WNS -0.071)
+- 경계 해상도 1 MHz.
 
-## 크리티컬 패스 분석 (120 MHz, WNS = -0.783 ns)
+## 크리티컬 패스 (117~120 MHz FAIL, 전 주파수 동일 경로)
 
 ```
-Source:      u_fir_n43/z_reg[1][2]        (FIR 딜레이 레지스터, z⁻¹)
-Destination: u_fir_n43/round_reg_reg[45]  (라운딩 레지스터)
-
-Data Path Delay: 8.664 ns  (요구: 8.000 ns)
-  Logic  : 6.057 ns (69.9%) — CARRY4×19, LUT×4, 총 23 로직 레벨
-  Routing: 2.607 ns (30.1%)
+Source:      u_fir_n43/prod_reg_reg[0][2]_replica   (Stage1 곱셈 레지스터)
+Destination: u_fir_n43/round_reg_reg[45]            (라운딩 레지스터)
+Path Group:  clk_out1 (해당 목표 주파수, intra-clock setup)
 ```
 
-**병목 원인:** transposed form 누산기의 carry ripple 체인.
-`z_reg → LUT2 → CARRY4×19 → round_reg_reg` 경로가
-한 클럭 안에 CARRY4 19개를 연속 통과해야 한다.
-로직 딜레이의 대부분(~90%)이 이 carry chain에 집중되어 있다.
-
-**v2.0 개선 방향:** 누산기 중간에 파이프라인 레지스터 삽입 →
-CARRY4 체인을 2 클럭으로 분할 → 예상 Fmax 150+ MHz.
+transposed form 누산 → round 데이터패스의 CARRY4 carry-ripple 체인이 한 클럭 안에 들어가
+병목이 된다(v1 3-stage 구조의 근본 한계). v2(4-stage)는 이 경로를 별도 stage로 분리해 Fmax를
+크게 끌어올렸다 → `sweep_summary_v2.md` 참조.
 
 ## 비고
 
-- LUT/DSP48은 클럭 변경에 무관하게 일정 (combinational logic)
-- 전력은 클럭 증가에 따라 미세 증가 (1.564 → 1.576 W, +0.8%)
-- 100 MHz 기준 WNS=+0.692ns → Fmax 여유 +15 MHz
+- DSP48 16개로 전 주파수 동일. LUT ~4581–4589 (clk_wiz MMCM/BUFG 포함분).
+- 크리티컬 패스가 로직 지배(round CARRY4 체인)라, 실제 하드웨어 클럭을 정확히 116/117 MHz로
+  분주해도 117에서 setup이 -0.071 ns 미달하는 진짜 FAIL이다(거짓 제약 아님).
