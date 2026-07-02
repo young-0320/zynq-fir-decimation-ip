@@ -175,6 +175,8 @@ Expected result: each command receives board output and reaches an FFT plot when
 
 Known limitation: running `1-1` and then `1-2` back-to-back without a board reset can fail with `ERR:1` / MM2S timeout. The current firmware resets the AXI DMA before a transfer, but does not yet issue a full software-controlled PL/FIR AXIS reset equivalent to the board reset button.
 
+Status update (2026-07-03): the root cause of this back-to-back failure was identified as AXIS wrapper framing bugs and fixed in RTL (`docs/log/41`–`44`, simulation-verified with a multi-packet no-reset regression). The fix is included in the 115 MHz / 145 MHz builds (`docs/build_artifacts.md`), but the 100 MHz baseline `BOOT.bin` referenced above intentionally still carries the pre-fix RTL to preserve the validated demo artifact, so this limitation still applies to it. If a run aborts mid-transfer (timeout), a board reset is still required in all builds — the firmware has no PL-side wrapper reset path (`docs/log/44` §4).
+
 ## Verification Pipeline
 
 Use this path when changing DSP math, Q-format policy, RTL datapath, coefficients, or before recording a release/report result. Generated files under `sim/output/` and `sim/vectors/` are disposable artifacts and must not be committed. Vector files are regenerated from the Python model pipeline when needed; the repository tracks the model, generator, and testbench sources, not generated `.npy` or `.hex` vectors.
@@ -201,10 +203,11 @@ Expected result: Python tests pass; the 43-tap ideal and quantized coefficient r
 cd sim
 make clean
 make run_all
+make run_bug
 cd ..
 ```
 
-Expected result: all canonical N=43 testbenches print PASS without fail/mismatch/error output. N=5 direct-form bringup tests are legacy-only and can be run separately with `make run_legacy_n5`.
+Expected result: all canonical N=43 testbenches (v1 and v2 AXIS golden included) print PASS without fail/mismatch/error output. `make run_bug` runs the AXIS wrapper regression suite (skid-buffer depth, multi-packet stress, TLAST-bubble sweep — see `docs/log/41`–`44`) and must also print PASS. N=5 direct-form bringup tests are legacy-only and can be run separately with `make run_legacy_n5`.
 
 ## Fast Rebuild
 

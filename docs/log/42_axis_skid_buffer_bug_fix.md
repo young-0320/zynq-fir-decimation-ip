@@ -6,6 +6,12 @@
   - `../workflow/workflow_v22.md` (수정 계획 "수정 설계" 절 — 이 로그가 그 구현 결과)
 - 성격: **구현/검증 기록**. 계획은 workflow_v22, 재현 수치는 log 41 참고(문서 구분).
 
+> **[갱신 2026-07-03]** 이 수정 직후 코드 리뷰에서 **잔존 데드락**이 추가 확인됐다
+> (tlast 직전 tvalid 버블 ≥3(v1)/≥4(v2) 사이클 → TLAST 유실 + 영구 정지). 즉 이 로그의
+> 버그 2 수정(§2 포함)은 backpressure 경로만 닫았고 마스터 버블 경로는 못 닫았다.
+> 재현·설계는 `43_axis_tlast_bubble_deadlock_and_holdback_design.md`, 최종 수정(hold-back)은
+> `44_axis_holdback_fix_impl.md` 참고. 이 문서 단독으로 래퍼의 최종 상태를 판단하지 말 것.
+
 ---
 
 ## 배경
@@ -104,6 +110,7 @@ tb_fir_decimator_n43_axis : PASS (S1 TREADY=1 / S2 Random BP+Bubble / S3 Reset R
 ## 5. 남은 것 / 다음 단계
 
 - BD/Tcl/코어 무수정 확인 완료. Tcl 이슈 2건(workflow_v22 "부수적 Tcl 이슈")은 여전히 미착수(독립·저위험).
+  **[갱신 2026-07-03]** Tcl 이슈 2건은 이후 같은 날 커밋 `673c935`에서 수정 완료.
 - 이제 workflow_v22 로드맵의 보드 실측(v1@115MHz, v2@145MHz)을 진행할 수 있다
   (깨진 래퍼로 재측정하는 리스크 해소).
 - **향후(보류)**: 매직넘버(depth 4, `|tlast` 예외) 대신 표준 AXI-Stream register-slice/FIFO로

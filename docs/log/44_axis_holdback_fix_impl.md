@@ -71,4 +71,5 @@ log 43 수용 기준 4개 모두 충족 (버블 스윕 상시 회귀 / run_bug·
   v1@115 / v2@145 재빌드 시 타이밍 리포트(WNS) 확인 후 실측 진행 (전체 스윕 재실행 불필요,
   기존 골든 마진 내 흡수 예상 — workflow_v23 재빌드 절차에 포함).
 - abort 경로(펌웨어 dma_run 타임아웃 후 래퍼 잔류 상태) 복구 부재는 별개 known limitation
-  (코드 리뷰 finding, workflow_v23 문서화 예정 — 이번 수정 범위 아님).
+  (코드 리뷰 finding, workflow_v23 "중요 연결 1" 정정 및 README known limitation에 문서화 완료
+  — 이번 수정 범위 아님).
