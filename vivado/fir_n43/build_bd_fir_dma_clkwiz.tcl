@@ -18,10 +18,11 @@ if {[llength $argv] >= 1} { set CLKWIZ_FREQ_MHZ [lindex $argv 0] } else { set CL
 set SCRIPT_DIR [file normalize [file dirname [info script]]]
 set REPO_ROOT  [file normalize [file join $SCRIPT_DIR ../..]]
 set BOARD_DIR [file join $REPO_ROOT "boards"]
-# v1 clk_wiz 재스윕 전용 디렉터리 (-force 덮어쓰기)
-set BUILD_DIR $REPO_ROOT/build/fir_n43_v1_sweep/vivado
-set VITIS_DIR $REPO_ROOT/build/fir_n43_v1_sweep/vitis
-set OUT_DIR   $REPO_ROOT/build/fir_n43_v1_sweep/output
+# 재현성: 주파수마다 고유 디렉터리 자동 생성. 같은 -tclargs로 재실행하면 항상 같은 경로가
+# 나오므로 별도 수동 복사/이름 관리가 필요 없다. -force로 해당 주파수 디렉터리만 덮어씀.
+set BUILD_DIR $REPO_ROOT/build/fir_n43_v1_freq_${CLKWIZ_FREQ_MHZ}mhz/vivado
+set VITIS_DIR $REPO_ROOT/build/fir_n43_v1_freq_${CLKWIZ_FREQ_MHZ}mhz/vitis
+set OUT_DIR   $REPO_ROOT/build/fir_n43_v1_freq_${CLKWIZ_FREQ_MHZ}mhz/output
 set PROJ_NAME fir_decimator_trans_n43
 set PART      xc7z020clg400-1
 set BOARD     digilentinc.com:zybo-z7-20:part0:1.1

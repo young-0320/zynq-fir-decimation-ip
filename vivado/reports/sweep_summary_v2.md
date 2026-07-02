@@ -20,14 +20,26 @@
 | 148.000    | -0.021 | false       | 4556 | 16    | 1.707         |
 | 150.000    | -0.012 | false       | 4567 | 16    | 1.706         |
 
-> 130.000 MHz는 **골든 배포 빌드**(`build/fir_n43_v2_clkwiz/`, bit/xsa 보존).
-
-## Fmax
+## Fmax vs 골든(보드 구동 주파수)
 
 **확정 Fmax: 146 MHz** (WNS ≥ 0인 최대 실제 주파수)
 
 - last PASS: **146.000 MHz** (WNS +0.022) / first FAIL: 147.000 MHz (WNS -0.102)
 - 경계 해상도 1 MHz. v1(116 MHz) 대비 **+30 MHz**.
+
+**골든(실보드 배포): 145 MHz** (WNS +0.129, Fmax 대비 마진 +0.107ns 확보)
+
+Fmax(146)는 WNS +0.022ns로 여유가 거의 없다. 게다가 위 표에서 보듯 WNS는 주파수에
+선형으로 감소하지 않는다(145 MHz의 WNS +0.129가 오히려 146 MHz의 +0.022보다 크다 —
+Vivado가 제약이 빡빡할수록 배치를 다르게 최적화하기 때문, 절대 주파수가 아니라 매 실행의
+place&route 결과에 좌우됨). 145 MHz는 146 대비 속도 손실이 0.7 MHz(0.7%)뿐인데 **정적
+타이밍 마진은 약 6배**이므로, 실보드 배포 주파수로 145 MHz를 택한다.
+bit/xsa: `build/fir_n43_v2_freq_145mhz/output/`
+(재현: `vivado/fir_n43/build_bd_fir_dma_v2_clkwiz.tcl -tclargs 145` — 주파수별 디렉터리가
+자동 생성되므로 동일 명령 재실행으로 그대로 재현 가능).
+구 골든이었던 130.000 MHz 빌드는 `build/fir_n43_v2_freq_130mhz/`에 fallback으로 보존
+(재현: 동일 스크립트 `-tclargs 130`). 146.000 MHz는 Fmax 확인용 참고 데이터로만
+쓰고 배포용 빌드는 만들지 않는다(재현이 필요하면 `-tclargs 146`).
 
 ## 크리티컬 패스 — 상한을 정하는 건 FIR이 아니라 AXI DMA IP
 

@@ -122,6 +122,8 @@ Main FIR XSA:        build/fir_n43/output/bd_fir_dma_wrapper.xsa
 Main FIR SD BOOT:    build/fir_n43/output/BOOT.bin
 ```
 
+v1/v2, 골든/fallback 등 그 외 빌드 산출물 전체 경로와 재현 명령은 `docs/build_artifacts.md` 참고.
+
 다음 작업 순서:
 
 1. Python demo에 FFT peak dB 정량 출력 추가
