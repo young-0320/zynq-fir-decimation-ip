@@ -6,9 +6,9 @@
 #   $XILINX_VIVADO/data/boards/ 또는 ~/.Xilinx/Vivado/ 아래에 있어야 함
 #   없으면 board_part 설정 생략 — PS DDR 설정이 BD에 이미 포함되어 있어 재현 가능
 #
-# 산출물:
-#   build/fir_n43/output/bd_fir_dma_wrapper.xsa  <- Vitis platform/app input
-#   build/fir_n43/output/bd_fir_dma_wrapper.bit  <- BOOT image input
+# 산출물 ($OUT_DIR = build/fir_n43_v2_freq_${CLKWIZ_FREQ_MHZ}mhz/output, docs/build_artifacts.md 참고):
+#   $OUT_DIR/bd_fir_dma_wrapper.xsa  <- Vitis platform/app input
+#   $OUT_DIR/bd_fir_dma_wrapper.bit  <- BOOT image input
 
 # 목표 주파수(MHz)는 -tclargs 로 전달 (미지정 시 130)
 #   예: vivado -mode batch -source build_bd_fir_dma_v2_clkwiz.tcl -tclargs 140
@@ -152,7 +152,7 @@ puts "구현 결과:   $BIT_IMPL"
 puts "XSA:        $XSA"
 puts ""
 puts "다음 단계(전체 Vitis 재생성): vitis -s vitis/fir_n43/build_fir_decimator_demo.py"
-puts "그 다음: bootgen -arch zynq -image build/fir_n43/output/fir_decimator_demo.bif -o build/fir_n43/output/BOOT.bin -w on"
+puts "그 다음: bootgen -arch zynq -image $OUT_DIR/fir_decimator_demo.bif -o $OUT_DIR/BOOT.bin -w on"
 puts "기존 Vitis workspace 재사용 시: vitis/fir_n43/rebuild_boot_image.sh --boot-tag FIR"
 
 close_project
