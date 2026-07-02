@@ -2,7 +2,7 @@
 
 zynq-axi-fir-decimation-ip
 
-Updated: 2026-05-24
+Updated: 2026-07-03
 Repository root: `/home/young/dev/10_zynq-fir-decimation-ip`
 README.md root: `/home/young/dev/10_zynq-fir-decimation-ip/README.md`
 
@@ -124,19 +124,30 @@ Main FIR SD BOOT:    build/fir_n43/output/BOOT.bin
 
 v1/v2, 골든/fallback 등 그 외 빌드 산출물 전체 경로와 재현 명령은 `docs/build_artifacts.md` 참고.
 
-다음 작업 순서:
+이미 완료된 항목 (과거 "다음 작업 순서"는 모두 끝나 정리함, log 34 / `scenario1_2.md`):
 
-1. Python demo에 FFT peak dB 정량 출력 추가
-2. `mode 1-1`, `mode 1-2`에서 7/15/25/45MHz 성분을 숫자로 판정
-3. 25MHz Nyquist-edge peak와 45MHz alias 억제 결과를 문서화
-4. 필요 시 Python plot x축을 출력 sample rate 기준 0~25MHz로 수정
-5. 최종 demo 절차와 재빌드 절차는 `workflow_v15.md` 기준으로 유지
+- FFT peak dB 정량 출력 → 완료 (`fir_decimator_metrics.py`)
+- `mode 1-1`/`mode 1-2` 7/15/25/45MHz 톤별 수치·판정 → 완료 (`scenario1_2.md` 표)
+- 25MHz Nyquist-edge peak / 45MHz alias 억제 문서화 → 완료 (같은 표)
+- plot x축 → 크롭 대신 0~50MHz 유지 + invalid region(25~50MHz) 음영 처리로 해결
+  (`fir_decimator_fft_viewer.py` `OUTPUT_INVALID_REGION_MHZ`)
+
+다음 작업 순서 (workflow_v22 로드맵 기준):
+
+1. ✅ AXIS 래퍼 skid buffer 버그 1~4 수정 (v1·v2, 짝수 전용, 코어 무수정) — 완료
+   (`docs/log/42_axis_skid_buffer_bug_fix.md`, `sim`에서 `make run_bug`/`run_all` PASS)
+2. 보드 실측 — v1@115MHz (workflow_v20 v1.0 완결 조건 5/5 마무리)
+3. 보드 실측 — v2@145MHz (workflow_v21 마무리), 이후 v1↔v2 교체 여부 결정
+   - 실측 절차·리스크는 `docs/workflow/workflow_v22.md` §3/§4 참고
 
 상세 디버깅 기록:
 
 ```text
 docs/log/31_dma_smoke_test_and_length_width_fix.md
 docs/log/32_smoke_pass_after_dma_length_width_fix.md
+docs/log/41_axis_skid_buffer_bug_sim.md   (AXIS 버그 재현·수치)
+docs/log/42_axis_skid_buffer_bug_fix.md   (AXIS 버그 수정·검증)
 ```
 
-M4 상태: SD boot 기반 end-to-end 실시간 시연 경로는 통과. 남은 작업은 정량 스펙 검증 및 발표/문서 정리.
+M4 상태: SD boot 기반 end-to-end 실시간 시연 경로 통과, 정량 스펙 검증 완료, AXIS 래퍼
+프레이밍 버그 수정 완료. 남은 작업은 v1@115MHz / v2@145MHz 보드 실측(Fmax 정확도 검증)뿐.
