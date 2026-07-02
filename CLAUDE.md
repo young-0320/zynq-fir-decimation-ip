@@ -156,6 +156,7 @@ docs/log/41_axis_skid_buffer_bug_sim.md   (AXIS 버그 재현·수치)
 docs/log/42_axis_skid_buffer_bug_fix.md   (AXIS 버그 1차 수정·검증)
 docs/log/43_axis_tlast_bubble_deadlock_and_holdback_design.md  (잔존 데드락 재현·hold-back 설계)
 docs/log/44_axis_holdback_fix_impl.md     (hold-back 구현·검증)
+docs/log/45_golden_rebuild_boot_prep.md   (수정 RTL 골든 재빌드·BOOT.bin 준비)
 ```
 
 M4 상태: SD boot 기반 end-to-end 실시간 시연 경로 통과, 정량 스펙 검증 완료, AXIS 래퍼
