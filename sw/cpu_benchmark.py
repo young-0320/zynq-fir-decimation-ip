@@ -33,6 +33,14 @@ _CV_THRESHOLD = 0.02
 _FPGA_DSP48 = 16
 _FPGA_LUT = 1827
 
+_CPU_SPEC_TEXT = (
+    "CPU: 13th Gen Intel Core i5-1340P (12C/16T, L1 1.1MB, L2 9MB, L3 12MB)"
+)
+_METHODOLOGY_TEXT = (
+    "CPU: numpy float64 np.convolve, perf_counter, convolve section only (median of runs, CV<2%)\n"
+    "FPGA: AXI DMA MM2S kick to S2MM IDLE, bare-metal XTime_GetTime() (UART transfer excluded)"
+)
+
 
 def _run_cpu_fir(x_f64: np.ndarray, h_f64: np.ndarray) -> np.ndarray:
     return np.convolve(x_f64, h_f64)[::2]
@@ -135,7 +143,7 @@ def save_comparison_chart(cpu: dict, board_time_us: float, out_path: Path) -> No
     values = [cpu["median_us"], board_time_us]
     colors = ["#4c72b0", "#dd8452"]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(6, 5))
     bars = ax.bar(labels, values, color=colors, width=0.5)
     ax.set_ylabel("Processing Time (µs)")
     ax.set_title(
@@ -150,7 +158,12 @@ def save_comparison_chart(cpu: dict, board_time_us: float, out_path: Path) -> No
             ha="center", va="bottom", fontsize=10,
         )
     ax.set_ylim(0, max(values) * 1.2)
-    fig.tight_layout()
+    fig.text(
+        0.5, 0.01,
+        _CPU_SPEC_TEXT + "\n" + _METHODOLOGY_TEXT,
+        ha="center", va="bottom", fontsize=7, linespacing=1.5,
+    )
+    fig.tight_layout(rect=(0, 0.12, 1, 1))
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
