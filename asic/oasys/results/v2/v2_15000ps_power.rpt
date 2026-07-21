@@ -1,2 +1,2 @@
-warning: report_power. design 'fir_n43_v2' has no timing constraints  [TA-118]
-warning: Timing constraints are required for 'report_power'. Please specify timing constraints for design fir_n43_v2.
+warning: Design contains too many instances. Loading the report may take a while.  [POWER-154]
+info:    power of design 'fir_n43_v2': internal 370066.062500 (uW), switching 411016.656250 (uW), leakage 6.603548 (uW), total 781089.312500 (uW)  [PF-263]
