@@ -176,3 +176,7 @@ desktop.ini
 asic/oasys/results/*/*_synth.v
 !asic/oasys/results/*/*_10000ps_synth.v
 !asic/oasys/results/*/*_12000ps_synth.v
+
+# emacs lock/backup
+\#*\#
+.\#*
