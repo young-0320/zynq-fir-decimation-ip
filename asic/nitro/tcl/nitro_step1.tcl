@@ -13,4 +13,4 @@ create_tracks -layers Metal3 -step 13500a
 create_tracks -layers Metal2 -step 11500a
 create_tracks -layers Metal1 -step 13500a
 report_tracks -type preferred
-puts "step1 done — 확인 후: source $S/nitro_step2_rows.tcl (datapath 블럭은 macro가 아니라 step4 placement가 자동 배치 — 수동 배치 불필요)"
+puts "step1 done — 확인 후: source $S/nitro_step2.tcl (datapath 블럭은 macro가 아니라 step4 placement가 자동 배치 — 수동 배치 불필요)"

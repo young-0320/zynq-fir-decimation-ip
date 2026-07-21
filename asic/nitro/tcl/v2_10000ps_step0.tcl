@@ -11,4 +11,4 @@ set S "$REPO_ROOT/asic/nitro/tcl"
 read_verilog "$REPO_ROOT/asic/oasys/results/$VER/${VER}_${PERIOD}_synth.v"
 set OUT_DIR "$REPO_ROOT/asic/nitro/results/$VER/$PERIOD"
 file mkdir $OUT_DIR
-puts "step0 done: $VER $PERIOD — 다음: source $S/nitro_step1_floorplan.tcl"
+puts "step0 done: $VER $PERIOD — 다음: source $S/nitro_step1.tcl"
