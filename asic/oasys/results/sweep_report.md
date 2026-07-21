@@ -165,22 +165,22 @@ toggle-rate 가정 기반 추정치.
   전력 689→1331mW로 증가 — 제약을 조일수록 툴이 면적/전력을 태워 타이밍을 사는
   전형적 trade-off (GEMM sweep과 동일 패턴).
 
-## 5. FPGA 대비 (sweep 완료 후 작성)
+## 5. FPGA 대비
 
-FPGA 코어 단독 수치(`vivado/reports/sweep_summary_v2.md`): v2@145MHz — LUT 1792 /
-FF 2113 / DSP 16 / 0.015W. v1 코어 단독 수치는 ASIC 결과 확정 시 같은 방식으로 추출 예정.
-
-(28nm Zynq vs 250nm 표준셀이라 절대치 비교가 아니라 "같은 RTL이 타겟에 따라 어떤
-지표로 실현되는지" 보조 지표로 제시.)
+✅ 작성 완료 — `docs/report/fir_n43/summary/asic_vs_fpga.md` (핵심 표 + 비교 한계 명시).
 
 ## 6. 남은 작업 / 이슈
 
 - [x] ~~power total 재추출~~ — 20000ps 페어 `-total_only`로 재추출 완료. `-total_only`
       한 줄에 internal/switching/leakage 분해까지 포함되므로(PF-263) 이후 sweep도 이
       명령만 쓰면 됨 (`-all` grep 불필요).
-- [ ] sweep 계속: 15000 → 12000 → 10000 → 8000ps, 첫 FAIL 후 마지막 PASS와 이분탐색
-- [ ] 버전별 최속 passing period + 공통 비교 period 확정 → §4 해석 확정
-- [ ] (범위 축소 결정 반영) Nitro P&R은 공통 비교 period 1개에서 v1/v2 각 1런만
+- [x] ~~sweep~~ — 6페어(20000→6000ps) 완료, 전 지점 pass, §4 최종 결론으로 종료.
+- [x] ~~FPGA 대비~~ — §5 참조.
+- [ ] (범위 축소 결정 반영) **Nitro P&R: 10000ps netlist로 v1/v2 각 1런** — 후보
+      8000/9000/10000 중 페어 최소 margin이 가장 큰 지점(10000ps: v1 2.0%/v2 1.3% vs
+      9000ps: 1.1%/5.8% vs 8000ps: 0.7%/0.9% — P&R 성패는 나쁜 쪽이 결정). 그래도
+      GEMM 권장 P&R margin(20~30%)에 크게 못 미치므로 post-route timing fail 리스크
+      있음 → fail 시 **12000ps netlist(margin 9.4%/14.0%)로 재시도**가 fallback.
 
 ## Raw 리포트 경로
 
