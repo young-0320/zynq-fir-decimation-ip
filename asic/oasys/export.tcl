@@ -1,24 +1,20 @@
-# 합성 완료 후 Oasys 콘솔에서 산출물 4종을 한 번에 export하는 스크립트.
+# 합성 산출물 4종 export 함수 정의.
 #
-# 사용법 (합성 끝난 뒤 콘솔에 두 줄):
-#   set VER v1; set PERIOD 15000ps
+# 사용법: Oasys 세션 시작 때 한 번만
 #   source /mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip/asic/oasys/export.tcl
+# 이후 각 합성이 끝날 때마다
+#   ex v1 12000ps
+#   ex v2 12000ps
 #
-# 결과는 asic/oasys/results/$VER/ 아래에 ${VER}_${PERIOD}_* 이름으로 저장된다
-# (폴더 자동 생성, 수동 mv 불필요).
+# 결과는 asic/oasys/results/<ver>/ 아래 <ver>_<period>_* 로 저장 (폴더 자동 생성).
 
-set REPO_ROOT {/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip}
-
-if {![info exists VER] || ![info exists PERIOD]} {
-    error "export.tcl: 먼저 'set VER v1; set PERIOD 15000ps' 형식으로 지정할 것"
+proc ex {ver period} {
+    set REPO_ROOT {/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip}
+    set dir "$REPO_ROOT/asic/oasys/results/$ver"
+    file mkdir $dir
+    write_verilog "$dir/${ver}_${period}_synth.v"
+    report_timing > "$dir/${ver}_${period}_timing.rpt"
+    report_area > "$dir/${ver}_${period}_area.rpt"
+    report_power -total_only > "$dir/${ver}_${period}_power.rpt"
+    puts "export 완료: $dir/${ver}_${period}_*"
 }
-
-set EXPORT_DIR "$REPO_ROOT/asic/oasys/results/$VER"
-file mkdir $EXPORT_DIR
-
-write_verilog "$EXPORT_DIR/${VER}_${PERIOD}_synth.v"
-report_timing > "$EXPORT_DIR/${VER}_${PERIOD}_timing.rpt"
-report_area > "$EXPORT_DIR/${VER}_${PERIOD}_area.rpt"
-report_power -total_only > "$EXPORT_DIR/${VER}_${PERIOD}_power.rpt"
-
-puts "export 완료: $EXPORT_DIR/${VER}_${PERIOD}_*"
