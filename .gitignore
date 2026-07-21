@@ -78,6 +78,8 @@ venv/
 *.ltx
 *.rpt
 !vivado/reports/sweep_summary.md
+# ASIC flow(Track A) 서버 산출물은 git으로 회수한다
+!asic/**/*.rpt
 *.dcp
 *.pb
 

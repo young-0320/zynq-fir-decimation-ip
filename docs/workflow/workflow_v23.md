@@ -69,16 +69,26 @@ CPU 스펙이라는 사용자 제공 정보가 한 번은 필요).
 목표: 학교 서버에서 OASIS synthesis + Nitro P&R → **면적/타이밍/전력**을 FPGA 결과 옆 보조 지표로 제시.
 
 - [사용자, 확정] 서버 접속 + OASIS synth + Nitro P&R **직접** 실행 (에이전트 원격 접속 불가).
-- **[A1 확정]** 대상 RTL = `rtl/transposed_form/n43/fir_n43_v2.v` 단독. AXI-Stream 래퍼/DMA/BD는
-  Zynq 전용이라 ASIC 비대상 → **순수 FIR core만**(decimator_m2_phase0 제외). **v2만**
-  (v1과 비교하지 않음) — v1→v2 파이프라인 분할은 FPGA 전용 병목(Xilinx CARRY4 캐리 체인)을
-  없앤 것이라 ASIC(표준셀 P&R)에서 같은 critical path 구조를 보장 못 함. "v2가 ASIC에서도
-  낫다"를 증명하는 게 목적이 아니라 §8-1 요청대로 ASIC 보조 지표 하나를 확보하는 게 목적이라
-  v2 단독으로 충분. (v1도 필요해지면 이후 추가.)
-- [사용자 확인 필요] **A2 환경**: PDK/tech node, 목표 클럭 제약 — 사용자가 서버에서 직접
-  확인해 에이전트에 전달.
-- [에이전트] 결과 정리: 면적(cell/µm²), critical path/ASIC Fmax, 전력. **FPGA v2 수치와만 대비**
-  (대상이 v2 단독이므로 v1 FPGA 수치는 비교 대상 아님).
+- **[A1 확정, 갱신 2026-07-21]** 대상 RTL = `rtl/transposed_form/n43/fir_n43.v`(v1) +
+  `fir_n43_v2.v`(v2) **둘 다**. AXI-Stream 래퍼/DMA/BD는 Zynq 전용이라 ASIC 비대상 →
+  **순수 FIR core만**(decimator_m2_phase0 제외). 두 코어 모두 순수 behavioral Verilog
+  (Xilinx primitive 없음)로 확인 — 포팅 장벽 없음.
+  - 구 확정(v2 단독)의 근거였던 "v1→v2 분할은 FPGA 전용 병목(CARRY4 캐리 체인) 제거라
+    ASIC에서 같은 critical path 보장 못 함"은 오히려 둘 다 돌려야 할 이유로 재해석:
+    v1/v2를 **동일 제약**으로 돌리면 이 가설이 실증된다. v1 ≈ v2 Fmax + v1 면적 우위면
+    "분할은 FPGA 전용 최적화"가 데이터로 확정되고, v2가 ASIC에서도 빠르면 분할의 범용성
+    입증 — 어느 결과든 유의미. 증분 비용은 top module 교체 재실행뿐.
+  - **방법론 조건**: 두 런의 목표 클럭·라이브러리·코너를 동일하게 (다르면 비교 무효).
+- ✅ **[A2 해소 2026-07-21]** 환경 = 수업(2026-1 디지털시스템설계실습) GEMM 프로젝트와 동일:
+  Tanner Generic 250nm PDK(`TANNER_TT_2P50V_25C.lib`, TT/2.5V/25°C), Oasys synthesis +
+  Nitro P&R (TannerTools v2021.2). 목표 클럭은 고정값 대신 **sweep**(20000ps→8000ps,
+  50→125MHz, v1/v2 동일 period 짝지어 실행)으로 각 버전 최속 passing period + 공통
+  비교점 확보 (범위 근거는 `asic/oasys/README.md` §2).
+  실행 준비물은 `asic/oasys/`(config·공용 sdc)·`asic/nitro/`(템플릿 tcl) 준비
+  완료 — 서버에서 clone 후 config의 `REPO_ROOT`만 수정하면 됨. 절차는 `asic/*/README.md`.
+- [에이전트] 결과 정리: 면적(cell/µm²), critical path/ASIC Fmax, 전력 — v1/v2 ASIC 상호 비교
+  + FPGA 코어 단독 수치와 대비. (v1 FPGA 코어 단독 수치는 ASIC 결과 도착 시 v2와 같은
+  방식으로 routed DCP에서 추출 — 에이전트 작업.)
   - ✅ **[해소 2026-07-03] 코어 단독 수치 추출 완료**: v2@145 routed DCP에서 계층 스코프로
     추출 — 코어 `u_fir_n43_v2` 단독 LUT 1792 / FF 2113 / DSP 16 / 전력 0.015W (전체
     비트스트림 4556 LUT / 1.705W와 구분). 상세 표·리포트 경로는 `sweep_summary_v2.md`
@@ -199,8 +209,10 @@ D+/D−/GND는 절단 없이 유지 (한 케이블로 UART + 전원 겸용)
 
 ## 확인 필요 사항 (모든 트랙 착수 전 게이트 — 이 문서의 실질적 To-Do)
 
-1. ~~**A1** ASIC 대상 RTL~~ — **[해결] `fir_n43_v2.v` 단독으로 확정.**
-2. **A2** PDK/tech node·목표 클럭 (서버 실행 자체는 사용자 확정, 실행 조건만 확인 필요).
+1. ~~**A1** ASIC 대상 RTL~~ — **[해결, 갱신 2026-07-21] `fir_n43.v`(v1) + `fir_n43_v2.v`(v2)
+   둘 다, 동일 제약으로 확정** (구 확정 v2 단독에서 변경 — 근거는 Track A A1 항목).
+2. ~~**A2** PDK/tech node·목표 클럭~~ — **[해소 2026-07-21] GEMM 프로젝트 환경 동일
+   (Tanner Generic 250nm), 클럭은 sweep 방식. `asic/` 실행 준비물 작성 완료.**
 3. **B1~B3** 전력 측정 rail / 조건(BOOT.bin) / HDS242 보유 여부.
 4. ~~**C1** Windows·Ubuntu CPU 스펙(모델/코어/클럭)~~ — **[해결] Windows i5-1340P 스펙 확보,
    PNG 반영 완료(Ubuntu는 최종 발표 미사용으로 범위 제외).**

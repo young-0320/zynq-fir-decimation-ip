@@ -1,0 +1,34 @@
+# Nitro P&R Guide (FIR v1/v2)
+
+Oasys netlist(`asic/oasys/results/<ver>/<period>ps/*_synth.v`)를 대상으로 P&R.
+flow·공정 파일 경로는 GEMM 프로젝트(교수님 예제) 기준 그대로.
+
+## 실행 방법
+
+1. Oasys sweep에서 Nitro로 넘길 period를 고른다 (각 버전의 최속 passing period +
+   공통 비교 period 권장).
+2. `template_nitro.tcl`을 `tcl/{v1|v2}_<period>ps_nitro.tcl`로 복사하고 상단
+   `REPO_ROOT`/`VER`/`PERIOD`/`TOP_MODULE`만 수정한다.
+3. 같은 폴더에 `tcl/{v1|v2}_<period>ps.sdc`를 만든다:
+
+   ```tcl
+   create_clock -name clk -period 20000.0 [get_ports clk]
+   ```
+
+4. Nitro에서 tcl 실행 (`#run after pause` 주석 지점마다 끊어 실행 — GEMM 방식 동일).
+5. 결과는 `results/<ver>/<period>ps/`에 생성 (SDF, post-route netlist,
+   timing/area rpt).
+
+## 확인 항목
+
+| 항목                 | 의미                            |
+| -------------------- | ------------------------------- |
+| post-route WNS/slack | 배선 이후 timing 만족 여부      |
+| chip/core area, utilization | 물리 면적                |
+| congestion/route 상태 | 배선 정상 완료 여부            |
+
+chip area는 3000000a에서 시작(FIR core는 GEMM step2보다 작음) — placement 실패나
+congestion이면 키우고, 너무 널널하면 줄여 재시도.
+
+주의: Nitro tcl에는 `report_power`가 없다(GEMM 프로젝트에서 미지원 확인).
+전력 비교는 Oasys `report_power` 기준으로 한다.
