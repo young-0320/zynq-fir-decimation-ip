@@ -172,3 +172,7 @@ desktop.ini
 
 
 #
+# ASIC 합성 netlist는 P&R 입력(10000/12000ps)만 추적 — 나머지는 rpt로 충분
+asic/oasys/results/*/*_synth.v
+!asic/oasys/results/*/*_10000ps_synth.v
+!asic/oasys/results/*/*_12000ps_synth.v
