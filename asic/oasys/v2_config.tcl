@@ -2,7 +2,7 @@ namespace eval config {
     global input
 
     # [수정 필요] 학교 서버에 clone한 이 리포의 절대 경로로 변경
-    set REPO_ROOT {/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/zynq-fir-decimation-ip}
+    set REPO_ROOT {/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip}
 
     # =========================================================
     # FIR v2 (파이프라인 분할판, FPGA Fmax 146MHz)
