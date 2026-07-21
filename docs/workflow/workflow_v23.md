@@ -90,7 +90,7 @@ CPU 스펙이라는 사용자 제공 정보가 한 번은 필요).
   v1≈v2(노이즈 수준), 둘 다 ≥166.7MHz. "v2 분할의 이득은 FPGA CARRY4 전용" 가설 실증.
   결과 정리: `asic/oasys/results/sweep_report.md`(sweep·해석) +
   `docs/report/fir_n43/summary/asic_vs_fpga.md`(FPGA 대비 표, §8-4.5 통합용).
-  Nitro P&R은 툴 내부 버그(SDA101)로 중단 — 사유·시도 기록은 sweep_report §6.
+  Nitro P  Nitro P&R은 툴 내부 버그(SDA101)로 중단 — 사유·시도 기록은 sweep_report §6.R은 툴 내부 버그(SDA101)로 중단 — 실행 전 과정·의사결정 상세는 `docs/log/47`.
   - ✅ **[해소 2026-07-03] 코어 단독 수치 추출 완료**: v2@145 routed DCP에서 계층 스코프로
     추출 — 코어 `u_fir_n43_v2` 단독 LUT 1792 / FF 2113 / DSP 16 / 전력 0.015W (전체
     비트스트림 4556 LUT / 1.705W와 구분). 상세 표·리포트 경로는 `sweep_summary_v2.md`
