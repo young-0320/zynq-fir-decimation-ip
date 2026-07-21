@@ -47,3 +47,6 @@ namespace eval config {
     set input(pre_synthesize)                 {}
     set input(pre_optimize)                   {}
 }
+
+# config 로드 시 export 함수(ex) 자동 정의 — proc 정의만 하므로 합성 전 실행이어도 부작용 없음
+source {/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip/asic/oasys/export.tcl}
