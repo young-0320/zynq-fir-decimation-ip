@@ -1,0 +1,2 @@
+warning: report_power. design 'fir_n43' has no timing constraints  [TA-118]
+warning: Timing constraints are required for 'report_power'. Please specify timing constraints for design fir_n43.
