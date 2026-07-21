@@ -26,7 +26,7 @@ file mkdir $OUT_DIR
 # =========================================================
 # chip area — FIR core는 GEMM step2보다 작으므로 3000000a에서 시작,
 # placement 실패/routing congestion 시 증가, 너무 널널하면 축소.
-create_chip -xl_area 0a -yb_area 0a -xr_area 14000000a -yt_area 14000000a -core_site CORE -xl_margin 0a -yt_margin 0a -orient north -double_backed true -gap 0a
+create_chip -xl_area 0a -yb_area 0a -xr_area 16000000a -yt_area 16000000a -core_site CORE -xl_margin 0a -yt_margin 0a -orient north -double_backed true -gap 0a
 # =========================================================
 
 create_floorplan_regions -partition $TOP_MODULE -min_cells 0 -max_cells 1000000000 -min_area_percent 1 -max_area_percent 100 -core_cell_util 70
