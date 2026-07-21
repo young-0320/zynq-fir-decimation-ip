@@ -59,3 +59,7 @@ error2
 error SDA101: internal error has occurred 'grCapFrac <= 1.' at /home/devmgr/work/73777_2020.2.R1/dev/src/pldb/engine/densityboxcontrol.cpp line 245 
 error UI150: Command 'place_timing' execution failed. 
 error UI26: Script file '/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip/asic/nitro/tcl/nitro_step4.tcl' execution failed (and stopped) at line 2 (run_place_timing -effort high). 
+error3
+error SDA101: internal error has occurred 'grCapFrac <= 1.' at /home/devmgr/work/73777_2020.2.R1/dev/src/pldb/engine/densityboxcontrol.cpp line 245 
+error UI150: Command 'place_timing' execution failed. 
+error UI26: Script file '/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip/asic/nitro/tcl/nitro_step4.tcl' execution failed (and stopped) at line 2 (run_place_timing -effort high). 
