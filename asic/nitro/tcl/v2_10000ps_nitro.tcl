@@ -10,7 +10,7 @@ read_library /mnt/NewHDD/home/vlsiadmin/TannerEDA/TannerTools_v2021.2/Process/Ge
 read_library /mnt/NewHDD/home/vlsiadmin/TannerEDA/TannerTools_v2021.2/Process/Generic_250nm/Generic_250nm_LogicGates/PTF/Generic250nm_typ.ptf
 
 # [수정 필요] 학교 서버에 clone한 이 리포의 절대 경로로 변경
-set REPO_ROOT {/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/zynq-fir-decimation-ip}
+set REPO_ROOT {/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip}
 
 # =========================================================
 # [수정 필요] 실행 대상
