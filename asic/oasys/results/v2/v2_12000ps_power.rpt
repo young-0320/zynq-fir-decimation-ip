@@ -1,0 +1,2 @@
+warning: Design contains too many instances. Loading the report may take a while.  [POWER-154]
+info:    power of design 'fir_n43_v2': internal 413051.968750 (uW), switching 434400.468750 (uW), leakage 6.603548 (uW), total 847459.062500 (uW)  [PF-263]
