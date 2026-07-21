@@ -86,9 +86,11 @@ CPU 스펙이라는 사용자 제공 정보가 한 번은 필요).
   비교점 확보 (범위 근거는 `asic/oasys/README.md` §2).
   실행 준비물은 `asic/oasys/`(config·공용 sdc)·`asic/nitro/`(템플릿 tcl) 준비
   완료 — 서버에서 clone 후 config의 `REPO_ROOT`만 수정하면 됨. 절차는 `asic/*/README.md`.
-- [에이전트] 결과 정리: 면적(cell/µm²), critical path/ASIC Fmax, 전력 — v1/v2 ASIC 상호 비교
-  + FPGA 코어 단독 수치와 대비. (v1 FPGA 코어 단독 수치는 ASIC 결과 도착 시 v2와 같은
-  방식으로 routed DCP에서 추출 — 에이전트 작업.)
+- ✅ **[Track A 완료 2026-07-21]** Oasys 합성 sweep 6페어(20000→6000ps) 완료 — 전 구간
+  v1≈v2(노이즈 수준), 둘 다 ≥166.7MHz. "v2 분할의 이득은 FPGA CARRY4 전용" 가설 실증.
+  결과 정리: `asic/oasys/results/sweep_report.md`(sweep·해석) +
+  `docs/report/fir_n43/summary/asic_vs_fpga.md`(FPGA 대비 표, §8-4.5 통합용).
+  Nitro P&R은 툴 내부 버그(SDA101)로 중단 — 사유·시도 기록은 sweep_report §6.
   - ✅ **[해소 2026-07-03] 코어 단독 수치 추출 완료**: v2@145 routed DCP에서 계층 스코프로
     추출 — 코어 `u_fir_n43_v2` 단독 LUT 1792 / FF 2113 / DSP 16 / 전력 0.015W (전체
     비트스트림 4556 LUT / 1.705W와 구분). 상세 표·리포트 경로는 `sweep_summary_v2.md`

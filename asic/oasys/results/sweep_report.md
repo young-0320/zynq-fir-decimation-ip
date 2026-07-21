@@ -176,11 +176,14 @@ toggle-rate 가정 기반 추정치.
       명령만 쓰면 됨 (`-all` grep 불필요).
 - [x] ~~sweep~~ — 6페어(20000→6000ps) 완료, 전 지점 pass, §4 최종 결론으로 종료.
 - [x] ~~FPGA 대비~~ — §5 참조.
-- [ ] (범위 축소 결정 반영) **Nitro P&R: 10000ps netlist로 v1/v2 각 1런** — 후보
-      8000/9000/10000 중 페어 최소 margin이 가장 큰 지점(10000ps: v1 2.0%/v2 1.3% vs
-      9000ps: 1.1%/5.8% vs 8000ps: 0.7%/0.9% — P&R 성패는 나쁜 쪽이 결정). 그래도
-      GEMM 권장 P&R margin(20~30%)에 크게 못 미치므로 post-route timing fail 리스크
-      있음 → fail 시 **12000ps netlist(margin 9.4%/14.0%)로 재시도**가 fallback.
+- [x] ~~Nitro P&R (10000ps v1)~~ — **중단 (2026-07-21).** 시도 기록: ① datapath 블럭
+      36개가 고정 객체로 칩 밖에 생성됨 — 미배치 시 routing 실패, `place_macros`는
+      "movable macro 없음"(PLC1020)으로 거부 → 수동 배치 필요(GEMM 수업 방식과 동일).
+      ② 수동 배치 후 `run_place_timing`이 placer 내부 assertion 크래시
+      (`SDA101: grCapFrac <= 1`, densityboxcontrol.cpp) — 칩 1.4mm(util 70%)→1.6mm
+      (util 53%) 확대·재배치 후에도 동일 지점에서 재현. 2020.2 툴 내부 버그로 판단,
+      사용자 측 회피 불가로 결론. **비교 결론은 합성(Oasys) 결과로 완결이므로 P&R은
+      범위에서 제외** — 절차·스크립트(`asic/nitro/tcl/`)는 재개 가능 상태로 보존.
 
 ## Raw 리포트 경로
 

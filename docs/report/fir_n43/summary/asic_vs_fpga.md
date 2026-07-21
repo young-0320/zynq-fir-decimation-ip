@@ -46,7 +46,9 @@
   (vectorless) 추정, ASIC은 Oasys 기본 toggle-rate 가정·2.5V·250nm 합성 추정 —
   절대치 비교는 무의미. v1↔v2 상대 비교(ASIC 내 Δ≈1%)만 유효.
 - DSP48 하드블록(FPGA) vs 표준셀 곱셈기(ASIC)라 "로직 규모"의 단위도 대응되지 않음.
-- ASIC은 합성 단계 값 — P&R 후 배선 지연/면적이 추가된다.
+- ASIC은 합성 단계 값 — P&R 후 배선 지연/면적이 추가된다. (Nitro P&R은 v1 1런을
+  시도했으나 placer 내부 버그(SDA101 assertion, 2020.2)로 중단 — 시도·원인 기록은
+  `asic/oasys/results/sweep_report.md` §6. 비교 결론은 합성 결과로 완결.)
 - ASIC 면적/전력은 주파수에 따라 증가 (50MHz: 1.12mm²/0.69W → 166.7MHz:
   1.42mm²/1.33W) — 지점별 수치는 sweep_report §1/§2.
 
