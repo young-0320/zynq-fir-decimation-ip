@@ -105,8 +105,6 @@ toggle-rate 가정 기반 추정치.
 - 잠정 Fmax 추정: v1 ≈ 102MHz, v2 ≈ 101MHz. 다음: 8000ps는 arrival ~9.5ns 대비 required
   7719.7ps라 둘 다 확실한 FAIL — 건너뛰고 **9000ps 페어로 이분탐색 시작** 권장
   (fail 시 9500ps, pass 시 8500ps).
-- **면적도 v1 ≈ v2** (Δ+0.6%): 여유 constraint에서는 차이 미미. 타이트해질수록 벌어지는지
-  관찰 대상.
 
 ## 5. FPGA 대비 (sweep 완료 후 작성)
 
