@@ -14,9 +14,9 @@ set REPO_ROOT {/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/zynq-fir-decimation-i
 
 # =========================================================
 # [수정 필요] 실행 대상
-set VER        {v1}         ;# v1 | v2
-set PERIOD     {20000ps}
-set TOP_MODULE {fir_n43}    ;# v1=fir_n43, v2=fir_n43_v2
+set VER        {v2}
+set PERIOD     {10000ps}
+set TOP_MODULE {fir_n43_v2}
 # =========================================================
 
 read_verilog "$REPO_ROOT/asic/oasys/results/$VER/${VER}_${PERIOD}_synth.v"
