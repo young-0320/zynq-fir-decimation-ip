@@ -182,8 +182,10 @@ toggle-rate 가정 기반 추정치.
       ② 수동 배치 후 `run_place_timing`이 placer 내부 assertion 크래시
       (`SDA101: grCapFrac <= 1`, densityboxcontrol.cpp) — 칩 1.4mm(util 70%)→1.6mm
       (util 53%) 확대·재배치 후에도 동일 지점에서 재현. 2020.2 툴 내부 버그로 판단,
-      사용자 측 회피 불가로 결론. 비교 결론은 합성(Oasys) 결과로 완결이므로 P&R은
-      범위에서 제외 — 절차·스크립트(`asic/nitro/tcl/`)는 재개 가능 상태로 보존.
+      사용자 측 회피 불가로 결론. 판정 근거 4가지(assertion 성격, 파라미터 무관 재현,
+      GEMM 대조군, 회피 수단 소진)와 에러 원문은 `asic/nitro/error_records.md`.
+      비교 결론은 합성(Oasys) 결과로 완결이므로 P&R은 범위에서 제외 —
+      절차·스크립트(`asic/nitro/tcl/`)는 재개 가능 상태로 보존.
 
 ## Raw 리포트 경로
 
