@@ -4,6 +4,36 @@
 요약은 최상위 `README.md`, PASS 기준과 파이프라인 상세는 `docs/project_pipeline.md`,
 빌드 산출물 경로 규칙은 `docs/build_artifacts.md` 참고.
 
+## 전체 흐름
+
+레포는 두 개의 루프로 굴러간다. 보드 없이 도는 검증 루프와, 보드에 올리는 배포 루프다.
+
+```
+[검증 루프 — 보드 불필요]
+model/ 골든모델 → sim/ 벡터 생성 → RTL 시뮬레이션 (iverilog, make run_all)
+  결과가 골든모델과 비트 단위로 일치해야 PASS
+
+[배포 루프 — 보드 필요]
+vivado/ bitstream·XSA → vitis/ ELF·BOOT.bin → SD 부팅 → READY FIR
+  → sw/ PC 데모 (UART) → FFT plot + 골든모델 자동 판정
+```
+
+RTL이나 계수를 바꾸면 검증 루프부터, 데모만 재현하려면 배포 루프만 돌면 된다.
+
+## 목차
+
+1. [Quick Setup / Dependencies](#quick-setup--dependencies) — Python 환경, 시리얼 포트
+2. [Prerequisites](#prerequisites) — Vivado/Vitis 2024.2, iverilog 등 도구
+3. [Main Demo Pipeline](#main-demo-pipeline) — 배포 루프 전체
+   1. [Hardware Platform Build](#1-hardware-platform-build) — bitstream·XSA
+   2. [Application And BOOT Image](#2-application-and-boot-image) — ELF·BOOT.bin
+   3. [Board Demo](#3-board-demo) — SD 부팅·PC 데모
+4. [Verification Pipeline](#verification-pipeline) — 검증 루프 전체
+   1. [Python Float/Fixed Model And Vector Generation](#1-python-floatfixed-model-and-vector-generation)
+   2. [RTL Simulation](#2-rtl-simulation)
+5. [Fast Rebuild](#fast-rebuild) — C 앱만 바뀐 경우의 지름길
+6. [Debug And Historical Flows](#debug-and-historical-flows) — 스모크/디버그 경로
+
 ## Quick Setup / Dependencies
 
 PC 측 데모·리포트·Python 검증은 bare `python` 대신 프로젝트 `uv` 환경을 사용한다.

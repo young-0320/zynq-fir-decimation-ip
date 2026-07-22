@@ -16,17 +16,19 @@ PC FFT plot / 자동 판정 ← UART ← DDR ← AXI DMA S2MM ←─┘
 
 ## 결과 요약
 
-| 항목 | 결과 |
-| --- | --- |
-| 실보드 기능 검증 | 보드 출력 4096샘플 vs 골든모델 — SNR 74.9 dB, max error 6 LSB, correlation 1.000000, PASS |
-| 처리 시간 | 8192샘플 83.0 µs (이론 한계 81.92 µs 대비 오차 1.3%), CPU numpy 대비 1.95× |
-| Fmax | v1 116 MHz → 크리티컬 패스 분석 후 재설계(v2) 146 MHz, +26% — 두 버전 모두 보드 동작 확인 |
-| ASIC 교차 검증 | 같은 RTL을 250nm 표준셀로 합성하면 v1 ≈ v2 동률 — 26% 이득이 FPGA 물리 구조에 종속된 최적화임을 실증 |
-| 전력 | 보드 5V 입력 실측 2.21 W — Vivado 추정 1.705 W와 차이 요인을 실측으로 분해해 정합 확인 |
+| 항목             | 결과                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| 실보드 기능 검증 | 보드 출력 4096샘플 vs 골든모델 — SNR 74.9 dB, max error 6 LSB, correlation 1.000000, PASS             |
+| 처리 시간        | 8192샘플 83.0 µs (이론 한계 81.92 µs 대비 오차 1.3%), CPU numpy 대비 1.95×                          |
+| Fmax             | v1 116 MHz → 크리티컬 패스 분석 후 재설계(v2) 146 MHz, +26% — 두 버전 모두 보드 동작 확인            |
+| ASIC 교차 검증   | 같은 RTL을 250nm 표준셀로 합성하면 v1 ≈ v2 동률 — 26% 이득이 FPGA 물리 구조에 종속된 최적화임을 실증 |
+| 전력             | 보드 5V 입력 실측 2.21 W — Vivado 추정 1.705 W와 차이 요인을 실측으로 분해해 정합 확인                |
 
-상세 수치와 근거: [보드 검증](docs/report/fir_n43/summary/scenario1_1.md) ·
-[FPGA Fmax 스윕](vivado/reports/sweep_summary_v2.md) ·
-[ASIC vs FPGA](docs/report/fir_n43/summary/asic_vs_fpga.md) ·
+상세 수치와 근거: 
+
+[보드 검증](docs/report/fir_n43/summary/scenario1_1.md)
+[FPGA Fmax 스윕](vivado/reports/sweep_summary_v2.md)
+[ASIC vs FPGA](docs/report/fir_n43/summary/asic_vs_fpga.md) 
 [전력 실측 vs 추정](docs/report/fir_n43/summary/power_board_vs_vivado.md)
 
 ## 이 레포가 흔한 FIR 레포와 다른 점
@@ -67,16 +69,16 @@ uv run python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 
 
 ## Repository Map
 
-| Path | Purpose |
-| --- | --- |
-| `model/` | Python float/fixed-point 레퍼런스 모델 |
-| `rtl/transposed_form/n43/` | 메인 N=43 FIR/decimator RTL (v1/v2) |
-| `sim/` | Python·RTL 테스트, AXIS 회귀 스위트 |
-| `vivado/` | Block design·bitstream 재생성 Tcl, Fmax 스윕 리포트 |
-| `vitis/` | bare-metal app·BOOT 이미지 빌드 스크립트 |
-| `sw/` | PS C 애플리케이션 + PC Python UART/FFT 데모 |
-| `asic/` | Oasys 합성 스윕 (config·결과·P&R 절차) |
-| `docs/` | 사양·검증 요약·개발 로그·워크플로우 |
+| Path                         | Purpose                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| `model/`                   | Python float/fixed-point 레퍼런스 모델               |
+| `rtl/transposed_form/n43/` | 메인 N=43 FIR/decimator RTL (v1/v2)                  |
+| `sim/`                     | Python·RTL 테스트, AXIS 회귀 스위트                 |
+| `vivado/`                  | Block design·bitstream 재생성 Tcl, Fmax 스윕 리포트 |
+| `vitis/`                   | bare-metal app·BOOT 이미지 빌드 스크립트            |
+| `sw/`                      | PS C 애플리케이션 + PC Python UART/FFT 데모          |
+| `asic/`                    | Oasys 합성 스윕 (config·결과·P&R 절차)             |
+| `docs/`                    | 사양·검증 요약·개발 로그·워크플로우               |
 
 ## Documentation
 
@@ -85,8 +87,10 @@ uv run python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 
 - [build_artifacts.md](docs/build_artifacts.md) — 빌드 산출물 경로·재현 규칙
 - [docs/report/fir_n43/summary/](docs/report/fir_n43/summary/) — 검증·비교분석 결과
 - [docs/log/](docs/log/) — 의사결정·디버깅 기록 원본 48편 (사후 가공 없이 보존)
+- [docs/workflow/](docs/workflow/) — 단계별 실행 계획 v1~v24 (각 시점의 목표·준비물·절차)
 
 ## Status
 
-2026-07 기준 v1.0 — 기능 검증(시뮬레이션·실보드), 성능(Fmax·CPU 대비), 전력(실측),
-ASIC 교차 검증까지 완료. Zybo Z7-20 (xc7z020clg400-1), Vivado/Vitis 2024.2.
+수행 기간 2026-03 ~ 2026-08, 1인 수행. 2026-07 기준 v1.0 — 기능 검증(시뮬레이션·실보드),
+성능(Fmax·CPU 대비), 전력(실측), ASIC 교차 검증까지 완료.
+Zybo Z7-20 (Zynq-7020, xc7z020clg400-1), Vivado/Vitis 2024.2.
