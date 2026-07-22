@@ -83,8 +83,10 @@ TB(.sv) → 보드 UART 캡처 vs 골든 모델 비교(자동 판정).
 ### 4.3 CPU 대비 (§8-2)
 
 - Windows 데모 노트북(i5-1340P), numpy float64 `np.convolve`, convolve 구간만 측정:
-  CPU median **162.0µs** vs FPGA **83.0µs** (8192샘플 window).
-  스펙·방법론은 PNG(`cpu_vs_fpga_timing_window.png`) 하단에 명기.
+  CPU median **221.0µs** vs FPGA **85.0µs** (8192샘플 window, 약 2.6배).
+  스펙·방법론은 PNG(`cpu_vs_fpga_timing.png`) 하단에 명기.
+- 수치 히스토리: 4차 미팅(7/2) 보고 시점 162.0/83.0 → 이후 반복 재측정에서
+  221.0/85.0 정착 (`docs/log/49`). 보고서 Ⅲ장은 미팅 당시 수치를 역사 기록으로 유지.
 
 ## 5. 보조 지표 (§8 교수님 지시)
 
