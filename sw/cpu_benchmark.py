@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -138,7 +139,9 @@ def print_comparison(cpu: dict, board_time_us: float) -> None:
     print(f"  FPGA:  {_FPGA_DSP48} DSP48, {_FPGA_LUT} LUT (Vivado utilization report 기준)")
 
 
-def save_comparison_chart(cpu: dict, board_time_us: float, out_path: Path) -> None:
+def save_comparison_chart(
+    cpu: dict, board_time_us: float, out_path: Path, generated_at: datetime
+) -> None:
     labels = ["CPU\n(numpy float64)", "FPGA\n(Q1.15 fixed-point)"]
     values = [cpu["median_us"], board_time_us]
     colors = ["#4c72b0", "#dd8452"]
@@ -158,6 +161,11 @@ def save_comparison_chart(cpu: dict, board_time_us: float, out_path: Path) -> No
             ha="center", va="bottom", fontsize=10,
         )
     ax.set_ylim(0, max(values) * 1.2)
+    fig.text(
+        0.99, 0.99,
+        f"generated {generated_at:%Y-%m-%d %H:%M}",
+        ha="right", va="top", fontsize=7, color="gray",
+    )
     fig.text(
         0.5, 0.01,
         _CPU_SPEC_TEXT + "\n" + _METHODOLOGY_TEXT,
@@ -221,9 +229,10 @@ def main() -> None:
     parser.add_argument(
         "--chart-out",
         type=Path,
-        default=Path("docs/report/fir_n43/plot/cpu_vs_fpga_timing.png"),
+        default=None,
         metavar="PATH",
-        help="Output path for comparison bar chart",
+        help="Output path for comparison bar chart "
+        "(default: docs/report/fir_n43/plot/cpu_vs_fpga_timing_<timestamp>.png)",
     )
     args = parser.parse_args()
 
@@ -238,7 +247,14 @@ def main() -> None:
 
     if board_time_us is not None:
         print_comparison(cpu, board_time_us)
-        save_comparison_chart(cpu, board_time_us, args.chart_out)
+        generated_at = datetime.now()
+        chart_out = args.chart_out
+        if chart_out is None:
+            stamp = generated_at.strftime("%Y%m%d_%H%M%S")
+            chart_out = Path(
+                f"docs/report/fir_n43/plot/cpu_vs_fpga_timing_{stamp}.png"
+            )
+        save_comparison_chart(cpu, board_time_us, chart_out, generated_at)
 
 
 if __name__ == "__main__":
