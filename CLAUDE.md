@@ -165,4 +165,10 @@ docs/log/45_golden_rebuild_boot_prep.md   (수정 RTL 골든 재빌드·BOOT.bin
 
 M4 상태: SD boot 기반 end-to-end 실시간 시연 경로 통과, 정량 스펙 검증 완료, AXIS 래퍼
 프레이밍 버그 수정 완료(2단계, 시뮬레이션 검증), v1@115MHz/v2@145MHz 보드 실측(기능 동작)
-완료. 남은 작업은 Fmax 정밀 측정(오실로스코프 등)과 v1↔v2 교체 여부 결정뿐.
+완료, ASIC 합성 보조지표 완료(log 47, Nitro P&R은 툴 버그로 중단·문서화), 보드 전력 실측
+완료(2026-07-22, log 46 §5 + `docs/report/fir_n43/summary/power_board_vs_vivado.md` —
+S1 2.21W, Vivado 1.705W와 정합 범위, reset 없는 반복 실행도 보드 확인). Fmax 정밀
+측정(오실로스코프 등)은 미수행(범위 제외로 문서 정리). A/B/C 결과 v1.0 문서 통합(D2)도
+완료(2026-07-22, sweep_summary 교차참조 + [TrackB] 플레이스홀더 전부 해소). 남은 작업은
+v1↔v2 교체 여부 결정(7/29 미팅, 논의 자료 `docs/log/48`)과 최종 발표(8/7) 준비 —
+마무리·공개 체크리스트는 `docs/workflow/workflow_v24.md` (마지막 워크플로우).
