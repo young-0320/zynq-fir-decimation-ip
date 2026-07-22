@@ -1,245 +1,92 @@
 # zynq-axi-fir-decimation-ip
 
-## 한국어 개요
+N=43 FIR decimation IP를 설계하고, Zynq-7000 실보드에서 end-to-end로 검증한 프로젝트.
 
-이 저장소는 Zybo Z7-20(Zynq-7000) 보드에서 N=43 FIR 저역통과 필터와 M=2 decimator를 실제로 구동하기 위한 end-to-end FPGA 프로젝트입니다. 단순히 RTL 필터 하나를 만드는 것이 아니라, 필터 사양 정의부터 Python 모델링, fixed-point 검증, RTL 구현, AXI-Stream/AXI DMA 기반 PS-PL 통합, Vitis bare-metal 애플리케이션, SD 부팅용 BOOT 이미지 생성, UART 기반 PC FFT 확인까지 한 번에 이어지는 전체 흐름을 재현하는 것이 핵심입니다.
+100 MS/s로 들어오는 16-bit 스트림을 anti-aliasing 필터링과 함께 50 MS/s로 낮추는
+FIR decimator를 — 사양 정의, Python 골든모델, Verilog RTL, AXI-Stream/DMA 기반
+PS-PL 시스템 통합, SD 부팅 실보드 데모, 골든모델과의 비트 단위 자동 판정까지 —
+한 학기 동안 1인으로 완주했다. 여기에 CPU 벤치마크, Fmax 스윕, ASIC 합성 교차 검증,
+보드 전력 실측을 더해 하나의 RTL을 성능·전력·면적 관점에서 다각도로 평가했다.
 
-프로젝트의 큰 과정은 다음과 같습니다.
-
-1. **DSP 사양 및 기준 모델 작성**: Kaiser window 기반 N=43 FIR 저역통과 필터를 설계하고, Python float/fixed 모델로 계수와 Q1.15 fixed-point 동작을 검증합니다.
-2. **RTL 구현 및 시뮬레이션**: transposed-form FIR, M=2 decimator, AXI-Stream wrapper를 작성하고 Python golden vector와 RTL testbench로 결과를 비교합니다.
-3. **Vivado 하드웨어 플랫폼 구성**: Zynq PS, AXI DMA, HP0 DDR 경로, FIR/decimator RTL을 block design으로 연결하고 bitstream/XSA를 생성합니다.
-4. **Vitis bare-metal 소프트웨어 작성**: PS에서 AXI DMA를 제어하는 C 애플리케이션을 빌드하고 FSBL, bitstream, ELF를 묶어 SD 부팅용 `BOOT.bin`을 만듭니다.
-5. **보드 실행 및 PC 검증**: Zybo 보드를 SD 부팅한 뒤 UART에서 `READY FIR`를 확인하고, PC Python 스크립트로 입력 시나리오를 보내 FFT plot과 수치 결과를 확인합니다.
-6. **디버그와 재현성 관리**: DMA 길이 폭, DDR/JTAG 이슈, AXI-Stream reset/timeout 같은 실제 bring-up 문제를 문서화하고, 현재 신뢰 가능한 SD boot + DMA + UART 경로를 기준 파이프라인으로 유지합니다.
-
-따라서 이 프로젝트의 목적은 “필터 RTL이 시뮬레이션에서 맞는다”에서 끝나는 것이 아니라, **사양 -> 모델 -> RTL -> Vivado -> Vitis -> BOOT.bin -> 실제 보드 -> PC FFT 결과**까지 연결되는 end-to-end 검증 가능한 FIR decimation 시스템을 만드는 것입니다.
-
-N=43 transposed-form FIR low-pass filter + M=2 decimator on Zybo Z7-20 (Zynq-7000).
-
-## Quick Setup / Dependencies
-
-For PC-side demo, report, and Python verification, use the project `uv` environment instead of a bare `python` command. The Python dependencies are declared in `pyproject.toml` and include `pyserial`, `numpy`, `scipy`, `matplotlib`, `pytest`, and `pexpect`.
-
-```bash
-uv sync
-uv run python -c "import serial, numpy, scipy, matplotlib; print('Python deps OK')"
+```
+PC(Python) → UART → PS bare-metal C → AXI DMA → PL FIR/decimator
+                                                      ↓
+PC FFT plot / 자동 판정 ← UART ← DDR ← AXI DMA S2MM ←─┘
 ```
 
-Run PC-side scripts with `uv run python ...` unless you already activated an equivalent virtual environment. This avoids `ModuleNotFoundError: No module named 'serial'` and similar missing-package issues.
+## 결과 요약
 
-Serial port names are machine-specific:
-
-| Host OS | Typical UART port |
+| 항목 | 결과 |
 | --- | --- |
-| Linux/Ubuntu | `/dev/ttyUSB0`, `/dev/ttyUSB1` |
-| Windows | `COM3`, `COM4`, etc. |
+| 실보드 기능 검증 | 보드 출력 4096샘플 vs 골든모델 — SNR 74.9 dB, max error 6 LSB, correlation 1.000000, PASS |
+| 처리 시간 | 8192샘플 83.0 µs (이론 한계 81.92 µs 대비 오차 1.3%), CPU numpy 대비 1.95× |
+| Fmax | v1 116 MHz → 크리티컬 패스 분석 후 재설계(v2) 146 MHz, +26% — 두 버전 모두 보드 동작 확인 |
+| ASIC 교차 검증 | 같은 RTL을 250nm 표준셀로 합성하면 v1 ≈ v2 동률 — 26% 이득이 FPGA 물리 구조에 종속된 최적화임을 실증 |
+| 전력 | 보드 5V 입력 실측 2.21 W — Vivado 추정 1.705 W와 차이 요인을 실측으로 분해해 정합 확인 |
 
-For RTL and hardware builds, the project also needs `iverilog`/`make` for simulation and AMD Vivado + Vitis Embedded Development 2024.2 + `bootgen` for bitstream, XSA, ELF, and BOOT image generation. See the detailed `Prerequisites` section below.
+상세 수치와 근거: [보드 검증](docs/report/fir_n43/summary/scenario1_1.md) ·
+[FPGA Fmax 스윕](vivado/reports/sweep_summary_v2.md) ·
+[ASIC vs FPGA](docs/report/fir_n43/summary/asic_vs_fpga.md) ·
+[전력 실측 vs 추정](docs/report/fir_n43/summary/power_board_vs_vivado.md)
 
-## Current State
+## 이 레포가 흔한 FIR 레포와 다른 점
 
-- FIR spec: Kaiser beta=5.653, fp=15 MHz, fs=25 MHz, As >= 60 dB, Q1.15 signed 16-bit samples/coefs.
-- RTL path: transposed-form FIR + M=2 decimator + AXI-Stream wrapper.
-- System path: AXI DMA simple mode, HP0 DDR, PS bare-metal C, UART 115200, PC Python FFT viewer.
-- Board baseline: SD boot reaches `READY FIR`; Python demo modes `1-1` and `1-2` reach FFT plots when each scenario is started from a fresh board reset.
-- Main root cause fixed: AXI DMA default 14-bit length field could not represent `MM2S_LENGTH = 8192 * 2 = 16384` bytes. All active BD Tcl variants now set `CONFIG.c_sg_length_width {23}`.
-- JTAG `dow` / XSDB direct DDR write is not a trusted final path because byte lane 3 MSB corruption was observed. Use SD boot + DMA + UART for system verification.
+**1. 검증이 주인공이다.** 골든모델과 RTL의 비트 단위 일치에서 출발해, 인터페이스
+강건성 테스트벤치, 보드 출력 자동 판정까지 계층적 검증 파이프라인을 갖췄다. 데드락
+버그를 고칠 때는 새 테스트벤치를 수정 전 RTL에 먼저 돌려 예측한 임계값과 정확히
+일치하는 실패를 재현한 뒤에 수정했다 — 테스트가 버그를 실제로 잡는다는 것부터
+증명하는 방식이다 (`docs/log/43`–`44`).
 
-Primary current context:
+**2. 실제 하드웨어에서만 만나는 문제들의 근본 원인을 끝까지 추적했다.** 모든 DMA
+전송이 멈춘 원인은 전송량 16,384바이트가 DMA 기본 length field(14-bit) 한계를
+정확히 1바이트 초과한 것이었다. 스모크 테스트로 문제를 격리하고, 원인을 규명하고,
+회귀로 재발을 막는 전 과정이 기록되어 있다 (`docs/log/31`–`32`).
 
-- `CLAUDE.md` - compact current project state and next work.
-- `docs/project_pipeline.md` - actual project pipeline, scripts, artifacts, and PASS criteria.
-- `docs/workflow/workflow_v16.md` - next demo/report polish plan.
-- `docs/workflow/workflow_v15.md` - current runbook.
-- `docs/workflow/fir_n43_verification_pipeline.md` - canonical model/vector/RTL simulation verification flow.
-- `docs/workflow/fir_n43_dependency_map.md` - source/script/artifact dependency map for the canonical target.
-- `docs/log/32_smoke_pass_after_dma_length_width_fix.md` - DMA timeout root-cause record.
+**3. 같은 RTL을 두 구현 타겟에서 조명했다.** FPGA에서 Fmax를 26% 올린 파이프라인
+분할이 ASIC 표준셀 합성에서는 아무 차이를 만들지 못한다. 동일 제약 스윕으로 이를
+실증했고, 같은 병목 경로를 FPGA CARRY4는 8.66 ns에, 표준셀 합성기는 재구조화로
+5.72 ns에 처리하는 것이 그 이유다 — 최적화는 아키텍처가 아니라 타겟에 속한다
+(`asic/oasys/results/sweep_report.md`).
+
+**4. 과정 전체가 재현 가능하게 남아 있다.** 사양 결정부터 실측까지 48편의 개발
+로그(`docs/log/`)와 재현 스크립트가 있고, 빌드 산출물은 명령 재실행만으로 같은
+경로에 재생성된다.
+
+## Quick Start
+
+```bash
+# Python 모델·RTL 시뮬레이션 (보드 불필요)
+uv sync && uv run pytest -q
+cd sim && make run_all && cd ..
+
+# 보드 데모: BOOT.bin을 SD에 넣고 부팅 → READY FIR 확인 후
+uv run python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 30
+```
+
+빌드부터 보드 데모까지 전체 절차: **[docs/getting_started.md](docs/getting_started.md)**
 
 ## Repository Map
 
-| Path                         | Purpose                                       |
-| ---------------------------- | --------------------------------------------- |
-| `model/`                   | ideal and fixed-point Python reference models |
-| `rtl/transposed_form/n43/` | main N=43 FIR/decimator RTL                   |
-| `rtl/debug/`               | DMA smoke/debug stream endpoints              |
-| `sim/`                     | Python and RTL tests                          |
-| `vivado/`                  | BD and bitstream/XSA regeneration Tcl scripts |
-| `vitis/`                   | Vitis app/BOOT image rebuild scripts          |
-| `sw/`                      | bare-metal C app and PC Python UART/FFT demo  |
-| `docs/`                    | design specs, workflow records, debug logs    |
+| Path | Purpose |
+| --- | --- |
+| `model/` | Python float/fixed-point 레퍼런스 모델 |
+| `rtl/transposed_form/n43/` | 메인 N=43 FIR/decimator RTL (v1/v2) |
+| `sim/` | Python·RTL 테스트, AXIS 회귀 스위트 |
+| `vivado/` | Block design·bitstream 재생성 Tcl, Fmax 스윕 리포트 |
+| `vitis/` | bare-metal app·BOOT 이미지 빌드 스크립트 |
+| `sw/` | PS C 애플리케이션 + PC Python UART/FFT 데모 |
+| `asic/` | Oasys 합성 스윕 (config·결과·P&R 절차) |
+| `docs/` | 사양·검증 요약·개발 로그·워크플로우 |
 
-## Prerequisites
+## Documentation
 
-AMD Vivado + Vitis Embedded Development 2024.2 is required for hardware and bare-metal builds. The Vitis Core Development Kit alone is not enough for Zynq-7000 standalone ELF generation.
+- [getting_started.md](docs/getting_started.md) — 빌드·데모·검증 재현 절차
+- [project_pipeline.md](docs/project_pipeline.md) — 파이프라인 구조와 PASS 기준
+- [build_artifacts.md](docs/build_artifacts.md) — 빌드 산출물 경로·재현 규칙
+- [docs/report/fir_n43/summary/](docs/report/fir_n43/summary/) — 검증·비교분석 결과
+- [docs/log/](docs/log/) — 의사결정·디버깅 기록 원본 48편 (사후 가공 없이 보존)
 
-For each hardware build terminal, source the Vivado 2024.2 environment script from the machine's actual install path. Common Ubuntu install paths are `$HOME/Xilinx/Vivado/2024.2/settings64.sh` and `/opt/Xilinx/Vivado/2024.2/settings64.sh`.
+## Status
 
-```bash
-export VIVADO_SETTINGS=/path/to/Xilinx/Vivado/2024.2/settings64.sh
-source "$VIVADO_SETTINGS"
-
-vivado -version
-vitis -version
-bootgen -help >/dev/null
-```
-
-On this development machine, `VIVADO_SETTINGS=$HOME/Xilinx/Vivado/2024.2/settings64.sh`.
-
-Other expected tools:
-
-| Tool                            | Use                      |
-| ------------------------------- | ------------------------ |
-| `uv` + Python 3.13            | Python environment/tests |
-| `iverilog` 11+                | RTL simulation           |
-| `minicom` or equivalent       | UART console             |
-| Digilent Zybo Z7-20 board files | Vivado board part        |
-
-## Main Demo Pipeline
-
-The main demo pipeline is the shortest source-to-board path for reproducing the current SD-boot demo. It focuses on hardware/software image generation and board execution. Model and RTL regression checks are documented separately in the verification pipeline.
-
-### 1. Hardware Platform Build
-
-From repo root:
-
-```bash
-source "$VIVADO_SETTINGS"
-mkdir -p build/fir_n43/vivado build/fir_n43/vitis build/fir_n43/output
-cd build/fir_n43/vivado
-
-vivado -mode batch \
-  -journal vivado.jou \
-  -log vivado.log \
-  -source ../../../vivado/fir_n43/build_bd_fir_dma.tcl
-
-cd ../../..
-```
-
-Expected artifacts:
-
-```text
-build/fir_n43/output/bd_fir_dma_wrapper.bit
-build/fir_n43/output/bd_fir_dma_wrapper.xsa
-```
-
-### 2. Application And BOOT Image
-
-Build the Vitis platform/app from the canonical XSA, then package FSBL + bitstream + app ELF:
-
-```bash
-vitis -s vitis/fir_n43/build_fir_decimator_demo.py
-
-bootgen -arch zynq \
-  -image build/fir_n43/output/fir_decimator_demo.bif \
-  -o build/fir_n43/output/BOOT.bin -w on
-```
-
-Expected artifacts:
-
-```text
-build/fir_n43/output/fsbl.elf
-build/fir_n43/output/fir_decimator_demo.elf
-build/fir_n43/output/fir_decimator_demo.bif
-build/fir_n43/output/BOOT.bin
-```
-
-### 3. Board Demo
-
-1. Copy `build/fir_n43/output/BOOT.bin` to the FAT32 SD card root as `BOOT.bin`.
-2. Set JP5 to SD boot, insert SD, connect USB, power the board.
-3. Confirm UART banner:
-
-```text
-READY FIR
-```
-
-4. Run one PC-side FFT check after each board reset.
-
-Use the serial port name for the machine running the PC script. On Linux/Ubuntu this is usually `/dev/ttyUSB0` or `/dev/ttyUSB1`; on Windows it is usually `COM3`, `COM4`, etc. Prefer `uv run` so the Python dependencies from `pyproject.toml` are available.
-
-Ubuntu example:
-
-```bash
-uv run python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 30
-uv run python sw/fir_decimator_demo.py --mode 1-2 --port /dev/ttyUSB1 --timeout 30
-```
-
-Windows laptop example:
-
-```powershell
-uv run python sw/fir_decimator_demo.py --mode 2 --port COM3 --timeout 30
-```
-
-Expected result: each command receives board output and reaches an FFT plot when the board has been reset before that scenario.
-
-Known limitation: running `1-1` and then `1-2` back-to-back without a board reset can fail with `ERR:1` / MM2S timeout. The current firmware resets the AXI DMA before a transfer, but does not yet issue a full software-controlled PL/FIR AXIS reset equivalent to the board reset button.
-
-Status update (2026-07-03): the root cause of this back-to-back failure was identified as AXIS wrapper framing bugs and fixed in RTL (`docs/log/41`–`44`, simulation-verified with a multi-packet no-reset regression). The fix is included in the 115 MHz / 145 MHz builds (`docs/build_artifacts.md`), but the 100 MHz baseline `BOOT.bin` referenced above intentionally still carries the pre-fix RTL to preserve the validated demo artifact, so this limitation still applies to it. If a run aborts mid-transfer (timeout), a board reset is still required in all builds — the firmware has no PL-side wrapper reset path (`docs/log/44` §4).
-
-## Verification Pipeline
-
-Use this path when changing DSP math, Q-format policy, RTL datapath, coefficients, or before recording a release/report result. Generated files under `sim/output/` and `sim/vectors/` are disposable artifacts and must not be committed. Vector files are regenerated from the Python model pipeline when needed; the repository tracks the model, generator, and testbench sources, not generated `.npy` or `.hex` vectors.
-
-### 1. Python Float/Fixed Model And Vector Generation
-
-```bash
-uv sync
-uv run pytest -q
-
-uv run python -m sim.python.run_check_coeff_stopband_spec --num-taps 43
-uv run python -m sim.python.run_compare_ideal_vs_fixed --num-taps 43 --form transposed
-uv run python -m sim.python.export_rtl_bringup_vectors \
-  --num-taps 43 \
-  --input-dir sim/output/ideal_vs_fixed_trans_n43 \
-  --output-dir sim/vectors/transposed_form/n43
-```
-
-Expected result: Python tests pass; the 43-tap ideal and quantized coefficient responses meet the 60 dB stopband criterion; and N=43 transposed fixed-point vectors are regenerated. The coefficient check exits non-zero and prints the failing tap/response when the stopband criterion is not met.
-
-### 2. RTL Simulation
-
-```bash
-cd sim
-make clean
-make run_all
-make run_bug
-cd ..
-```
-
-Expected result: all canonical N=43 testbenches (v1 and v2 AXIS golden included) print PASS without fail/mismatch/error output. `make run_bug` runs the AXIS wrapper regression suite (skid-buffer depth, multi-packet stress, TLAST-bubble sweep — see `docs/log/41`–`44`) and must also print PASS. N=5 direct-form bringup tests are legacy-only and can be run separately with `make run_legacy_n5`.
-
-## Fast Rebuild
-
-Use this path when only `sw/fir_decimator_demo.c` changed and the existing `build/fir_n43/vitis` workspace is valid. It reuses the current hardware/platform and regenerates the app ELF, BIF, and BOOT image.
-
-```bash
-vitis/fir_n43/rebuild_boot_image.sh --boot-tag FIR
-```
-
-Expected artifact:
-
-```text
-build/fir_n43/output/BOOT.bin
-```
-
-## Debug And Historical Flows
-
-Smoke/debug paths remain in the repo as regression and root-cause tools, but they are not the main reproducible pipeline:
-
-- `rtl/debug/axis_dma_smoke_test.v`
-- `rtl/debug/axis_decimator_m2_n43_debug.v`
-- `vivado/debug/smoke/build_bd_fir_dma_smoke.tcl`
-- `vivado/debug/axis_debug/build_bd_fir_dma_axis_debug.tcl`
-- `vitis/legacy/download_and_run.py` and `vitis/legacy/bringup_demo/download_bringup.py` are historical JTAG/XSDB flows, not trusted final validation paths.
-
-Use `docs/workflow/workflow_v15.md` and `docs/log/32_smoke_pass_after_dma_length_width_fix.md` when debugging DMA/DDR/UART transport issues.
-
-## Next Work
-
-The next technical step is not more bring-up plumbing. It is to make the PC FFT output presentation and numeric pass/fail reporting clean enough for demo/report use:
-
-- print peak dB values for expected tones in modes `1-1` and `1-2`;
-- compare hardware output against Python golden/reference metrics;
-- fix the output FFT axis/layout so the 50 MHz output sample-rate Nyquist limit is visually clear;
-- save representative plots and measured numbers into `docs/`.
+2026-07 기준 v1.0 — 기능 검증(시뮬레이션·실보드), 성능(Fmax·CPU 대비), 전력(실측),
+ASIC 교차 검증까지 완료. Zybo Z7-20 (xc7z020clg400-1), Vivado/Vitis 2024.2.
