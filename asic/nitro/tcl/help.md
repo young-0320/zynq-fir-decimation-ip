@@ -54,12 +54,12 @@ warning PLC2012: The port 'out_sample[8]' is not fixed.
 error PLC1020: Cannot run macro placement on a design without any movable macros. 
 error UI150: Command 'place_timing' execution failed: Global placer failed to complete.. 
 info UI: 10 (out of 34) 'PLC2012' messages were displayed
-error UI26: Script file '/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip/asic/nitro/tcl/nitro_step1b_macros.tcl' execution failed (and stopped) at line 3 (place_macros -partition $TOP_MODULE). 
+error UI26: Script file '/mnt/NewHDD/home/ddl2026/ddl2026_<user>/ddl2026_folder/zynq-fir-decimation-ip/asic/nitro/tcl/nitro_step1b_macros.tcl' execution failed (and stopped) at line 3 (place_macros -partition $TOP_MODULE). 
 error2
 error SDA101: internal error has occurred 'grCapFrac <= 1.' at /home/devmgr/work/73777_2020.2.R1/dev/src/pldb/engine/densityboxcontrol.cpp line 245 
 error UI150: Command 'place_timing' execution failed. 
-error UI26: Script file '/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip/asic/nitro/tcl/nitro_step4.tcl' execution failed (and stopped) at line 2 (run_place_timing -effort high). 
+error UI26: Script file '/mnt/NewHDD/home/ddl2026/ddl2026_<user>/ddl2026_folder/zynq-fir-decimation-ip/asic/nitro/tcl/nitro_step4.tcl' execution failed (and stopped) at line 2 (run_place_timing -effort high). 
 error3
 error SDA101: internal error has occurred 'grCapFrac <= 1.' at /home/devmgr/work/73777_2020.2.R1/dev/src/pldb/engine/densityboxcontrol.cpp line 245 
 error UI150: Command 'place_timing' execution failed. 
-error UI26: Script file '/mnt/NewHDD/home/ddl2026/ddl2026_2023104135/ddl2026_folder/zynq-fir-decimation-ip/asic/nitro/tcl/nitro_step4.tcl' execution failed (and stopped) at line 2 (run_place_timing -effort high). 
+error UI26: Script file '/mnt/NewHDD/home/ddl2026/ddl2026_<user>/ddl2026_folder/zynq-fir-decimation-ip/asic/nitro/tcl/nitro_step4.tcl' execution failed (and stopped) at line 2 (run_place_timing -effort high). 
