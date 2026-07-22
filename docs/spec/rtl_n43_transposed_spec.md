@@ -8,6 +8,23 @@
 
 ---
 
+## 0. 현행화 주석 (2026-07-22)
+
+이 스펙은 v1 코어와 초기 래퍼(2026-05-07 시점) 기준이다. 이후 변경 사항은 본문에
+소급 반영하지 않고 여기에 요약한다.
+
+1. **v2 코어 추가** — `fir_n43_v2` 계열(4-stage, round 스테이지 분리). FIR latency
+   3→4 cycle, top 4→5 cycle. §1~§4의 latency·파이프라인 서술은 v1 기준이다.
+   설계 근거 `docs/log/39`, 타이밍 `vivado/reports/sweep_summary_v2.md`.
+2. **AXIS 래퍼 2차 수정** — §5(래퍼 valid 규칙)와 §7(핸드셰이크 계약)은 수정 전
+   구조(depth-3 버퍼, auto-flush) 기준으로, 현행 RTL과 다르다. 현행 래퍼는
+   skid 4칸, flush 제거, `s_axis_tready`에 `| s_axis_tlast` 항 추가(1차 수정,
+   `docs/log/42`), 마지막 출력 hold-back(2차 수정, `docs/log/43`~`44`)이다.
+   현행 계약의 정의와 검증 기준은 log 43 설계 절과 `sim/`의 `make run_bug` 회귀를
+   기준으로 한다.
+3. **타이밍 수치** — §1·§11의 WNS/자원은 초기 100 MHz 클로저 시점 값이다. 최신
+   Fmax·자원·배포 주파수는 `vivado/reports/sweep_summary.md`/`_v2.md`.
+
 ## 1. 시스템 사양
 
 | 항목 | 값 |

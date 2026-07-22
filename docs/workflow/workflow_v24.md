@@ -67,12 +67,13 @@
   없이 보존" 안내문 한 장 추가
 - Tier 3 (본인 목소리): Velog 연재는 에이전트 초안 후 **본인 퇴고 필수**
 
-- [ ] Tier 1 톤 정리 — `summary/` 4종 (에이전트, 첫 파일 diff 확인 후 진행)
-- [ ] Tier 2 — `docs/log/README.md` 프레이밍 안내문 추가 (에이전트)
-- [ ] README 최종화 — 배치 원칙 유지(IP 소개 + 조작 명령어만, 세부 수치는 docs/),
-      Tier 1 톤 기준 적용
+- [x] Tier 1 톤 정리 — summary 4종 + sweep_summary/_v2 + sweep_report + build_artifacts (2026-07-22)
+- [x] Tier 2 — `docs/log/README.md`·`docs/workflow/README.md` 프레이밍 안내문 (2026-07-22)
+- [x] README 재작성(소개·결과·차별점 중심) + `docs/getting_started.md` 분리 (2026-07-22).
+      헤드라인 수치 5개는 배치 원칙의 예외로 README에 허용(사용자 확정)
 - [ ] 재현 절차 점검: clone → 시뮬(`make run_all`) → 빌드 → 보드 데모 경로가 문서만으로 따라와지는지
-- [ ] 민감 정보 스캔 (경로·계정·학교 서버 정보 등) — 공개 전 필수
+- [x] 민감 정보 스캔 (2026-07-22) — 학번·전화번호 텍스트 마스킹 완료. hwp·장학 md의
+      잔여분과 히스토리 퍼지는 보류(사용자 판단: 민감도 낮음, 시간 나면 처리)
 - [ ] 라이선스 파일 확인/추가
 - [ ] repo public 전환 → **링크 확보** (발표 마지막 슬라이드·보고서용)
 - [ ] (선택) `v1.0` git tag — 발표 시점 스냅샷 고정

@@ -1,5 +1,9 @@
 # Nitro P&R Guide (FIR v1/v2)
 
+상태(2026-07-21): v1 10000ps 1런을 시도했으나 placer 내부 오류(SDA101)가 재현되어
+중단했다. 시도 기록과 중단 판단은 `../oasys/results/sweep_report.md` §6, `docs/log/47`
+§4. 아래 절차와 `tcl/`의 step 스크립트는 재개 가능한 상태로 보존한다.
+
 Oasys netlist(`asic/oasys/results/<ver>/<period>ps/*_synth.v`)를 대상으로 P&R.
 flow·공정 파일 경로는 GEMM 프로젝트(교수님 예제) 기준 그대로.
 
