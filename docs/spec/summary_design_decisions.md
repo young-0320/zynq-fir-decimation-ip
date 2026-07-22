@@ -132,7 +132,7 @@
 | ------------- | ----------------------------------------------------------------------- | ---- | --------- |
 | 스크립트 위치 | `sw/fir_decimator_demo.py` (C 코드와 같은 `sw/` — 파일이 하나씩이라 폴더 분리 불필요) | 확정 | `22_pc_python_fft_visualization_plan.md` |
 | FFT y축       | dB scale, 입력 최대 피크 = 0dB (상대 감쇠량 직접 확인) | 확정 | `22_pc_python_fft_visualization_plan.md` |
-| FFT x축       | 현재 구현은 0~50MHz 고정, 출력 50MHz sample-rate 표시 정리는 다음 작업 | 개선 예정 | `todo.md` |
+| FFT x축       | 0~50MHz 유지 + 출력 무효 영역(25~50MHz) 음영 표시 (`OUTPUT_INVALID_REGION_MHZ`) | 확정 | `34_python_demo_report_modularization.md` |
 | mode 0        | 보드 불필요 — 로컬 naive downsample vs FIR 비교 (앨리어싱 확인) | 확정 | `22_pc_python_fft_visualization_plan.md` |
 | mode 1-1/1-2  | 실보드 연동 — UART로 명령 전송 → binary 수신 → FFT 표시 | 확정 | `22_pc_python_fft_visualization_plan.md` |
 | UART 수신     | magic 찾을 때까지 1바이트씩 스캔 (노이즈 내성) | 확정 | `22_pc_python_fft_visualization_plan.md` |
