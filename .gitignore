@@ -74,10 +74,14 @@ venv/
 .Xil/
 *.bit
 *.bin
+# 배포용 SD boot 이미지는 release/에 정식 추적한다
+!release/*/BOOT.bin
 *.mmi
 *.ltx
 *.rpt
 !vivado/reports/sweep_summary.md
+# sweep_summary_v2.md가 인용하는 근거 리포트 3종은 추적한다
+!vivado/reports/v2_145mhz_*.rpt
 # ASIC flow(Track A) 서버 산출물은 git으로 회수한다
 !asic/**/*.rpt
 *.dcp
