@@ -107,7 +107,7 @@ Stage 2: prod_reg[k] + z[k+1] → z[k],  round(z[0]) → round_reg
 Stage 3: saturate(round_reg) → out_sample,  out_valid=1
 ```
 
-> 초기 설계는 2단계였으나, Stage 2 critical path(48-bit 덧셈 + round + saturate)가 WNS=−1.155 ns로 위반. round_reg를 삽입해 3단계로 확장 후 WNS=+0.278 ns 달성. `log/16_vivado_timing_closure_transposed_n43.md` 참고.
+> 초기 설계는 2단계였으나, Stage 2 critical path(48-bit 덧셈 + round + saturate)가 WNS=−1.155 ns로 위반. round_reg를 삽입해 3단계로 확장 후 WNS=+0.278 ns 달성. `docs/log/16_vivado_timing_closure_transposed_n43.md` 참고.
 
 **계수:**
 
@@ -389,7 +389,8 @@ make -C sim all
 make -C sim run_all
 ```
 
-개별 타겟:
+개별 타겟 (`sim/build/`는 git 미추적 — 직접 실행 시 `mkdir -p sim/build` 선행,
+`make` 경로는 자동 생성):
 
 ```bash
 # fir_n43 단독
@@ -449,5 +450,6 @@ source vivado/fir_n43/bd_fir_dma.tcl
 - [X] `fir_decimator_n43_axis.v` — iverilog PASS (TREADY=1, 백프레셔, TLAST, aresetn 4시나리오)
 - [X] Vivado 100 MHz 타이밍 클로저 WNS=+0.278 ns
 - [X] Block Design DRC PASS, 비트스트림 생성 완료 WNS=+1.239 ns
-- [ ] 실보드 UART 동작 확인 (보드 대기)
-- [ ] Python FFT 시각화 30 MHz ≥ 60 dB 감쇠 확인 (보드 대기)
+- [X] 실보드 UART 동작 확인 — 완료 (SD boot 데모, `docs/log/30`~)
+- [X] Python FFT 시각화 30 MHz ≥ 60 dB 감쇠 확인 — 완료 (scenario 1-1/1-2 자동 판정,
+      `docs/report/fir_n43/summary/`)

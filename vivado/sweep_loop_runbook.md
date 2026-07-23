@@ -2,7 +2,13 @@
 
 **목적:** 루프 에이전트가 자율적으로 주파수 스윕 빌드를 실행한다.
 **참고:** `docs/workflow/workflow_v19.md`
-**실행 위치:** repo root (`/home/young/dev/10_zynq-fir-decimation-ip`)
+**실행 위치:** repo root
+
+> **[현행화 주석, 2026-07-23]** 이 문서는 workflow_v19 시절 PS7 FCLK 기반 코스 스윕의
+> 실행 기록이다. 아래 "확정 Fmax 115MHz"는 이후 clk_wiz 정밀 스윕에서 **116MHz로
+> 정정**되었다(구 115MHz 설정은 PS7 PLL 스냅으로 실제 111.111MHz였음 — `docs/log/40`).
+> LUT 등 자원 수치도 당시 빌드 기준이다. 현행 수치는 `vivado/reports/sweep_summary.md`
+> (v1) / `sweep_summary_v2.md`(v2) 참고.
 
 ---
 

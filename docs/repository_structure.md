@@ -1,6 +1,6 @@
 # Repository Structure
 
-- Date: 2026-05-24
+- Date: 2026-05-24 (workflow 표·최상위 맵 현행화: 2026-07-23)
 - Purpose: quick map of the repository layout and the role of each maintained script.
 - Scope: source-controlled project layout plus generated-artifact policy. This document intentionally excludes `.git/`, `.venv/`, `__pycache__/`, `.pytest_cache/`, and generated build internals.
 
@@ -22,8 +22,7 @@
 |-- sw/
 |-- vivado/
 |-- vitis/
-|-- build/        # generated, not source-controlled
-`-- todo.md
+`-- build/        # generated, not source-controlled
 ```
 
 | Path | Role |
@@ -105,8 +104,8 @@ docs/
 
 | File | Role |
 | --- | --- |
-| `docs/workflow/workflow_v16.md` | Next implementation plan for PC FFT visualization, numeric reporting, and report evidence capture. |
-| `docs/workflow/workflow_v15.md` | Current runbook after SD boot and DMA length-width fix. |
+| `docs/workflow/workflow_v24.md` | Current (final) wrap-up and publication checklist — latest workflow. |
+| `docs/workflow/workflow_v01..v23` | Historical runbooks for each project phase (kept as records). |
 | `docs/workflow/fir_n43_dependency_map.md` | Main `fir_n43` source/script/artifact dependency map. |
 | `docs/workflow/fir_n43_verification_pipeline.md` | Canonical model -> vector -> RTL simulation verification flow. |
 

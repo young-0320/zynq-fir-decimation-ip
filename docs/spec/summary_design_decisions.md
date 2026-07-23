@@ -70,7 +70,7 @@
 | in_valid=0 동작  | `z[k]` hold, `out_valid=0` | 확정 | `14_transposed_form_rtl_decisions.md` |
 | reset 극성       | active-high, `z[k]` / `prod_reg[k]` / `out_valid` 전부 0 | 확정 | `14_transposed_form_rtl_decisions.md` |
 | 코어 포트        | `clk/rst/in_valid/in_sample[15:0]/out_valid/out_sample[15:0]` | 확정 | `14_transposed_form_rtl_decisions.md` |
-| Vivado 타이밍    | WNS=+0.278ns @ 100MHz (DSP48=16, LUT=1827) | 확정 | `16_vivado_timing_closure_transposed_n43.md` |
+| Vivado 타이밍    | WNS=+0.278ns @ 100MHz (DSP48=16, LUT=1827 — 초기 코어 단독 합성 시점 값. 현행 코어 자원은 LUT 1792/FF 2113, `vivado/reports/sweep_summary_v2.md`) | 확정 | `16_vivado_timing_closure_transposed_n43.md` |
 | 타겟 보드        | Zybo Z7-20 (xc7z020clg400-1) | 확정 | 계획서 |
 
 ---

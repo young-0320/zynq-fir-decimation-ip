@@ -6,17 +6,17 @@
 | # | 제목 | 핵심 메시지 / 내용 | 시각 자료 |
 |---|------|------------------|----------|
 | 1 | 표지 | Zynq AXI FIR Decimation IP — 설계·검증·실측 | — |
-| 2 | 목표와 사양 | 100→50MS/s 2:1 decimation, N=43 half-band, 통과대역 0~20MHz, end-to-end 실보드 데모까지 | 사양 표 |
+| 2 | 목표와 사양 | 100→50MS/s 2:1 decimation, N=43 Kaiser lowpass, 통과대역 0~15MHz·저지대역 25MHz≥60dB, end-to-end 실보드 데모까지 | 사양 표 |
 | 3 | 시스템 구조 | PS(펌웨어+UART) ↔ DMA ↔ AXIS 래퍼 ↔ FIR 코어, SD boot 데모 경로 | BD 블록도 |
 | 4 | FIR 코어 설계 | transposed form, Q1.15/Q2.30, 3-stage 파이프라인(v1) | 파이프라인 다이어그램 |
 | 5 | 검증 방법론 | 골든 모델 ↔ RTL 비트일치 → 래퍼 TB → 보드 캡처 자동 판정. "테스트가 버그를 잡는 것부터 증명" | 검증 계층 그림 |
 | 6 | 버그 사례 ① DMA timeout | 16384B가 14-bit length 한계를 1B 초과 — 근본 원인 확정 과정 | length 계산 한 줄 |
 | 7 | 버그 사례 ② tlast 데드락 | 코어 latency vs tlast 도착의 경쟁 → hold-back 구조적 해결. 수정 전 RTL에서 예측 임계값(3/4사이클)과 일치하는 FAIL 재현 | 타이밍 파형 그림 (log 43) |
-| 8 | 보드 실측 결과 | scenario PASS: SNR 74.9dB, max err 6 LSB, corr 1.000 / 25MHz −6dB / alias 억제 | FFT plot PNG (mode 1-1/1-2) |
+| 8 | 보드 실측 결과 | scenario PASS: SNR 74.9dB, max err 6 LSB, corr 1.000 / 25MHz(전이대역) −60.3dB / 45MHz alias −64.5dB 억제 | FFT plot PNG (mode 1-1/1-2) |
 | 9 | v1→v2 Fmax 개선 | 병목 = 누산+라운딩 병합 경로(CARRY4 체인) → 분할로 116→146MHz(+26%), 보드 실측 완료 | critical path 그림 + 스윕 표 |
-| 10 | CPU 대비 | 같은 window: CPU 162.0µs vs FPGA 83.0µs (방법론 명기) | cpu_vs_fpga_timing_window.png |
+| 10 | CPU 대비 | 같은 window: CPU 221.0µs vs FPGA 85.0µs, 약 2.6배 (CPU는 세션 간 170~300µs 요동 — 최종 채택값·방법론 명기) | cpu_vs_fpga_timing.png |
 | 11 | 보조지표 ① ASIC | v1/v2 동일 제약 6페어 sweep → 전 구간 동률, ≥166.7MHz. **"분할의 26%는 CARRY4 전용" 실증** — 같은 경로 8.664ns(FPGA) vs 5.719ns(ASIC) | asic_vs_fpga §1 표 |
-| 12 | 보조지표 ② 전력 실측 | S0 1.72 / S1 2.21 / S2 2.18W. S1−S0=0.49W(PL+클럭+앱+DDR), S2≈S1 — "83µs burst는 평균 전력에 안 잡힘"이 결과. USB-UART 0.22W 실측 분리 → Vivado 1.705W와 정합 범위 | S0/S1/S2 측정 표 (power_board_vs_vivado §1) |
+| 12 | 보조지표 ② 전력 실측 | S0 1.72 / S1 2.21 / S2 2.18W. S1−S0=0.49W(PL+클럭+앱+DDR), S2≈S1 — "85µs burst는 평균 전력에 안 잡힘"이 결과. USB-UART 0.22W 실측 분리 → Vivado 1.705W와 정합 범위 | S0/S1/S2 측정 표 (power_board_vs_vivado §1) |
 | 13 | 결론 | 스펙 정량 증명 + 방법론 + 타겟 교차 검증. 한계(abort 복구 불가, Fmax 정밀측정 미포함) 정직하게 1줄 | 3줄 요약 |
 
 ## 백업 슬라이드 (질문 대비)
@@ -37,4 +37,4 @@
 | Fmax 숫자 아직 유효한가 | 백업 B2 |
 | ASIC에서 왜 v1=v2인가 / v2 만든 의미는 | 슬라이드 11 + 백업 B1 — "타겟 특화 최적화의 실증"으로 반전 |
 | 전력이 추정과 왜 다른가 | 실측 2.21W = on-chip 1.705W + USB-UART 0.22W(실측 분리) + DDR3/PHY 등 주변부 + 레귤레이터 손실 — 분해하면 정합 범위 (power_board_vs_vivado §3) |
-| 왜 mode 실행해도 전력이 안 늘었나 | 8192샘플이 83µs에 끝남 — 1~2초 데모 주기에서 평균 기여가 분해능 아래. 연산 효율의 전력 측면 증거 (S2−S1≈0) |
+| 왜 mode 실행해도 전력이 안 늘었나 | 8192샘플이 85µs에 끝남 — 1~2초 데모 주기에서 평균 기여가 분해능 아래. 연산 효율의 전력 측면 증거 (S2−S1≈0) |

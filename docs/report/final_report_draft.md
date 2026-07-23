@@ -7,10 +7,10 @@
 
 ## 1. 프로젝트 개요
 
-- 목표: **N=43 half-band FIR + 2:1 decimation IP**를 설계하고, Zynq-7020(Zybo Z7-20)
+- 목표: **N=43 Kaiser lowpass FIR + 2:1 decimation IP**를 설계하고, Zynq-7020(Zybo Z7-20)
   에서 PS–PL DMA 연동 실시간 데모까지 end-to-end로 검증한다.
-- 신호 사양: 입력 100MS/s(16-bit), 출력 50MS/s. 통과대역 0~20MHz, Nyquist-edge
-  25MHz에서 −6dB, 저지대역 alias 억제.
+- 신호 사양: 입력 100MS/s(16-bit), 출력 50MS/s. 통과대역 0~15MHz(fp=15MHz),
+  저지대역 25MHz 이상 ≥60dB 감쇠(alias 억제, Kaiser β≈5.653).
 - 최종 상태: SD boot 기반 실시간 데모 경로 통과, 정량 스펙 검증 완료, 보드 실측
   완료(v1@115MHz / v2@145MHz), 보조 지표(ASIC·전력·CPU 비교) 확보.
 
@@ -78,7 +78,7 @@ TB(.sv) → 보드 UART 캡처 vs 골든 모델 비교(자동 판정).
 - 정량 판정 (scenario 1-1, 보드 출력 vs 골든): PASS — max error 6 LSB, RMSE 1.4 LSB,
   SNR 74.9dB, correlation 1.000. 톤별(5/20/30MHz) 감쇠 판정 표 포함
   (`docs/report/fir_n43/summary/scenario1_1.md`, 1-2도 동일 구조).
-- 25MHz Nyquist-edge −6dB, 45MHz alias 억제 수치 확인 (scenario1_2.md).
+- 25MHz(전이대역) −60.3dB, 45MHz alias −64.5dB 억제 수치 확인 (scenario1_2.md).
 
 ### 4.3 CPU 대비 (§8-2)
 

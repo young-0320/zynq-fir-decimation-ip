@@ -3,8 +3,8 @@
 zynq-axi-fir-decimation-ip
 
 Updated: 2026-07-03
-Repository root: `/home/young/dev/10_zynq-fir-decimation-ip`
-README.md root: `/home/young/dev/10_zynq-fir-decimation-ip/README.md`
+Repository root: 이 파일이 있는 디렉토리 (repo root)
+README.md root: `./README.md`
 
 ---
 
