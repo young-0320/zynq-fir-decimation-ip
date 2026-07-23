@@ -64,11 +64,15 @@ BINS_N43_BUG := \
 	$(BUILD)/tb_skid_stress.out \
 	$(BUILD)/tb_tlast_bubble.out
 
+# 테스트 벡터 대표 파일 (생성 규칙은 하단 — 부재 시 Python 골든모델로 자동 생성)
+VEC_N43 := $(ROOT)/sim/vectors/transposed_form/n43/input_q15.hex
+VEC_N5  := $(ROOT)/sim/vectors/direct_form/bringup_n5/input_q15.hex
+
 .PHONY: all run_all run_legacy_n5 run_bug clean
 
 all: $(BINS_N43)
 
-run_all: all
+run_all: all $(VEC_N43)
 	@for bin in $(BINS_N43); do \
 		echo "=== $$(basename $$bin) ==="; \
 		cd $(ROOT) && $(VVP) $$bin; \
@@ -81,7 +85,7 @@ run_bug: $(BINS_N43_BUG)
 		cd $(ROOT) && $(VVP) $$bin; \
 	done
 
-run_legacy_n5: $(BINS_LEGACY_N5)
+run_legacy_n5: $(BINS_LEGACY_N5) $(VEC_N5)
 	@for bin in $(BINS_LEGACY_N5); do \
 		echo "=== $$(basename $$bin) ==="; \
 		cd $(ROOT) && $(VVP) $$bin; \
@@ -92,6 +96,26 @@ clean:
 
 $(BUILD):
 	mkdir -p $@
+
+# -----------------------------------------------------------------------------
+# Test vectors — 부재 시 Python 골든모델로 자동 생성 (있으면 건드리지 않음)
+# input_q15.hex를 대표 타겟으로 사용, 레시피가 hex 4종을 함께 생성한다
+# -----------------------------------------------------------------------------
+$(VEC_N43):
+	cd $(ROOT) && uv run python -m sim.python.run_compare_ideal_vs_fixed \
+		--num-taps 43 --form transposed
+	cd $(ROOT) && uv run python -m sim.python.export_rtl_bringup_vectors \
+		--num-taps 43 \
+		--input-dir sim/output/ideal_vs_fixed_trans_n43 \
+		--output-dir sim/vectors/transposed_form/n43
+
+$(VEC_N5):
+	cd $(ROOT) && uv run python -m sim.python.run_compare_ideal_vs_fixed \
+		--num-taps 5 --form direct
+	cd $(ROOT) && uv run python -m sim.python.export_rtl_bringup_vectors \
+		--num-taps 5 \
+		--input-dir sim/output/ideal_vs_fixed_n5 \
+		--output-dir sim/vectors/direct_form/bringup_n5
 
 # -----------------------------------------------------------------------------
 # Transposed form N=43
