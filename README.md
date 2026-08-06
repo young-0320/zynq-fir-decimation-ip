@@ -10,23 +10,47 @@ PS-PL 시스템 통합, SD 부팅 실보드 데모, 골든모델과의 비트 �
 한 학기 동안 1인으로 완주했다. 여기에 CPU 벤치마크, Fmax 스윕, ASIC 합성 교차 검증,
 보드 전력 실측을 더해 하나의 RTL을 성능·전력·면적 관점에서 다각도로 평가했다.
 
-```
-PC(Python) → UART → PS bare-metal C → AXI DMA → PL FIR/decimator
-                                                      ↓
-PC FFT plot / 자동 판정 ← UART ← DDR ← AXI DMA S2MM ←─┘
+## 개발 연재 (Velog)
+
+설계 의도와 오류의 원인 분석·해결 과정을 5편으로 정리했다.
+
+1. [Zynq FIR IP 개발 #1 : Block Design부터 비트스트림·XSA까지](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-1)
+2. [Zynq FIR IP 개발 #2 : DDR byte[3] 오염 — JTAG ELF 로딩에 걸린 16일](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-2-DDR-byte3-%EC%98%A4%EC%97%BC)
+3. [Zynq FIR IP 개발 #3 : 끝나지 않는 MM2S — AXI DMA 1바이트 초과](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-3-MM2S%EA%B0%80-%EB%81%9D%EB%82%98%EC%A7%80-%EC%95%8A%EB%8A%94%EB%8B%A4-AXI-DMA-1%EB%B0%94%EC%9D%B4%ED%8A%B8-%EC%B4%88%EA%B3%BC)
+4. [Zynq FIR IP 개발 #4 : 동작하는 회로의 버그 4개](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-4-%EB%8F%99%EC%9E%91%ED%95%98%EB%8A%94-%ED%9A%8C%EB%A1%9C%EC%97%90%EC%84%9C-%EB%B2%84%EA%B7%B8-4%EA%B0%9C%EB%A5%BC-%EC%B0%BE%EC%95%84%EB%83%88%EB%8B%A4)
+5. [Zynq FIR IP 개발 #5 : 숫자로 쓰는 결산](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-5-%EC%88%AB%EC%9E%90%EB%A1%9C-%EC%93%B0%EB%8A%94-%EA%B2%B0%EC%82%B0)
+
+```text
+PC(Python)
+ ↓
+UART
+ ↓
+PS bare-metal C
+ ↓
+AXI DMA MM2S
+ ↓
+PL FIR/decimator
+ ↓
+AXI DMA S2MM
+ ↓
+DDR
+ ↓
+UART
+ ↓
+PC FFT plot / 자동 판정
 ```
 
 ![Block Design — PS7 + AXI DMA + FIR decimator AXIS wrapper](docs/asset/bd_fir_dma.svg)
 
 ## 결과 요약
 
-| 항목             | 결과                                                                                                   |
-| ---------------- | ------------------------------------------------------------------------------------------------------ |
-| 실보드 기능 검증 | 보드 출력 4096샘플 vs 골든모델 — SNR 74.9 dB, max error 6 LSB, correlation 1.000000, PASS             |
-| 처리 시간        | 8192샘플 85.0 µs (이론 한계 81.92 µs 대비 오차 3.8%), CPU numpy(221.0 µs) 대비 2.6×                |
+| 항목             | 결과                                                                                                 |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| 실보드 기능 검증 | 보드 출력 4096샘플 vs 골든모델 — SNR 74.9 dB, max error 6 LSB, correlation 1.000000, PASS            |
+| 처리 시간        | 8192샘플 85.0 µs (이론 한계 81.92 µs 대비 오차 3.8%), CPU numpy(221.0 µs) 대비 2.6×                  |
 | Fmax             | v1 116 MHz → 크리티컬 패스 분석 후 재설계(v2) 146 MHz, +26% — 두 버전 모두 보드 동작 확인            |
 | ASIC 교차 검증   | 같은 RTL을 250nm 표준셀로 합성하면 v1 ≈ v2 동률 — 26% 이득이 FPGA 물리 구조에 종속된 최적화임을 실증 |
-| 전력             | 보드 5V 입력 실측 2.21 W — Vivado 추정 1.705 W와 차이 요인을 실측으로 분해해 정합 확인                |
+| 전력             | 보드 5V 입력 실측 2.21 W — Vivado 추정 1.705 W와 차이 요인을 실측으로 분해해 정합 확인               |
 
 ![Scenario 1-1 — 보드 출력 FFT vs 골든모델 (5/20/30MHz 톤)](docs/report/fir_n43/plot/scenario1_1_fft.png)
 
@@ -85,18 +109,18 @@ uv run python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 
 
 ## Repository Map
 
-| Path                         | Purpose                                                 |
-| ---------------------------- | ------------------------------------------------------- |
-| `model/`                   | Python float/fixed-point 레퍼런스 모델                  |
-| `rtl/transposed_form/n43/` | 메인 N=43 FIR/decimator RTL (v1/v2)                     |
+| Path                       | Purpose                                                |
+| -------------------------- | ------------------------------------------------------ |
+| `model/`                   | Python float/fixed-point 레퍼런스 모델                 |
+| `rtl/transposed_form/n43/` | 메인 N=43 FIR/decimator RTL (v1/v2)                    |
 | `sim/`                     | Python·RTL 테스트, AXIS 회귀 스위트                    |
 | `vivado/`                  | Block design·bitstream 재생성 Tcl, Fmax 스윕 리포트    |
 | `vitis/`                   | bare-metal app·BOOT 이미지 빌드 스크립트               |
-| `sw/`                      | PS C 애플리케이션 + PC Python UART/FFT 데모             |
-| `asic/`                    | Oasys 합성 스윕 (config·결과·P&R 절차)                |
-| `boards/`                  | Digilent Zybo Z7-20 보드 파일 (Vivado 재빌드용)         |
+| `sw/`                      | PS C 애플리케이션 + PC Python UART/FFT 데모            |
+| `asic/`                    | Oasys 합성 스윕 (config·결과·P&R 절차)                 |
+| `boards/`                  | Digilent Zybo Z7-20 보드 파일 (Vivado 재빌드용)        |
 | `release/`                 | 검증된 SD boot 이미지 (BOOT.bin — 빌드 없이 데모 가능) |
-| `docs/`                    | 사양·검증 요약·개발 로그·워크플로우                  |
+| `docs/`                    | 사양·검증 요약·개발 로그·워크플로우                    |
 
 `build/`는 로컬 빌드 산출물 디렉토리로 git에 추적되지 않는다 — 재현 규칙은
 [docs/build_artifacts.md](docs/build_artifacts.md), 전체 구조 상세는
@@ -114,8 +138,8 @@ uv run python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 
 ## Status
 
 수행 기간 2026-03 ~ 2026-08, 1인 수행. 2026-07-22 기준 v1.0 — 기능 검증(시뮬레이션·
-실보드), 성능(Fmax·CPU 대비), 보드 전력 실측, ASIC 합성 교차 검증까지 완료. 공개
-자산화(기술 포스팅·데모 영상)와 최종 발표(2026-08-07)를 남겨둔 상태.
+실보드), 성능(Fmax·CPU 대비), 보드 전력 실측, ASIC 합성 교차 검증까지 완료.
+기술 포스팅은 5편 연재 완료(위 링크). 데모 영상과 최종 발표(2026-08-07)를 남겨둔 상태.
 Zybo Z7-20 (Zynq-7020, xc7z020clg400-1), Vivado/Vitis 2024.2.
 
 ---
@@ -135,10 +159,35 @@ golden model. On top of that, a CPU benchmark, an Fmax sweep, ASIC synthesis
 cross-checking, and on-board power measurement evaluate the same RTL from the
 performance, power, and area angles.
 
-```
-PC(Python) → UART → PS bare-metal C → AXI DMA → PL FIR/decimator
-                                                      ↓
-PC FFT plot / auto-judge ← UART ← DDR ← AXI DMA S2MM ←┘
+## Article Series (Velog, in Korean)
+
+A five-part write-up on the design decisions and the root-cause analysis behind each
+failure.
+
+1. [Part 1 — From block design to bitstream and XSA](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-1)
+2. [Part 2 — DDR byte[3] corruption: 16 days lost to JTAG ELF loading](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-2-DDR-byte3-%EC%98%A4%EC%97%BC)
+3. [Part 3 — MM2S never finishes: one byte over the AXI DMA length field](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-3-MM2S%EA%B0%80-%EB%81%9D%EB%82%98%EC%A7%80-%EC%95%8A%EB%8A%94%EB%8B%A4-AXI-DMA-1%EB%B0%94%EC%9D%B4%ED%8A%B8-%EC%B4%88%EA%B3%BC)
+4. [Part 4 — Four bugs in a circuit that was already working](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-4-%EB%8F%99%EC%9E%91%ED%95%98%EB%8A%94-%ED%9A%8C%EB%A1%9C%EC%97%90%EC%84%9C-%EB%B2%84%EA%B7%B8-4%EA%B0%9C%EB%A5%BC-%EC%B0%BE%EC%95%84%EB%83%88%EB%8B%A4)
+5. [Part 5 — Closing the books, in numbers](https://velog.io/@young-0320/Zynq-FIR-IP-%EA%B0%9C%EB%B0%9C-5-%EC%88%AB%EC%9E%90%EB%A1%9C-%EC%93%B0%EB%8A%94-%EA%B2%B0%EC%82%B0)
+
+```text
+PC(Python)
+ ↓
+UART
+ ↓
+PS bare-metal C
+ ↓
+AXI DMA MM2S
+ ↓
+PL FIR/decimator
+ ↓
+AXI DMA S2MM
+ ↓
+DDR
+ ↓
+UART
+ ↓
+PC FFT plot / 자동 판정
 ```
 
 (Block design diagram, FFT result plot, and CPU-vs-FPGA timing chart: see the figures
@@ -146,13 +195,13 @@ in the Korean section above — plot labels are in English.)
 
 ## Results at a Glance
 
-| Item                             | Result                                                                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| On-board functional verification | 4096 board output samples vs golden model — SNR 74.9 dB, max error 6 LSB, correlation 1.000000, PASS                                       |
-| Processing time                  | 85.0 µs for 8192 samples (3.8% off the 81.92 µs theoretical limit), 2.6× faster than CPU numpy (221.0 µs)                               |
+| Item                             | Result                                                                                                                                    |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| On-board functional verification | 4096 board output samples vs golden model — SNR 74.9 dB, max error 6 LSB, correlation 1.000000, PASS                                      |
+| Processing time                  | 85.0 µs for 8192 samples (3.8% off the 81.92 µs theoretical limit), 2.6× faster than CPU numpy (221.0 µs)                                 |
 | Fmax                             | v1 116 MHz → redesign (v2) after critical-path analysis 146 MHz, +26% — both verified on the board                                        |
 | ASIC cross-check                 | Synthesizing the same RTL on 250nm standard cells makes v1 ≈ v2 — proving the 26% gain is an optimization tied to FPGA physical structure |
-| Power                            | 2.21 W measured at the board's 5V input — decomposed the gap against Vivado's 1.705 W estimate and confirmed consistency                   |
+| Power                            | 2.21 W measured at the board's 5V input — decomposed the gap against Vivado's 1.705 W estimate and confirmed consistency                  |
 
 Details and evidence:
 
@@ -213,18 +262,18 @@ Full procedure from build to board demo:
 
 ## Repository Map
 
-| Path                         | Purpose                                                     |
-| ---------------------------- | ----------------------------------------------------------- |
-| `model/`                   | Python float/fixed-point reference models                   |
-| `rtl/transposed_form/n43/` | Main N=43 FIR/decimator RTL (v1/v2)                         |
-| `sim/`                     | Python & RTL tests, AXIS regression suite                   |
-| `vivado/`                  | Block-design/bitstream rebuild Tcl, Fmax sweep reports      |
-| `vitis/`                   | Bare-metal app & BOOT image build scripts                   |
-| `sw/`                      | PS C application + PC Python UART/FFT demo                  |
-| `asic/`                    | Oasys synthesis sweep (config, results, P&R procedure)      |
-| `boards/`                  | Digilent Zybo Z7-20 board files (for Vivado rebuild)        |
+| Path                       | Purpose                                                    |
+| -------------------------- | ---------------------------------------------------------- |
+| `model/`                   | Python float/fixed-point reference models                  |
+| `rtl/transposed_form/n43/` | Main N=43 FIR/decimator RTL (v1/v2)                        |
+| `sim/`                     | Python & RTL tests, AXIS regression suite                  |
+| `vivado/`                  | Block-design/bitstream rebuild Tcl, Fmax sweep reports     |
+| `vitis/`                   | Bare-metal app & BOOT image build scripts                  |
+| `sw/`                      | PS C application + PC Python UART/FFT demo                 |
+| `asic/`                    | Oasys synthesis sweep (config, results, P&R procedure)     |
+| `boards/`                  | Digilent Zybo Z7-20 board files (for Vivado rebuild)       |
 | `release/`                 | Verified SD boot images (BOOT.bin — demo without building) |
-| `docs/`                    | Specs, verification summaries, engineering logs, workflows  |
+| `docs/`                    | Specs, verification summaries, engineering logs, workflows |
 
 `build/` holds local build artifacts and is not tracked by git — see
 [docs/build_artifacts.md](docs/build_artifacts.md) for reproduction rules and
@@ -246,8 +295,8 @@ without translation.
 
 Mar–Aug 2026, solo project. v1.0 as of 2026-07-22 — functional verification
 (simulation + board), performance (Fmax, vs CPU), on-board power measurement, and ASIC
-synthesis cross-check complete. Remaining: public write-ups, demo video, and the final
-presentation (2026-08-07).
+synthesis cross-check complete. The five-part write-up is published (linked above).
+Remaining: demo video and the final presentation (2026-08-07).
 Zybo Z7-20 (Zynq-7020, xc7z020clg400-1), Vivado/Vitis 2024.2.
 
 ## License

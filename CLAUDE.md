@@ -2,7 +2,7 @@
 
 zynq-axi-fir-decimation-ip
 
-Updated: 2026-07-03
+Updated: 2026-08-06
 Repository root: 이 파일이 있는 디렉토리 (repo root)
 README.md root: `./README.md`
 
@@ -169,6 +169,22 @@ M4 상태: SD boot 기반 end-to-end 실시간 시연 경로 통과, 정량 스�
 완료(2026-07-22, log 46 §5 + `docs/report/fir_n43/summary/power_board_vs_vivado.md` —
 S1 2.21W, Vivado 1.705W와 정합 범위, reset 없는 반복 실행도 보드 확인). Fmax 정밀
 측정(오실로스코프 등)은 미수행(범위 제외로 문서 정리). A/B/C 결과 v1.0 문서 통합(D2)도
-완료(2026-07-22, sweep_summary 교차참조 + [TrackB] 플레이스홀더 전부 해소). 남은 작업은
-v1↔v2 교체 여부 결정(7/29 미팅, 논의 자료 `docs/log/48`)과 최종 발표(8/7) 준비 —
-마무리·공개 체크리스트는 `docs/workflow/workflow_v24.md` (마지막 워크플로우).
+완료(2026-07-22, sweep_summary 교차참조 + [TrackB] 플레이스홀더 전부 해소).
+
+기술 작업은 전부 종료되었다. 이후는 제출·발표·공개 자산화 단계이며 진행 상황은
+`docs/workflow/workflow_v24.md`(마지막 워크플로우)의 "현재 상태" 표가 기준이다.
+
+- 결과보고서 제출 완료 (2026-07-23)
+- 5차 지도미팅 완료 (2026-07-29) — 추가 지시 없음, **v1↔v2는 v2로 확정**(log 48 §4).
+  이후 발표자료·배포 이미지·전력 실측 기준이 모두 v2@145MHz로 통일됨
+- GitHub public 전환 완료 (2026-08-06) —
+  https://github.com/young-0320/zynq-fir-decimation-ip
+  장학·제출 서류(pdf/hwp, 보고서 초안 md 2종, 발표 구성안)는 레포에서 제외됨.
+  이 문서들을 참조하는 문장을 새로 쓰지 말 것 (log/workflow의 기존 언급은 원본 보존)
+- Velog 연재 5편 게시 완료 (2026-08-06) — README 한/영 "개발 연재" 섹션에 링크.
+  5편 작성 중 확인된 사항은 workflow_v24 §5에 기록 (N=43 선정 근거, 45MHz 실측값이
+  필터 성능이 아니라 측정 하한이라는 점, 25MHz 정규화 오프셋 상쇄, CPU 221.0µs의 성격)
+- YouTube 데모 영상은 발표 후로 연기
+
+남은 작업: 최종 발표(2026-08-07) 수행 → workflow_v24 §8 종료 처리(발표 피드백 log 51,
+CLAUDE.md 완결 표시, `v1.0` tag).
