@@ -137,9 +137,9 @@ uv run python sw/fir_decimator_demo.py --mode 1-1 --port /dev/ttyUSB1 --timeout 
 
 ## Status
 
-수행 기간 2026-03 ~ 2026-08, 1인 수행. 2026-07-22 기준 v1.0 — 기능 검증(시뮬레이션·
-실보드), 성능(Fmax·CPU 대비), 보드 전력 실측, ASIC 합성 교차 검증까지 완료.
-기술 포스팅은 5편 연재 완료(위 링크). 데모 영상과 최종 발표(2026-08-07)를 남겨둔 상태.
+수행 기간 2026-03 ~ 2026-08, 1인 수행. **완료.** v1.0 — 기능 검증(시뮬레이션·실보드),
+성능(Fmax·CPU 대비), 보드 전력 실측, ASIC 합성 교차 검증까지 마쳤고, 기술 포스팅
+5편 연재(위 링크)와 최종 발표(2026-08-07)로 마무리했다.
 Zybo Z7-20 (Zynq-7020, xc7z020clg400-1), Vivado/Vitis 2024.2.
 
 ---
@@ -293,10 +293,10 @@ without translation.
 
 ## Status
 
-Mar–Aug 2026, solo project. v1.0 as of 2026-07-22 — functional verification
-(simulation + board), performance (Fmax, vs CPU), on-board power measurement, and ASIC
-synthesis cross-check complete. The five-part write-up is published (linked above).
-Remaining: demo video and the final presentation (2026-08-07).
+Mar–Aug 2026, solo project. **Complete.** v1.0 — functional verification (simulation +
+board), performance (Fmax, vs CPU), on-board power measurement, and ASIC synthesis
+cross-check are all done, wrapped up with the five-part write-up (linked above) and the
+final presentation (2026-08-07).
 Zybo Z7-20 (Zynq-7020, xc7z020clg400-1), Vivado/Vitis 2024.2.
 
 ## License
